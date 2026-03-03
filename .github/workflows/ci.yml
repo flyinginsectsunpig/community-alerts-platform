@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  java-api:
+    name: Java API Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/java-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Run tests
+        run: mvn -B test
+
+  notification-api-dotnet:
+    name: .NET Notification Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/notification-api-dotnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore and build
+        run: dotnet build CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj --configuration Release
+
+  ml-api-python:
+    name: Python ML Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ml-api-python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements.txt pytest
+      - name: Run tests
+        run: python -m pytest app/tests -q
+
