@@ -57,6 +57,11 @@ build/
 .npm/
 .pnpm-store/
 yarn-error.log*
+**/.next/
+**/.turbo/
+**/out/
+**/coverage/
+*.tsbuildinfo
 
 # Java / Maven / Gradle
 target/
