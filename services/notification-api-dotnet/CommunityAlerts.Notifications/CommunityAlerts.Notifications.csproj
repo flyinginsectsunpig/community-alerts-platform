@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CommunityAlerts.Notifications</RootNamespace>
+    <AssemblyName>CommunityAlerts.Notifications</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- EF Core + SQLite (swap for SQL Server / PostgreSQL in production) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore"               Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"        Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools"         Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"        Version="8.0.0" />
+
+    <!-- Validation + OpenAPI -->
+    <PackageReference Include="FluentValidation.AspNetCore"                 Version="11.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore"                      Version="6.5.0" />
+
+    <!-- MailKit — production-ready SMTP client (replaces System.Net.Mail) -->
+    <PackageReference Include="MailKit"                                     Version="4.3.0" />
+
+    <!-- HTTP client factory for calling Spring Boot + Python services -->
+    <PackageReference Include="Microsoft.Extensions.Http"                   Version="8.0.0" />
+
+    <!-- Polly — resilience and retry policies on outbound HTTP -->
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience"        Version="8.0.0" />
+
+    <!-- Serilog structured logging -->
+    <PackageReference Include="Serilog.AspNetCore"                          Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console"                       Version="5.0.1" />
+  </ItemGroup>
+
+</Project>

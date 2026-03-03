@@ -1,0 +1,87 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors / IDE
+.idea/
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.tmp
+
+# Logs / runtime
+*.log
+logs/
+*.pid
+*.seed
+*.out
+*.err
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# Archives / backups
+*.zip
+*.tar
+*.gz
+*.7z
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.npm/
+.pnpm-store/
+yarn-error.log*
+
+# Java / Maven / Gradle
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
+build/
+
+# .NET
+bin/
+obj/
+*.rsuser
+*.db
+*.sqlite
+
+# Docker
+*.pid
+
+# Project-local tooling cache
+.tools/
+
+# Test output
+test-results/
+reports/
+

@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: community-alerts
+
+  datasource:
+    url: jdbc:h2:mem:communityalertsdb;DB_CLOSE_DELAY=-1;NON_KEYWORDS=VALUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+
+# Community Alerts config
+app:
+  rate-limit:
+    incident-capacity: 10      # max 10 new incidents per minute per IP
+    comment-capacity: 20       # max 20 comments per minute per IP
+  heat:
+    weights:
+      crime: 5
+      fire: 4
+      suspicious: 3
+      accident: 2
+      power: 1
+      info: 1
+    recency-days-full: 7       # incidents within 7 days → full weight
+    recency-days-half: 30      # incidents 7–30 days → half weight

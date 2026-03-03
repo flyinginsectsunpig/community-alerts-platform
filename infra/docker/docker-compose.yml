@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Community Alerts — Backend Services Docker Compose
+#
+# Services:
+#   backend-java          Spring Boot API         → localhost:8080
+#   backend-ml-python     FastAPI ML service      → localhost:8001
+#   backend-csharp        .NET notification svc   → localhost:5001
+#
+# Usage:
+#   docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Spring Boot API ──────────────────────────────────────────────────────────
+  backend-java:
+    build:
+      context: ../../services/java-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - NOTIFICATION_SERVICE_URL=http://backend-csharp:5001
+    depends_on:
+      - backend-csharp
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/suburbs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Python ML Service ─────────────────────────────────────────────────────
+  backend-ml-python:
+    build:
+      context: ../../services/ml-api-python
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/api/v1/ml/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── C# Notification Service ───────────────────────────────────────────────
+  backend-csharp:
+    build:
+      context: ../../services/notification-api-dotnet
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - ServiceUrls__SpringBoot=http://backend-java:8080
+      - ServiceUrls__MLService=http://backend-ml-python:8001
+      - Email__Mode=Log     # Change to "Send" with SMTP credentials in production
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  community-net:
+    driver: bridge
