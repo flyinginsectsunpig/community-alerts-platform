@@ -1,8 +1,10 @@
 import { runtimeConfig } from './config/runtimeConfig.js';
-import { TYPE_CONFIG } from './constants/typeConfig.js';
+import { TYPE_CONFIG, UI_TO_BACKEND_TYPE } from './constants/typeConfig.js';
 import { FALLBACK_SUBURBS, FORUM_POSTS, SEED_INCIDENTS } from './data/fallbackData.js';
 import { loadLeaflet, MapManager } from './map/leaflet.js';
 import { CommunityApi } from './services/communityApi.js';
+import { MlApi } from './services/mlApi.js';
+import { NotificationApi } from './services/notificationApi.js';
 import { AppState } from './state/appState.js';
 import { $, $$ } from './utils/dom.js';
 import { escapeHtml } from './utils/format.js';
@@ -14,8 +16,16 @@ import {
 } from './utils/mappers.js';
 import { renderForum, renderIncidentPanel, renderSuburbList, updateStats } from './ui/renderers.js';
 
-const api = new CommunityApi(runtimeConfig.javaApiBaseUrl);
+const javaApi = new CommunityApi(runtimeConfig.javaApiBaseUrl);
+const mlApi = new MlApi(runtimeConfig.mlApiBaseUrl);
+const notificationApi = new NotificationApi(runtimeConfig.csharpApiBaseUrl);
 const state = new AppState([...FALLBACK_SUBURBS], [...SEED_INCIDENTS], structuredClone(FORUM_POSTS));
+
+const LOCAL_SUBSCRIBER_ID_KEY = 'community_alerts_subscriber_id';
+
+let mlConnected = false;
+let notificationConnected = false;
+let subscriberId = null;
 
 const panelElements = {
   panel: $('incidentPanel'),
@@ -80,27 +90,202 @@ function refreshUi() {
   mapManager.renderIncidentMarkers(state.incidents, state.activeFilters, escapeHtml);
 }
 
+function mapUrgencyToSeverity(urgency) {
+  switch (urgency) {
+    case 'CRITICAL':
+      return 5;
+    case 'HIGH':
+      return 4;
+    case 'MEDIUM':
+      return 3;
+    case 'LOW':
+      return 2;
+    default:
+      return 3;
+  }
+}
+
+function parseIncidentDate(incident) {
+  if (!incident.createdAt) return null;
+  const date = new Date(incident.createdAt);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getSuburbIncidentMetrics(suburbId) {
+  const now = Date.now();
+  const msInDay = 86400000;
+
+  const incidentsInSuburb = state.incidents.filter((incident) => incident.suburb === suburbId);
+
+  const incidentsLast7 = incidentsInSuburb.filter((incident) => {
+    const dt = parseIncidentDate(incident);
+    return dt ? now - dt.getTime() <= 7 * msInDay : true;
+  }).length;
+
+  const incidentsLast30 = incidentsInSuburb.filter((incident) => {
+    const dt = parseIncidentDate(incident);
+    return dt ? now - dt.getTime() <= 30 * msInDay : true;
+  }).length;
+
+  const countByType = (type) => incidentsInSuburb.filter((incident) => incident.type === type).length;
+
+  return {
+    incidentsLast7,
+    incidentsLast30,
+    crimeCount: countByType('crime'),
+    fireCount: countByType('fire'),
+    suspiciousCount: countByType('suspicious'),
+    accidentCount: countByType('accident'),
+  };
+}
+
 async function hydrateFromBackend() {
   try {
-    const suburbsResponse = await api.getSuburbs();
+    const suburbsResponse = await javaApi.getSuburbs();
     const suburbs = suburbsResponse.map(mapSuburbResponse);
     if (suburbs.length) {
       state.setSuburbs(suburbs);
     }
 
-    const incidentPage = await api.getIncidents(200);
+    const incidentPage = await javaApi.getIncidents(200);
     const incidents = (incidentPage.content || []).map(mapIncidentResponse);
     if (incidents.length) {
       state.setIncidents(incidents);
     }
 
     state.backendConnected = true;
-    showToast('Connected to backend services');
+    showToast('Connected to Java backend');
   } catch (error) {
     state.backendConnected = false;
-    console.warn('Backend bootstrap failed, using fallback data', error);
-    showToast('Backend unavailable. Using local demo data.');
+    console.warn('Java backend bootstrap failed, using fallback data', error);
+    showToast('Java backend unavailable. Using local demo data.');
   }
+}
+
+async function connectMlService() {
+  try {
+    const health = await mlApi.getHealth();
+    mlConnected = health?.status === 'ok' || health?.status === 'initialising';
+    if (mlConnected) showToast('Connected to ML service');
+  } catch (error) {
+    mlConnected = false;
+    console.warn('ML service unavailable', error);
+  }
+}
+
+function getStoredSubscriberId() {
+  const raw = window.localStorage.getItem(LOCAL_SUBSCRIBER_ID_KEY);
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+async function ensureNotificationSubscriber() {
+  try {
+    const health = await notificationApi.getHealth();
+    notificationConnected = health?.status === 'ok';
+    if (!notificationConnected) return;
+
+    const stored = getStoredSubscriberId();
+    if (stored) {
+      try {
+        await notificationApi.getSubscriber(stored);
+        subscriberId = stored;
+        return;
+      } catch {
+        window.localStorage.removeItem(LOCAL_SUBSCRIBER_ID_KEY);
+      }
+    }
+
+    const unique = Date.now().toString(36);
+    const created = await notificationApi.createSubscriber({
+      email: `webmap+${unique}@communityalerts.local`,
+      username: 'WebMapUser',
+      pushToken: null,
+    });
+
+    subscriberId = created.id;
+    window.localStorage.setItem(LOCAL_SUBSCRIBER_ID_KEY, String(created.id));
+    showToast('Connected to notification service');
+  } catch (error) {
+    notificationConnected = false;
+    console.warn('Notification service unavailable', error);
+  }
+}
+
+async function ensureSubscribedToSuburb(suburbId, suburbName) {
+  if (!notificationConnected || !subscriberId) return;
+
+  try {
+    await notificationApi.createSubscription(subscriberId, {
+      suburbId,
+      suburbName,
+      minimumAlertLevel: 'YELLOW',
+      notifyByEmail: true,
+      notifyByPush: false,
+    });
+  } catch (error) {
+    if (!String(error.message || '').includes('409')) {
+      console.warn('Suburb subscription failed', error);
+    }
+  }
+}
+
+async function enrichIncidentWithMl(draftIncident) {
+  if (!mlConnected) return draftIncident;
+
+  const enriched = { ...draftIncident };
+
+  try {
+    const [entities, urgency] = await Promise.all([
+      mlApi.extractEntities(enriched.description),
+      mlApi.classifyUrgency({
+        title: enriched.title,
+        description: enriched.description,
+        incidentType: UI_TO_BACKEND_TYPE[enriched.type],
+      }),
+    ]);
+
+    const autoTags = entities?.auto_tags || [];
+    if (autoTags.length) {
+      enriched.tags = autoTags.slice(0, 6);
+    }
+
+    if (urgency?.urgency) {
+      enriched.severity = Math.max(enriched.severity, mapUrgencyToSeverity(urgency.urgency));
+    }
+  } catch (error) {
+    console.warn('ML entity/urgency enrichment failed', error);
+  }
+
+  try {
+    const suburb = state.suburbs.find((item) => item.id === enriched.suburb);
+    if (suburb) {
+      const metrics = getSuburbIncidentMetrics(enriched.suburb);
+      const now = new Date();
+
+      const heat = await mlApi.predictHeat({
+        suburb_id: suburb.id,
+        current_score: suburb.weight,
+        incidents_last_7_days: metrics.incidentsLast7,
+        incidents_last_30_days: metrics.incidentsLast30,
+        crime_count: metrics.crimeCount,
+        fire_count: metrics.fireCount,
+        suspicious_count: metrics.suspiciousCount,
+        accident_count: metrics.accidentCount,
+        hour_of_day: now.getHours(),
+        day_of_week: (now.getDay() + 6) % 7,
+      });
+
+      if (heat?.predicted_alert_level) {
+        showToast(`ML forecast: ${suburb.name} trending ${heat.predicted_alert_level}`);
+      }
+    }
+  } catch (error) {
+    console.warn('ML heat prediction failed', error);
+  }
+
+  return enriched;
 }
 
 async function openIncident(incidentId) {
@@ -111,7 +296,7 @@ async function openIncident(incidentId) {
 
   if (state.backendConnected && incident.isFromBackend) {
     try {
-      const commentsResponse = await api.getIncidentComments(incident.id);
+      const commentsResponse = await javaApi.getIncidentComments(incident.id);
       const comments = commentsResponse.map(mapCommentResponse);
       state.updateIncident(incident.id, (current) => ({
         ...current,
@@ -161,7 +346,7 @@ async function submitPing() {
   const lng = state.pendingLatLng ? state.pendingLatLng.lng : 18.53 + (Math.random() - 0.5) * 0.05;
   const suburbId = nearestSuburbId(lat, lng);
 
-  const draft = {
+  const baseDraft = {
     id: Date.now(),
     suburb: suburbId,
     type: state.selectedType,
@@ -176,6 +361,8 @@ async function submitPing() {
     commentCount: 0,
   };
 
+  const draft = await enrichIncidentWithMl(baseDraft);
+
   if (state.backendConnected) {
     try {
       const payload = buildIncidentCreateRequest({
@@ -189,12 +376,15 @@ async function submitPing() {
         severity: draft.severity,
       });
 
-      const createdIncident = await api.createIncident(payload);
+      const createdIncident = await javaApi.createIncident(payload);
       const mapped = mapIncidentResponse(createdIncident);
       state.addIncident(mapped);
 
-      const suburbsResponse = await api.getSuburbs();
+      const suburbsResponse = await javaApi.getSuburbs();
       state.setSuburbs(suburbsResponse.map(mapSuburbResponse));
+
+      await ensureSubscribedToSuburb(mapped.suburb, getSuburbName(mapped.suburb));
+
       showToast(`${TYPE_CONFIG[state.selectedType].emoji} Alert saved to backend`);
       await openIncident(mapped.id);
     } catch (error) {
@@ -229,7 +419,7 @@ async function submitComment() {
 
   if (state.backendConnected && incident.isFromBackend) {
     try {
-      await api.addIncidentComment(incident.id, {
+      await javaApi.addIncidentComment(incident.id, {
         username: 'WebUser',
         text,
         descriptionMatch: false,
@@ -408,7 +598,12 @@ async function bootstrap() {
     },
   });
 
-  await hydrateFromBackend();
+  await Promise.all([
+    hydrateFromBackend(),
+    connectMlService(),
+    ensureNotificationSubscriber(),
+  ]);
+
   mapManager.init(state.suburbs);
   refreshUi();
   bindEvents();

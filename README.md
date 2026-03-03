@@ -72,3 +72,11 @@ Backend API defaults used by the frontend:
 - Java API: `http://localhost:8080`
 - ML API: `http://localhost:8001`
 - C# API: `http://localhost:5001`
+
+## Frontend Integration Coverage
+
+The web map now uses all backend services:
+
+- Java API (`8080`): suburbs, incidents, incident comments
+- ML API (`8001`): entity extraction, urgency classification, heat prediction on alert submit
+- C# API (`5001`): notification service health, subscriber registration, suburb subscription

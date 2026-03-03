@@ -24,6 +24,7 @@ export function mapIncidentResponse(incident) {
     lat: incident.latitude,
     lng: incident.longitude,
     severity: incident.severity || 3,
+    createdAt: incident.createdAt || null,
     comments: [],
     commentCount: incident.commentCount || 0,
     isFromBackend: true,
