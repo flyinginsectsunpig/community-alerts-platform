@@ -6,6 +6,17 @@ import { communityApi, mlApi } from '@/lib/api';
 import type { Suburb, Incident } from '@/lib/types';
 import { BACKEND_TO_UI_TYPE } from '@/lib/constants';
 
+// ─── Module-level flag ────────────────────────────────────────────────────────
+// React StrictMode (enabled by default in Next.js dev) intentionally mounts →
+// unmounts → remounts every component, causing useEffect([]) to fire TWICE.
+// A module-level variable survives the simulated unmount, so the second mount
+// sees `bootstrapStarted = true` and bails out immediately — preventing a
+// second in-flight fetch from racing against the first and overwriting the
+// store with stale / partial data.
+let bootstrapStarted = false;
+
+// ─── Mappers ──────────────────────────────────────────────────────────────────
+
 function mapSuburb(raw: any): Suburb {
   return {
     id: raw.id,
@@ -25,7 +36,9 @@ function mapIncident(raw: any): Incident {
     title: raw.title,
     description: raw.description,
     tags: raw.tags ?? [],
-    time: raw.createdAt ? new Date(raw.createdAt).toLocaleTimeString() : 'Unknown',
+    time: raw.createdAt
+      ? new Date(raw.createdAt).toLocaleTimeString()
+      : 'Unknown',
     createdAt: raw.createdAt,
     lat: raw.latitude ?? raw.lat,
     lng: raw.longitude ?? raw.lng,
@@ -36,39 +49,67 @@ function mapIncident(raw: any): Incident {
   };
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function BackendBootstrap() {
-  const { setIncidents, setSuburbs, setBackendConnected, setMlConnected } = useStore();
+  const { setIncidents, setSuburbs, setBackendConnected, setMlConnected } =
+    useStore();
 
   useEffect(() => {
+    // ── StrictMode guard ──────────────────────────────────────────────────────
+    // If bootstrap has already started (second StrictMode invocation), skip.
+    if (bootstrapStarted) return;
+    bootstrapStarted = true;
+
+    // ── Cancellation flag ─────────────────────────────────────────────────────
+    // Set to true by the cleanup function.  Every await point checks this so
+    // that a response arriving after an unmount can never write to the store.
+    let cancelled = false;
+
     async function bootstrap() {
-      // Java backend
+      // ── Java backend ────────────────────────────────────────────────────────
       try {
         const [suburbsRaw, incidentsRaw] = await Promise.all([
           communityApi.getSuburbs() as Promise<any[]>,
-          communityApi.getAllIncidents(200) as Promise<any>,
+          communityApi.getIncidents(200) as Promise<any>,
         ]);
 
-        const suburbs = suburbsRaw.map(mapSuburb);
-        const incidents = (incidentsRaw.content ?? incidentsRaw).map(mapIncident);
+        // If the component unmounted while the fetch was in flight, stop here.
+        if (cancelled) return;
+
+        const suburbs = (suburbsRaw ?? []).map(mapSuburb);
+        const incidents = (incidentsRaw?.content ?? incidentsRaw ?? []).map(
+          mapIncident,
+        );
 
         if (suburbs.length) setSuburbs(suburbs);
         if (incidents.length) setIncidents(incidents);
         setBackendConnected(true);
       } catch {
-        // Uses fallback data from store initial state
-        setBackendConnected(false);
+        // Java API unreachable — leave fallback data in the store untouched.
+        if (!cancelled) setBackendConnected(false);
       }
 
-      // ML service
+      // ── ML service ──────────────────────────────────────────────────────────
+      if (cancelled) return;
       try {
-        const health = await mlApi.getHealth() as any;
-        setMlConnected(health?.status === 'ok' || health?.status === 'initialising');
+        const health = (await mlApi.getHealth()) as any;
+        if (!cancelled) {
+          setMlConnected(
+            health?.status === 'ok' || health?.status === 'initialising',
+          );
+        }
       } catch {
-        setMlConnected(false);
+        if (!cancelled) setMlConnected(false);
       }
     }
 
     bootstrap();
+
+    // Cleanup: mark any outstanding fetch as stale so it can't touch the store.
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return null;
