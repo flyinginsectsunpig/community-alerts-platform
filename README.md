@@ -9,6 +9,18 @@ community-alerts-platform/
   apps/
     web-map/                    # Frontend app (single-page map UI)
       index.html
+      styles/
+        main.css
+      src/
+        main.js                 # Composition root
+        config/                 # Runtime config
+        constants/              # Type + UI constants
+        data/                   # Fallback seed data
+        map/                    # Leaflet loader + map manager
+        services/               # API client abstractions
+        state/                  # App state
+        ui/                     # Rendering functions
+        utils/                  # Mapping/format helpers
 
   services/
     java-api/                   # Spring Boot incident + suburb heat API
@@ -44,3 +56,19 @@ From `infra/docker`:
 ```bash
 docker compose up --build
 ```
+
+Then run the web app from the repo root (do not open `index.html` directly from disk):
+
+```bash
+python -m http.server 5173
+```
+
+Open:
+
+`http://localhost:5173/apps/web-map/`
+
+Backend API defaults used by the frontend:
+
+- Java API: `http://localhost:8080`
+- ML API: `http://localhost:8001`
+- C# API: `http://localhost:5001`
