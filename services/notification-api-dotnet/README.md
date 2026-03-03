@@ -84,6 +84,15 @@ dotnet run
 # Swagger at http://localhost:5001/swagger
 ```
 
+### Database provider
+
+- Default: SQLite (`DatabaseProvider=Sqlite`)
+- PostgreSQL: set
+  - `DatabaseProvider=Postgres`
+  - `ConnectionStrings__Default=Host=...;Port=5432;Database=...;Username=...;Password=...`
+
+`infra/docker/docker-compose.yml` is configured to run this service on PostgreSQL by default.
+
 ---
 
 ## Docker

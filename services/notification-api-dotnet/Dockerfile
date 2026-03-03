@@ -13,8 +13,9 @@ RUN dotnet publish CommunityAlerts.Notifications/CommunityAlerts.Notifications.c
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
 WORKDIR /app
 
-# Non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Non-root user + writable directory for SQLite database
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+    && mkdir -p /data && chown appuser:appgroup /data
 USER appuser
 
 COPY --from=build /app/publish .

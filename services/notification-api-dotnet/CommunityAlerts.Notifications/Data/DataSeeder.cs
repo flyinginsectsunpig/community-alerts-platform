@@ -1,6 +1,5 @@
 using CommunityAlerts.Notifications.Data;
 using CommunityAlerts.Notifications.Models;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace CommunityAlerts.Notifications.Data;
@@ -18,7 +17,7 @@ public static class DataSeeder
         {
             if (await db.Subscribers.AnyAsync()) return;
         }
-        catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
         {
             // Recover from a partially created local DB file.
             await db.Database.EnsureDeletedAsync();

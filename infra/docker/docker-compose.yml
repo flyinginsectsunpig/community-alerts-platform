@@ -11,6 +11,23 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
+  postgres-notifications:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=notifications
+      - POSTGRES_USER=communityalerts
+      - POSTGRES_PASSWORD=communityalerts
+    ports:
+      - "5432:5432"
+    volumes:
+      - notifications-pg-data:/var/lib/postgresql/data
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U communityalerts -d notifications"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # ── Spring Boot API ──────────────────────────────────────────────────────────
   backend-java:
@@ -52,12 +69,17 @@ services:
     build:
       context: ../../services/notification-api-dotnet
       dockerfile: Dockerfile
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
     ports:
       - "5001:5001"
     environment:
       - ServiceUrls__SpringBoot=http://backend-java:8080
       - ServiceUrls__MLService=http://backend-ml-python:8001
       - Email__Mode=Log     # Change to "Send" with SMTP credentials in production
+      - DatabaseProvider=Postgres
+      - ConnectionStrings__Default=Host=postgres-notifications;Port=5432;Database=notifications;Username=communityalerts;Password=communityalerts
     networks:
       - community-net
     healthcheck:
@@ -69,3 +91,6 @@ services:
 networks:
   community-net:
     driver: bridge
+
+volumes:
+  notifications-pg-data:

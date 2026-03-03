@@ -1,0 +1,24 @@
+# Build output
+**/bin/
+**/obj/
+
+# IDE/editor
+.vs/
+.vscode/
+.idea/
+
+# VCS
+.git/
+.gitignore
+
+# Local data/logs
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.log
+
+# Docs and environment files not needed for image
+README.md
+.env
+.env.*
+

@@ -23,8 +23,20 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 builder.Services.Configure<ServiceUrls>(builder.Configuration.GetSection("ServiceUrls"));
 
 // ── Database ──────────────────────────────────────────────────────────────────
+var dbProvider = builder.Configuration["DatabaseProvider"]?.Trim().ToLowerInvariant() ?? "sqlite";
+var connectionString = builder.Configuration.GetConnectionString("Default");
+
 builder.Services.AddDbContext<NotificationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default")));
+{
+    if (dbProvider is "postgres" or "postgresql")
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlite(connectionString);
+    }
+});
 
 // ── HTTP Clients with resilience (Polly) ──────────────────────────────────────
 var serviceUrls = builder.Configuration.GetSection("ServiceUrls").Get<ServiceUrls>()!;

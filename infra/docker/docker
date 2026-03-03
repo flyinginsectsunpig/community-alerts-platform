@@ -1,0 +1,848 @@
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.86kB done
+#1 DONE 0.0s
+
+#2 [backend-java internal] load build definition from Dockerfile
+#2 transferring dockerfile: 924B 0.0s done
+#2 DONE 0.1s
+
+#3 [backend-ml-python internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.06kB 0.0s done
+#3 DONE 0.1s
+
+#4 [backend-csharp internal] load build definition from Dockerfile
+#4 transferring dockerfile: 1.20kB 0.0s done
+#4 DONE 0.1s
+
+#5 [backend-ml-python internal] load metadata for docker.io/library/python:3.12-slim
+#5 ...
+
+#6 [auth] library/python:pull token for registry-1.docker.io
+#6 DONE 0.0s
+
+#7 [auth] library/eclipse-temurin:pull token for registry-1.docker.io
+#7 DONE 0.0s
+
+#8 [backend-csharp internal] load metadata for mcr.microsoft.com/dotnet/sdk:8.0-alpine
+#8 DONE 1.2s
+
+#9 [backend-csharp internal] load metadata for mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+#9 DONE 1.2s
+
+#10 [backend-csharp internal] load .dockerignore
+#10 transferring context: 2B done
+#10 DONE 0.0s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 resolve mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1 0.0s done
+#11 ...
+
+#12 [backend-csharp internal] load build context
+#12 transferring context: 60.63kB 0.1s done
+#12 DONE 0.1s
+
+#13 [backend-java internal] load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+#13 DONE 1.5s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 ...
+
+#5 [backend-ml-python internal] load metadata for docker.io/library/python:3.12-slim
+#5 DONE 1.5s
+
+#14 [backend-ml-python internal] load .dockerignore
+#14 transferring context: 2B done
+#14 DONE 0.0s
+
+#15 [backend-ml-python internal] load build context
+#15 DONE 0.0s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 0B / 11.09MB 0.2s
+#11 sha256:43678bacae6bdcb672b225baba81f210d51cc690ee42dfa30e53332bef401e4a 0B / 155B 0.2s
+#11 ...
+
+#16 [backend-ml-python build 1/4] FROM docker.io/library/python:3.12-slim@sha256:f3fa41d74a768c2fce8016b98c191ae8c1bacd8f1152870a3f9f87d350920b7c
+#16 resolve docker.io/library/python:3.12-slim@sha256:f3fa41d74a768c2fce8016b98c191ae8c1bacd8f1152870a3f9f87d350920b7c 0.0s done
+#16 CACHED
+
+#17 [backend-ml-python stage-1 2/6] WORKDIR /app
+#17 CACHED
+
+#18 [backend-ml-python build 2/4] WORKDIR /install
+#18 DONE 0.1s
+
+#15 [backend-ml-python internal] load build context
+#15 transferring context: 64.24kB 0.0s done
+#15 DONE 0.1s
+
+#19 [backend-ml-python build 3/4] COPY requirements.txt .
+#19 DONE 0.0s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 0B / 32.27MB 0.2s
+#11 sha256:ab38b66c7688a865d28fc68539928d1ff168fcc0e47eec7dc13aee44652d2ee2 0B / 949B 0.2s
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 1.05MB / 11.09MB 0.6s
+#11 sha256:43678bacae6bdcb672b225baba81f210d51cc690ee42dfa30e53332bef401e4a 155B / 155B 0.5s done
+#11 ...
+
+#20 [backend-ml-python stage-1 3/6] RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+#20 DONE 0.5s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 2.10MB / 11.09MB 0.8s
+#11 sha256:ab38b66c7688a865d28fc68539928d1ff168fcc0e47eec7dc13aee44652d2ee2 949B / 949B 0.6s done
+#11 sha256:b0fca482e5cb96831dc1c19115ccd90c702a8d56e11e8df95aae972258ab190e 0B / 1.09MB 0.2s
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 3.15MB / 11.09MB 0.9s
+#11 ...
+
+#21 [backend-java internal] load metadata for docker.io/library/eclipse-temurin:21-jdk-alpine
+#21 DONE 2.7s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 ...
+
+#22 [backend-java internal] load .dockerignore
+#22 transferring context: 2B done
+#22 DONE 0.0s
+
+#23 [backend-java stage-1 1/4] FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:6ad8ed080d9be96b61438ec3ce99388e294af216ed57356000c06070e85c5d5d
+#23 resolve docker.io/library/eclipse-temurin:21-jre-alpine@sha256:6ad8ed080d9be96b61438ec3ce99388e294af216ed57356000c06070e85c5d5d 0.0s done
+#23 DONE 0.0s
+
+#24 [backend-java stage-1 2/4] WORKDIR /app
+#24 CACHED
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 ...
+
+#25 [backend-java internal] load build context
+#25 transferring context: 69.53kB 0.2s done
+#25 DONE 0.2s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 4.19MB / 11.09MB 1.7s
+#11 sha256:b0fca482e5cb96831dc1c19115ccd90c702a8d56e11e8df95aae972258ab190e 1.09MB / 1.09MB 1.2s done
+#11 extracting sha256:b0fca482e5cb96831dc1c19115ccd90c702a8d56e11e8df95aae972258ab190e
+#11 ...
+
+#26 [backend-java stage-1 3/4] RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+#26 DONE 0.4s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 extracting sha256:b0fca482e5cb96831dc1c19115ccd90c702a8d56e11e8df95aae972258ab190e 0.0s done
+#11 extracting sha256:ab38b66c7688a865d28fc68539928d1ff168fcc0e47eec7dc13aee44652d2ee2 0.0s done
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 5.24MB / 11.09MB 2.3s
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 6.29MB / 11.09MB 4.7s
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 2.10MB / 32.27MB 5.3s
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 7.34MB / 11.09MB 8.7s
+#11 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 resolve docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f 0.0s done
+#27 sha256:32b736977b63e2d08f494efff566b76b53223018ba70ef3f070289f1f0830e61 2.28kB / 2.28kB 0.6s done
+#27 sha256:6d0b3aa0fc9566eb09be60af94e6aa6908c7e5e316b531ec5a22f49ee8685b66 126B / 126B 0.7s done
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 9.44MB / 158.12MB 7.5s
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 11.53MB / 21.32MB 7.5s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 resolve mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745 0.0s done
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 5.24MB / 17.39MB 9.1s
+#28 sha256:eb2835aa8d908e3430c66c5e01e8952ebff065da2d4bf799d5e2be434a848762 2.59kB / 2.59kB 0.4s done
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 3.15MB / 178.34MB 7.8s
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 13.63MB / 21.32MB 8.4s
+#27 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 2.193 Requirement already satisfied: pip in /usr/local/lib/python3.12/site-packages (25.0.1)
+#29 2.339 Collecting pip
+#29 2.408   Downloading pip-26.0.1-py3-none-any.whl.metadata (4.7 kB)
+#29 2.423 Downloading pip-26.0.1-py3-none-any.whl (1.8 MB)
+#29 5.435    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 527.7 kB/s eta 0:00:00
+#29 5.457 Installing collected packages: pip
+#29 5.457   Attempting uninstall: pip
+#29 5.460     Found existing installation: pip 25.0.1
+#29 5.506     Uninstalling pip-25.0.1:
+#29 5.737       Successfully uninstalled pip-25.0.1
+#29 6.694 Successfully installed pip-26.0.1
+#29 6.694 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#29 7.633 Collecting fastapi==0.116.1 (from -r requirements.txt (line 1))
+#29 7.957   Downloading fastapi-0.116.1-py3-none-any.whl.metadata (28 kB)
+#29 8.056 Collecting uvicorn==0.35.0 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 8.062   Downloading uvicorn-0.35.0-py3-none-any.whl.metadata (6.5 kB)
+#29 9.208 Collecting numpy==2.2.4 (from -r requirements.txt (line 3))
+#29 9.223   Downloading numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+#29 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 15.73MB / 21.32MB 9.3s
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 17.83MB / 21.32MB 10.3s
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 19.92MB / 21.32MB 11.3s
+#27 sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 21.32MB / 21.32MB 11.9s done
+#27 extracting sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c
+#27 extracting sha256:ebf27b2f1dcc34bb3592032d2fca01d720abfd1e6baa1293e287a9ccab686e2c 0.6s done
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 16.78MB / 158.12MB 12.6s
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 25.17MB / 158.12MB 15.4s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 6.29MB / 17.39MB 16.4s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 6.29MB / 178.34MB 15.0s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 0B / 21.67MB 0.5s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 7.34MB / 17.39MB 17.4s
+#28 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 11.09MB / 11.09MB 16.6s done
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 6.29MB / 32.27MB 19.0s
+#11 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 8.39MB / 17.39MB 19.6s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 2.10MB / 21.67MB 4.5s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 11.72 Collecting pandas==2.3.0 (from -r requirements.txt (line 4))
+#29 11.73   Downloading pandas-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (91 kB)
+#29 12.88 Collecting scikit-learn==1.7.1 (from -r requirements.txt (line 5))
+#29 12.89   Downloading scikit_learn-1.7.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (11 kB)
+#29 13.29 Collecting pydantic==2.11.7 (from -r requirements.txt (line 6))
+#29 13.30   Downloading pydantic-2.11.7-py3-none-any.whl.metadata (67 kB)
+#29 13.39 Collecting joblib==1.4.2 (from -r requirements.txt (line 7))
+#29 13.39   Downloading joblib-1.4.2-py3-none-any.whl.metadata (5.4 kB)
+#29 13.61 Collecting spacy==3.8.7 (from -r requirements.txt (line 8))
+#29 13.62   Downloading spacy-3.8.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (27 kB)
+#29 13.67 Collecting starlette<0.48.0,>=0.40.0 (from fastapi==0.116.1->-r requirements.txt (line 1))
+#29 13.68   Downloading starlette-0.47.3-py3-none-any.whl.metadata (6.2 kB)
+#29 13.71 Collecting typing-extensions>=4.8.0 (from fastapi==0.116.1->-r requirements.txt (line 1))
+#29 13.71   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+#29 13.73 Collecting annotated-types>=0.6.0 (from pydantic==2.11.7->-r requirements.txt (line 6))
+#29 13.74   Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+#29 16.96 Collecting pydantic-core==2.33.2 (from pydantic==2.11.7->-r requirements.txt (line 6))
+#29 16.96   Downloading pydantic_core-2.33.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+#29 16.98 Collecting typing-inspection>=0.4.0 (from pydantic==2.11.7->-r requirements.txt (line 6))
+#29 16.98   Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+#29 17.02 Collecting click>=7.0 (from uvicorn==0.35.0->uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 17.02   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+#29 17.04 Collecting h11>=0.8 (from uvicorn==0.35.0->uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 17.68   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+#29 17.70 Collecting python-dateutil>=2.8.2 (from pandas==2.3.0->-r requirements.txt (line 4))
+#29 17.70   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+#29 17.82 Collecting pytz>=2020.1 (from pandas==2.3.0->-r requirements.txt (line 4))
+#29 17.85   Downloading pytz-2026.1.post1-py2.py3-none-any.whl.metadata (22 kB)
+#29 17.92 Collecting tzdata>=2022.7 (from pandas==2.3.0->-r requirements.txt (line 4))
+#29 17.93   Downloading tzdata-2025.3-py2.py3-none-any.whl.metadata (1.4 kB)
+#29 18.81 Collecting scipy>=1.8.0 (from scikit-learn==1.7.1->-r requirements.txt (line 5))
+#29 18.81   Downloading scipy-1.17.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+#29 18.90 Collecting threadpoolctl>=3.1.0 (from scikit-learn==1.7.1->-r requirements.txt (line 5))
+#29 18.90   Downloading threadpoolctl-3.6.0-py3-none-any.whl.metadata (13 kB)
+#29 18.93 Collecting spacy-legacy<3.1.0,>=3.0.11 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 18.93   Downloading spacy_legacy-3.0.12-py2.py3-none-any.whl.metadata (2.8 kB)
+#29 18.95 Collecting spacy-loggers<2.0.0,>=1.0.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 18.95   Downloading spacy_loggers-1.0.5-py3-none-any.whl.metadata (23 kB)
+#29 19.05 Collecting murmurhash<1.1.0,>=0.28.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 19.06   Downloading murmurhash-1.0.15-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl.metadata (2.3 kB)
+#29 19.19 Collecting cymem<2.1.0,>=2.0.2 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 19.20   Downloading cymem-2.0.13-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (9.7 kB)
+#29 19.27 Collecting preshed<3.1.0,>=3.0.2 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 19.28   Downloading preshed-3.0.12-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl.metadata (2.5 kB)
+#29 19.68 Collecting thinc<8.4.0,>=8.3.4 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 19.68   Downloading thinc-8.3.10-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (15 kB)
+#29 20.20 Collecting wasabi<1.2.0,>=0.9.1 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.20   Downloading wasabi-1.1.3-py3-none-any.whl.metadata (28 kB)
+#29 20.32 Collecting srsly<3.0.0,>=2.4.3 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.32   Downloading srsly-2.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (19 kB)
+#29 20.35 Collecting catalogue<2.1.0,>=2.0.6 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.35   Downloading catalogue-2.0.10-py3-none-any.whl.metadata (14 kB)
+#29 20.38 Collecting weasel<0.5.0,>=0.1.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.38   Downloading weasel-0.4.3-py3-none-any.whl.metadata (4.6 kB)
+#29 20.63 Collecting typer<1.0.0,>=0.3.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.64   Downloading typer-0.24.1-py3-none-any.whl.metadata (16 kB)
+#29 20.72 Collecting tqdm<5.0.0,>=4.38.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 20.96   Downloading tqdm-4.67.3-py3-none-any.whl.metadata (57 kB)
+#29 21.08 Collecting requests<3.0.0,>=2.13.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 21.09   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+#29 21.13 Collecting jinja2 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 21.13   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#29 21.47 Collecting setuptools (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 21.47   Downloading setuptools-82.0.0-py3-none-any.whl.metadata (6.6 kB)
+#29 21.51 Collecting packaging>=20.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 21.51   Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+#29 21.74 Collecting langcodes<4.0.0,>=3.2.0 (from spacy==3.8.7->-r requirements.txt (line 8))
+#29 21.75   Downloading langcodes-3.5.1-py3-none-any.whl.metadata (30 kB)
+#29 21.82 Collecting httptools>=0.6.3 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 21.83   Downloading httptools-0.7.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (3.5 kB)
+#29 21.85 Collecting python-dotenv>=0.13 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 21.85   Downloading python_dotenv-1.2.2-py3-none-any.whl.metadata (27 kB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 9.44MB / 17.39MB 21.4s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 9.44MB / 178.34MB 20.1s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 10.49MB / 17.39MB 23.4s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 4.19MB / 21.67MB 8.7s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 11.53MB / 17.39MB 25.6s
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 50.33MB / 158.12MB 25.5s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 12.58MB / 178.34MB 25.2s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 12.58MB / 17.39MB 27.7s
+#28 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 11.53MB / 32.27MB 29.4s
+#11 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 6.29MB / 21.67MB 13.7s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 13.63MB / 17.39MB 29.9s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 14.68MB / 178.34MB 30.3s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 22.00 Collecting pyyaml>=5.1 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 22.01   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+#29 22.11 Collecting uvloop>=0.15.1 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 22.11   Downloading uvloop-0.22.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.9 kB)
+#29 22.32 Collecting watchfiles>=0.13 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 22.33   Downloading watchfiles-1.1.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+#29 22.56 Collecting websockets>=10.4 (from uvicorn[standard]==0.35.0->-r requirements.txt (line 2))
+#29 22.57   Downloading websockets-16.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (6.8 kB)
+#29 22.76 Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.13.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 22.76   Downloading charset_normalizer-3.4.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+#29 22.80 Collecting idna<4,>=2.5 (from requests<3.0.0,>=2.13.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 22.81   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+#29 22.85 Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.13.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 22.85   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+#29 22.88 Collecting certifi>=2017.4.17 (from requests<3.0.0,>=2.13.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 22.88   Downloading certifi-2026.2.25-py3-none-any.whl.metadata (2.5 kB)
+#29 22.91 Collecting anyio<5,>=3.6.2 (from starlette<0.48.0,>=0.40.0->fastapi==0.116.1->-r requirements.txt (line 1))
+#29 22.92   Downloading anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+#29 23.07 Collecting blis<1.4.0,>=1.3.0 (from thinc<8.4.0,>=8.3.4->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.08   Downloading blis-1.3.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (7.5 kB)
+#29 23.15 Collecting confection<1.0.0,>=0.0.1 (from thinc<8.4.0,>=8.3.4->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.16   Downloading confection-0.1.5-py3-none-any.whl.metadata (19 kB)
+#29 23.22 Collecting shellingham>=1.3.0 (from typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.23   Downloading shellingham-1.5.4-py2.py3-none-any.whl.metadata (3.5 kB)
+#29 23.32 Collecting rich>=12.3.0 (from typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.32   Downloading rich-14.3.3-py3-none-any.whl.metadata (18 kB)
+#29 23.36 Collecting annotated-doc>=0.0.2 (from typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.37   Downloading annotated_doc-0.0.4-py3-none-any.whl.metadata (6.6 kB)
+#29 23.40 Collecting typer-slim<1.0.0,>=0.3.0 (from weasel<0.5.0,>=0.1.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.41   Downloading typer_slim-0.24.0-py3-none-any.whl.metadata (4.2 kB)
+#29 23.43 Collecting cloudpathlib<1.0.0,>=0.7.0 (from weasel<0.5.0,>=0.1.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.44   Downloading cloudpathlib-0.23.0-py3-none-any.whl.metadata (16 kB)
+#29 23.48 Collecting smart-open<8.0.0,>=5.2.1 (from weasel<0.5.0,>=0.1.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.48   Downloading smart_open-7.5.1-py3-none-any.whl.metadata (24 kB)
+#29 23.88 Collecting wrapt (from smart-open<8.0.0,>=5.2.1->weasel<0.5.0,>=0.1.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.89   Downloading wrapt-2.1.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (7.4 kB)
+#29 23.91 Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas==2.3.0->-r requirements.txt (line 4))
+#29 23.92   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+#29 23.94 Collecting markdown-it-py>=2.2.0 (from rich>=12.3.0->typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.94   Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+#29 23.98 Collecting pygments<3.0.0,>=2.13.0 (from rich>=12.3.0->typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 23.99   Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+#29 24.00 Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich>=12.3.0->typer<1.0.0,>=0.3.0->spacy==3.8.7->-r requirements.txt (line 8))
+#29 24.00   Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+#29 24.24 Collecting MarkupSafe>=2.0 (from jinja2->spacy==3.8.7->-r requirements.txt (line 8))
+#29 24.25   Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+#29 24.26 Downloading fastapi-0.116.1-py3-none-any.whl (95 kB)
+#29 24.34 Downloading pydantic-2.11.7-py3-none-any.whl (444 kB)
+#29 24.85 Downloading uvicorn-0.35.0-py3-none-any.whl (66 kB)
+#29 24.92 Downloading numpy-2.2.4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.1 MB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 14.68MB / 17.39MB 32.4s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 8.39MB / 21.67MB 18.2s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 15.73MB / 17.39MB 34.3s
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 77.59MB / 158.12MB 35.7s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 16.78MB / 178.34MB 35.4s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 16.78MB / 17.39MB 37.5s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 10.49MB / 21.67MB 22.9s
+#28 sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 17.39MB / 17.39MB 39.0s done
+#28 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 17.83MB / 32.27MB 39.7s
+#11 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 19.92MB / 178.34MB 40.5s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 12.58MB / 21.67MB 26.7s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 14.68MB / 21.67MB 30.7s
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 104.86MB / 158.12MB 45.9s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 23.07MB / 178.34MB 45.6s
+#28 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 23.07MB / 32.27MB 50.1s
+#11 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 16.78MB / 21.67MB 34.2s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 25.17MB / 178.34MB 50.7s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 18.87MB / 21.67MB 38.4s
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 131.07MB / 158.12MB 56.1s
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 27.26MB / 178.34MB 55.8s
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 20.97MB / 21.67MB 42.3s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 49.62    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.1/16.1 MB 650.9 kB/s  0:00:24
+#29 49.62 Downloading pandas-2.3.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (12.0 MB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 21.67MB / 21.67MB 43.7s done
+#28 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 28.31MB / 32.27MB 60.4s
+#11 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 60.24    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.0/12.0 MB 1.1 MB/s  0:00:10
+#29 60.25 Downloading scikit_learn-1.7.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (9.5 MB)
+#29 ...
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 32.27MB / 32.27MB 65.5s done
+#11 DONE 65.7s
+
+#11 [backend-csharp stage-1 1/4] FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:f7c13dc6c0bfc8f988a3677b739296c95794557ddd0e62e315eae8fc3aa505c1
+#11 extracting sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4
+#11 extracting sha256:9501943313d5ec7f839fb9ceedfe2ee6c7ab43f0bd7f17702d4e6fbedb5192a4 0.4s done
+#11 extracting sha256:43678bacae6bdcb672b225baba81f210d51cc690ee42dfa30e53332bef401e4a 0.0s done
+#11 extracting sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6
+#11 extracting sha256:d36aa4a254ed6ae90c7645ad813e117bd593a52db35797380b78d785f1c33dd6 0.2s done
+#11 DONE 66.3s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 32.51MB / 178.34MB 64.0s
+#28 ...
+
+#30 [backend-csharp stage-1 2/4] WORKDIR /app
+#30 DONE 0.1s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 extracting sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 157.29MB / 158.12MB 64.6s
+#27 sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 158.12MB / 158.12MB 64.8s done
+#27 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 extracting sha256:e28ca9ed9b1fe5d19cf0cf5a5917110d5445dcb178c520f9a8414abdab41585f 0.5s done
+#28 ...
+
+#31 [backend-csharp stage-1 3/4] RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+#31 DONE 0.4s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 ...
+
+#27 [backend-java build 1/5] FROM docker.io/library/eclipse-temurin:21-jdk-alpine@sha256:c98f0d2e171c898bf896dc4166815d28a56d428e218190a1f35cdc7d82efd61f
+#27 extracting sha256:52562347e5095f91dcef07e31744d38da2218e3d68ed36686ee889ef31ae2406 1.8s done
+#27 extracting sha256:6d0b3aa0fc9566eb09be60af94e6aa6908c7e5e316b531ec5a22f49ee8685b66 0.0s done
+#27 extracting sha256:32b736977b63e2d08f494efff566b76b53223018ba70ef3f070289f1f0830e61 0.0s done
+#27 DONE 66.8s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 ...
+
+#32 [backend-java build 2/5] WORKDIR /app
+#32 DONE 0.1s
+
+#33 [backend-java build 3/5] COPY pom.xml .
+#33 DONE 0.0s
+
+#34 [backend-java build 4/5] COPY src ./src
+#34 DONE 0.0s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 35.65MB / 178.34MB 69.1s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 38.80MB / 178.34MB 74.2s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 67.01    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.5/9.5 MB 1.4 MB/s  0:00:06
+#29 67.01 Downloading joblib-1.4.2-py3-none-any.whl (301 kB)
+#29 67.08 Downloading spacy-3.8.7-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (33.9 MB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 ...
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 2.049 ( 1/21) Installing java-common (1.0-r1)
+#35 2.055 ( 2/21) Installing java-cacerts (1.1-r0)
+#35 2.062 ( 3/21) Installing openjdk25-jre-headless (25.0.2_p10-r1)
+#35 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 40.89MB / 178.34MB 79.3s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 44.04MB / 178.34MB 84.4s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 80.43    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 33.9/33.9 MB 2.5 MB/s  0:00:13
+#29 80.43 Downloading pydantic_core-2.33.2-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.0 MB)
+#29 81.20    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 2.6 MB/s  0:00:00
+#29 81.21 Downloading catalogue-2.0.10-py3-none-any.whl (17 kB)
+#29 81.22 Downloading cymem-2.0.13-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (260 kB)
+#29 81.38 Downloading langcodes-3.5.1-py3-none-any.whl (183 kB)
+#29 81.44 Downloading murmurhash-1.0.15-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (134 kB)
+#29 81.52 Downloading preshed-3.0.12-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl (874 kB)
+#29 82.12    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 875.0/875.0 kB 1.4 MB/s  0:00:00
+#29 82.13 Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+#29 82.15 Downloading charset_normalizer-3.4.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (153 kB)
+#29 82.20 Downloading idna-3.11-py3-none-any.whl (71 kB)
+#29 82.23 Downloading spacy_legacy-3.0.12-py2.py3-none-any.whl (29 kB)
+#29 82.25 Downloading spacy_loggers-1.0.5-py3-none-any.whl (22 kB)
+#29 82.26 Downloading srsly-2.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1.2 MB)
+#29 82.79    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 2.2 MB/s  0:00:00
+#29 82.79 Downloading starlette-0.47.3-py3-none-any.whl (72 kB)
+#29 82.85 Downloading anyio-4.12.1-py3-none-any.whl (113 kB)
+#29 82.91 Downloading thinc-8.3.10-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (3.9 MB)
+#29 85.39    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.9/3.9 MB 1.6 MB/s  0:00:02
+#29 85.40 Downloading blis-1.3.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (11.4 MB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 47.19MB / 178.34MB 89.5s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 50.33MB / 178.34MB 94.6s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 90.74    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.4/11.4 MB 2.2 MB/s  0:00:05
+#29 90.75 Downloading confection-0.1.5-py3-none-any.whl (35 kB)
+#29 90.76 Downloading tqdm-4.67.3-py3-none-any.whl (78 kB)
+#29 90.79 Downloading typer-0.24.1-py3-none-any.whl (56 kB)
+#29 90.81 Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+#29 90.86 Downloading wasabi-1.1.3-py3-none-any.whl (27 kB)
+#29 90.88 Downloading weasel-0.4.3-py3-none-any.whl (50 kB)
+#29 90.89 Downloading cloudpathlib-0.23.0-py3-none-any.whl (62 kB)
+#29 90.96 Downloading smart_open-7.5.1-py3-none-any.whl (64 kB)
+#29 90.98 Downloading typer_slim-0.24.0-py3-none-any.whl (3.4 kB)
+#29 90.99 Downloading annotated_doc-0.0.4-py3-none-any.whl (5.3 kB)
+#29 90.99 Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+#29 91.00 Downloading certifi-2026.2.25-py3-none-any.whl (153 kB)
+#29 91.03 Downloading click-8.3.1-py3-none-any.whl (108 kB)
+#29 91.04 Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+#29 91.05 Downloading httptools-0.7.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (517 kB)
+#29 91.11 Downloading packaging-26.0-py3-none-any.whl (74 kB)
+#29 91.13 Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+#29 91.18 Downloading python_dotenv-1.2.2-py3-none-any.whl (22 kB)
+#29 91.19 Downloading pytz-2026.1.post1-py2.py3-none-any.whl (510 kB)
+#29 91.30 Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+#29 91.48    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 4.4 MB/s  0:00:00
+#29 91.48 Downloading rich-14.3.3-py3-none-any.whl (310 kB)
+#29 91.58 Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+#29 92.57    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 1.1 MB/s  0:00:00
+#29 92.57 Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+#29 92.60 Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+#29 92.61 Downloading scipy-1.17.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+#29 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 53.48MB / 178.34MB 99.7s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 56.62MB / 178.34MB 104.8s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 107.6    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 2.3 MB/s  0:00:14
+#29 107.6 Downloading shellingham-1.5.4-py2.py3-none-any.whl (9.8 kB)
+#29 107.6 Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+#29 107.6 Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+#29 107.6 Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+#29 107.6 Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+#29 107.6 Downloading tzdata-2025.3-py2.py3-none-any.whl (348 kB)
+#29 107.7 Downloading uvloop-0.22.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (4.4 MB)
+#29 109.5    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.4/4.4 MB 2.4 MB/s  0:00:01
+#29 109.5 Downloading watchfiles-1.1.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (456 kB)
+#29 109.6 Downloading websockets-16.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (184 kB)
+#29 109.6 Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+#29 109.7 Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+#29 109.7 Downloading setuptools-82.0.0-py3-none-any.whl (1.0 MB)
+#29 110.0    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 2.6 MB/s  0:00:00
+#29 110.0 Downloading wrapt-2.1.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (121 kB)
+#29 110.8 Installing collected packages: pytz, wrapt, websockets, wasabi, uvloop, urllib3, tzdata, typing-extensions, tqdm, threadpoolctl, spacy-loggers, spacy-legacy, six, shellingham, setuptools, pyyaml, python-dotenv, pygments, packaging, numpy, murmurhash, mdurl, MarkupSafe, langcodes, joblib, idna, httptools, h11, cymem, cloudpathlib, click, charset_normalizer, certifi, catalogue, annotated-types, annotated-doc, uvicorn, typing-inspection, srsly, smart-open, scipy, requests, python-dateutil, pydantic-core, preshed, markdown-it-py, jinja2, blis, anyio, watchfiles, starlette, scikit-learn, rich, pydantic, pandas, typer, fastapi, confection, typer-slim, thinc, weasel, spacy
+#29 ...
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 35.00 ( 4/21) Installing libxau (1.0.12-r0)
+#35 35.01 ( 5/21) Installing libmd (1.1.0-r0)
+#35 35.02 ( 6/21) Installing libbsd (0.12.2-r0)
+#35 35.03 ( 7/21) Installing libxdmcp (1.1.5-r1)
+#35 35.04 ( 8/21) Installing libxcb (1.17.0-r1)
+#35 35.17 ( 9/21) Installing libx11 (1.8.12-r1)
+#35 35.62 (10/21) Installing libxext (1.3.6-r2)
+#35 35.63 (11/21) Installing libxi (1.8.2-r0)
+#35 35.65 (12/21) Installing libxrender (0.9.12-r0)
+#35 35.67 (13/21) Installing libxtst (1.2.5-r0)
+#35 35.68 (14/21) Installing alsa-lib (1.2.14-r2)
+#35 35.88 (15/21) Installing giflib (5.2.2-r1)
+#35 35.89 (16/21) Installing libjpeg-turbo (3.1.2-r0)
+#35 36.20 (17/21) Installing lcms2 (2.17-r0)
+#35 36.24 (18/21) Installing openjdk25-jre (25.0.2_p10-r1)
+#35 36.63 (19/21) Installing openjdk25-jmods (25.0.2_p10-r1)
+#35 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 60.82MB / 178.34MB 111.4s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 63.96MB / 178.34MB 116.5s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 67.11MB / 178.34MB 121.6s
+#28 ...
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 58.70 (20/21) Installing openjdk25-jdk (25.0.2_p10-r1)
+#35 60.36 (21/21) Installing maven (3.9.11-r0)
+#35 62.35 Executing busybox-1.37.0-r30.trigger
+#35 62.36 Executing ca-certificates-20251003-r0.trigger
+#35 62.50 Executing java-common-1.0-r1.trigger
+#35 62.55 OK: 395.9 MiB in 98 packages
+#35 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 76.55MB / 178.34MB 130.9s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 85.98MB / 178.34MB 132.6s
+#28 ...
+
+#29 [backend-ml-python build 4/4] RUN pip install --upgrade pip &&     pip install --prefix=/install/deps --no-cache-dir -r requirements.txt
+#29 135.8 
+#29 135.8 Successfully installed MarkupSafe-3.0.3 annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.12.1 blis-1.3.3 catalogue-2.0.10 certifi-2026.2.25 charset_normalizer-3.4.4 click-8.3.1 cloudpathlib-0.23.0 confection-0.1.5 cymem-2.0.13 fastapi-0.116.1 h11-0.16.0 httptools-0.7.1 idna-3.11 jinja2-3.1.6 joblib-1.4.2 langcodes-3.5.1 markdown-it-py-4.0.0 mdurl-0.1.2 murmurhash-1.0.15 numpy-2.2.4 packaging-26.0 pandas-2.3.0 preshed-3.0.12 pydantic-2.11.7 pydantic-core-2.33.2 pygments-2.19.2 python-dateutil-2.9.0.post0 python-dotenv-1.2.2 pytz-2026.1.post1 pyyaml-6.0.3 requests-2.32.5 rich-14.3.3 scikit-learn-1.7.1 scipy-1.17.1 setuptools-82.0.0 shellingham-1.5.4 six-1.17.0 smart-open-7.5.1 spacy-3.8.7 spacy-legacy-3.0.12 spacy-loggers-1.0.5 srsly-2.5.2 starlette-0.47.3 thinc-8.3.10 threadpoolctl-3.6.0 tqdm-4.67.3 typer-0.24.1 typer-slim-0.24.0 typing-extensions-4.15.0 typing-inspection-0.4.2 tzdata-2025.3 urllib3-2.6.3 uvicorn-0.35.0 uvloop-0.22.1 wasabi-1.1.3 watchfiles-1.1.1 weasel-0.4.3 websockets-16.0 wrapt-2.1.1
+#29 135.8 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#29 DONE 136.8s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 97.52MB / 178.34MB 135.1s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 106.95MB / 178.34MB 136.9s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 116.39MB / 178.34MB 138.9s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 125.83MB / 178.34MB 140.8s
+#28 ...
+
+#36 [backend-ml-python stage-1 4/6] COPY --from=build /install/deps /usr/local
+#36 DONE 3.3s
+
+#37 [backend-ml-python stage-1 5/6] COPY app ./app
+#37 DONE 0.2s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 135.27MB / 178.34MB 142.6s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 144.70MB / 178.34MB 144.7s
+#28 ...
+
+#38 [backend-ml-python stage-1 6/6] RUN python -m spacy download en_core_web_sm --quiet || true
+#38 6.497 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#38 6.584 
+#38 6.584 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
+#38 6.584 [notice] To update, run: pip install --upgrade pip
+#38 6.655 [38;5;2m✔ Download and installation successful[0m
+#38 6.655 You can now load the package via spacy.load('en_core_web_sm')
+#38 DONE 6.9s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 154.14MB / 178.34MB 149.8s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 163.58MB / 178.34MB 151.8s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 173.02MB / 178.34MB 153.6s
+#28 sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 178.34MB / 178.34MB 154.6s done
+#28 extracting sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647
+#28 ...
+
+#39 [backend-ml-python] exporting to image
+#39 exporting layers
+#39 ...
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 extracting sha256:a4c9514bd3eb539b059048e9d46fc8ed456fa07c26d501b07b609a6aedaa7647 4.1s done
+#28 DONE 160.8s
+
+#28 [backend-csharp build 1/6] FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine@sha256:b3b30660074659c3f41373d7a3d6f2512b79453b017c0754693215eb64854745
+#28 extracting sha256:eb2835aa8d908e3430c66c5e01e8952ebff065da2d4bf799d5e2be434a848762 0.0s done
+#28 extracting sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c
+#28 extracting sha256:22b8a41c1144400e1332f153426253db9b1ddb29348725a4e4e100815fe40d4c 0.5s done
+#28 DONE 161.3s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#40 [backend-csharp build 2/6] WORKDIR /src
+#40 DONE 0.4s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#41 [backend-csharp build 3/6] COPY CommunityAlerts.Notifications/*.csproj ./CommunityAlerts.Notifications/
+#41 DONE 0.0s
+
+#42 [backend-csharp build 4/6] RUN dotnet restore CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj
+#42 1.257   Determining projects to restore...
+#42 ...
+
+#39 [backend-ml-python] exporting to image
+#39 exporting layers 25.6s done
+#39 exporting manifest sha256:d88ff9727066bdb4847d47e870cd7bd2686545f07dc5de3d194b2dba9001ff4c 0.0s done
+#39 exporting config sha256:7c548f55a882d0dc6532e2916de4bdf86db5f14dbcc873f895e87eb6360833ef 0.0s done
+#39 exporting attestation manifest sha256:fb3b8900f61328cb4d78712a8b1dc929f5e5b7da2b9d48bacc8963f5c481963a 0.0s done
+#39 exporting manifest list sha256:a6cabddb3160f4a781d46df4de51ef85a6dbdf8184412d3b62b89bf063eabb76 0.0s done
+#39 naming to docker.io/library/docker-backend-ml-python:latest done
+#39 unpacking to docker.io/library/docker-backend-ml-python:latest
+#39 unpacking to docker.io/library/docker-backend-ml-python:latest 7.3s done
+#39 DONE 33.0s
+
+#42 [backend-csharp build 4/6] RUN dotnet restore CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj
+#42 ...
+
+#43 [backend-ml-python] resolving provenance for metadata file
+#43 DONE 0.0s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#42 [backend-csharp build 4/6] RUN dotnet restore CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj
+#42 35.89   Restored /src/CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj (in 34.13 sec).
+#42 DONE 36.6s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#44 [backend-csharp build 5/6] COPY CommunityAlerts.Notifications/ ./CommunityAlerts.Notifications/
+#44 DONE 0.1s
+
+#45 [backend-csharp build 6/6] RUN dotnet publish CommunityAlerts.Notifications/CommunityAlerts.Notifications.csproj     -c Release -o /app/publish --no-restore
+#45 6.254   CommunityAlerts.Notifications -> /src/CommunityAlerts.Notifications/bin/Release/net8.0/CommunityAlerts.Notifications.dll
+#45 6.428   CommunityAlerts.Notifications -> /app/publish/
+#45 DONE 6.5s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#46 [backend-csharp stage-1 4/4] COPY --from=build /app/publish .
+#46 DONE 0.1s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 ...
+
+#47 [backend-csharp] exporting to image
+#47 exporting layers
+#47 exporting layers 3.0s done
+#47 exporting manifest sha256:e60ed9dc1846b53ab017144d62d62a0ed9e702e07528a269ece9c21bed5eed37 0.0s done
+#47 exporting config sha256:b69bff70bb22f4d28232524a4f09d8768ac7431dec8c81dff369039ea9ec6a8a 0.0s done
+#47 exporting attestation manifest sha256:653c9e649512ae65ea7bd3682d1e4530df1418b89a88e68aeac9ad932b2fc767 0.0s done
+#47 exporting manifest list sha256:294fd337db90882475a1a1b2786bd295527a5f614b9575dbd0bc38fd8fac0c80 0.0s done
+#47 naming to docker.io/library/docker-backend-csharp:latest done
+#47 unpacking to docker.io/library/docker-backend-csharp:latest
+#47 unpacking to docker.io/library/docker-backend-csharp:latest 0.5s done
+#47 DONE 3.6s
+
+#48 [backend-csharp] resolving provenance for metadata file
+#48 DONE 0.0s
+
+#35 [backend-java build 5/5] RUN apk add --no-cache maven &&     mvn clean package -DskipTests -q
+#35 DONE 169.8s
+
+#49 [backend-java stage-1 4/4] COPY --from=build /app/target/community-alerts-backend-1.0.0.jar app.jar
+#49 DONE 0.1s
+
+#50 [backend-java] exporting to image
+#50 exporting layers
+#50 exporting layers 2.0s done
+#50 exporting manifest sha256:37bcc479b9171c96c83b15ef2f7d244e4fe1051b0feb90149c29d64cee73304d 0.0s done
+#50 exporting config sha256:4b1fc190c5a3c6d8ad9a537d382cf83bd853be79fc6e3f0542e5d2f5302c4a85 0.0s done
+#50 exporting attestation manifest sha256:54997f5d5520c76ce1acffd47b10949663ce59ad6da0040838e4540a55c0806c 0.0s done
+#50 exporting manifest list sha256:a38709d0f6aa84f08cd3f1b94389cff8d92479122a61053d56de53b9e93a46f7 0.0s done
+#50 naming to docker.io/library/docker-backend-java:latest done
+#50 unpacking to docker.io/library/docker-backend-java:latest
+#50 unpacking to docker.io/library/docker-backend-java:latest 0.3s done
+#50 DONE 2.4s
+
+#51 [backend-java] resolving provenance for metadata file
+#51 DONE 0.0s
+Attaching to backend-csharp-1, backend-java-1, backend-ml-python-1
+backend-csharp-1     | [09:55:20 ERR] Microsoft.EntityFrameworkCore.Database.Connection | An error occurred using the connection to database 'main' on server 'notifications.db'.
+backend-java-1       | 
+backend-java-1       |   .   ____          _            __ _ _
+backend-java-1       |  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+backend-java-1       | ( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+backend-java-1       |  \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+backend-java-1       |   '  |____| .__|_| |_|_| |_\__, | / / / /
+backend-java-1       |  =========|_|==============|___/=/_/_/_/
+backend-java-1       | 
+backend-java-1       |  :: Spring Boot ::                (v3.4.3)
+backend-java-1       | 
+backend-java-1       | 2026-03-03T09:55:21.681Z  INFO 1 --- [community-alerts] [           main] c.c.CommunityAlertsApplication           : Starting CommunityAlertsApplication v1.0.0 using Java 21.0.10 with PID 1 (/app/app.jar started by appuser in /app)
+backend-java-1       | 2026-03-03T09:55:21.687Z  INFO 1 --- [community-alerts] [           main] c.c.CommunityAlertsApplication           : The following 1 profile is active: "docker"
+[Kbackend-csharp-1 exited with code 139
+backend-java-1       | 2026-03-03T09:55:23.422Z  INFO 1 --- [community-alerts] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+backend-java-1       | 2026-03-03T09:55:23.515Z  INFO 1 --- [community-alerts] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 80 ms. Found 4 JPA repository interfaces.
+backend-java-1       | 2026-03-03T09:55:24.152Z  INFO 1 --- [community-alerts] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+backend-java-1       | 2026-03-03T09:55:24.169Z  INFO 1 --- [community-alerts] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+backend-java-1       | 2026-03-03T09:55:24.169Z  INFO 1 --- [community-alerts] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.36]
+backend-java-1       | 2026-03-03T09:55:24.203Z  INFO 1 --- [community-alerts] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+backend-java-1       | 2026-03-03T09:55:24.204Z  INFO 1 --- [community-alerts] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2386 ms
+backend-java-1       | 2026-03-03T09:55:24.387Z  INFO 1 --- [community-alerts] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+backend-java-1       | 2026-03-03T09:55:24.456Z  INFO 1 --- [community-alerts] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.8.Final
+backend-java-1       | 2026-03-03T09:55:24.496Z  INFO 1 --- [community-alerts] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+backend-java-1       | 2026-03-03T09:55:24.794Z  INFO 1 --- [community-alerts] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+backend-java-1       | 2026-03-03T09:55:24.829Z  INFO 1 --- [community-alerts] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+backend-java-1       | 2026-03-03T09:55:25.043Z  INFO 1 --- [community-alerts] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:communityalertsdb user=SA
+backend-java-1       | 2026-03-03T09:55:25.046Z  INFO 1 --- [community-alerts] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+backend-java-1       | 2026-03-03T09:55:25.118Z  INFO 1 --- [community-alerts] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+backend-java-1       | 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+backend-java-1       | 	Database driver: undefined/unknown
+backend-java-1       | 	Database version: 2.3.232
+backend-java-1       | 	Autocommit mode: undefined/unknown
+backend-java-1       | 	Isolation level: undefined/unknown
+backend-java-1       | 	Minimum pool size: undefined/unknown
+backend-java-1       | 	Maximum pool size: undefined/unknown
+backend-java-1       | 2026-03-03T09:55:25.980Z  INFO 1 --- [community-alerts] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+backend-java-1       | 2026-03-03T09:55:26.034Z  INFO 1 --- [community-alerts] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+backend-java-1       | 2026-03-03T09:55:26.322Z  INFO 1 --- [community-alerts] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+backend-java-1       | 2026-03-03T09:55:28.324Z  WARN 1 --- [community-alerts] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+backend-java-1       | 2026-03-03T09:55:28.664Z  INFO 1 --- [community-alerts] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:communityalertsdb'
+backend-java-1       | 2026-03-03T09:55:28.739Z  INFO 1 --- [community-alerts] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+backend-java-1       | 2026-03-03T09:55:28.761Z  INFO 1 --- [community-alerts] [           main] c.c.CommunityAlertsApplication           : Started CommunityAlertsApplication in 8.223 seconds (process running for 9.239)
+backend-java-1       | 2026-03-03T09:55:28.882Z  INFO 1 --- [community-alerts] [           main] com.communityalerts.config.DataSeeder    : Seeding Cape Town community data...
+backend-java-1       | 2026-03-03T09:55:29.031Z  INFO 1 --- [community-alerts] [           main] c.c.service.HeatScoreService             : Running full heat score recalculation for all suburbs
+backend-java-1       | 2026-03-03T09:55:29.128Z  INFO 1 --- [community-alerts] [           main] com.communityalerts.config.DataSeeder    : Seed complete — 8 incidents, 12 suburbs loaded.
+backend-java-1       | 2026-03-03T09:55:49.690Z  INFO 1 --- [community-alerts] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+backend-java-1       | 2026-03-03T09:55:49.690Z  INFO 1 --- [community-alerts] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+backend-java-1       | 2026-03-03T09:55:49.694Z  INFO 1 --- [community-alerts] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+[Kbackend-csharp-1 exited with code 139
+backend-java-1       | 2026-03-03T10:10:05.756Z  INFO 1 --- [community-alerts] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+backend-java-1       | 2026-03-03T10:10:05.779Z  INFO 1 --- [community-alerts] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+backend-java-1       | 2026-03-03T10:10:05.788Z  INFO 1 --- [community-alerts] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+backend-java-1       | 2026-03-03T10:10:05.804Z  INFO 1 --- [community-alerts] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+backend-java-1       | 2026-03-03T10:10:05.808Z  INFO 1 --- [community-alerts] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+[Kbackend-java-1 exited with code 143
+[Kbackend-ml-python-1 exited with code 0
