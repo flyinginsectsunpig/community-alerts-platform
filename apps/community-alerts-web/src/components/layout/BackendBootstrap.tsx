@@ -45,7 +45,7 @@ export function BackendBootstrap() {
       try {
         const [suburbsRaw, incidentsRaw] = await Promise.all([
           communityApi.getSuburbs() as Promise<any[]>,
-          communityApi.getIncidents(200) as Promise<any>,
+          communityApi.getAllIncidents(200) as Promise<any>,
         ]);
 
         const suburbs = suburbsRaw.map(mapSuburb);

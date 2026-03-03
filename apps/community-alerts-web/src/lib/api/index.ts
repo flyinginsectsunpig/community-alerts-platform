@@ -33,8 +33,38 @@ export class CommunityApi {
     return this.client.get('/api/v1/suburbs');
   }
 
-  getIncidents(size = 200) {
-    return this.client.get(`/api/v1/incidents?size=${size}`);
+  getIncidents(size = 200, page = 0) {
+    return this.client.get(`/api/v1/incidents?size=${size}&page=${page}`);
+  }
+
+  async getAllIncidents(size = 200) {
+    const first = await this.getIncidents(size, 0) as any;
+
+    // Supports both paged payloads ({ content, totalPages }) and plain arrays.
+    if (!first || !Array.isArray(first.content)) {
+      return first;
+    }
+
+    const totalPages = Number(first.totalPages ?? 1);
+    if (!Number.isFinite(totalPages) || totalPages <= 1) {
+      return first;
+    }
+
+    const pageRequests: Promise<any>[] = [];
+    for (let page = 1; page < totalPages; page++) {
+      pageRequests.push(this.getIncidents(size, page));
+    }
+
+    const rest = await Promise.all(pageRequests);
+    const mergedContent = [
+      ...first.content,
+      ...rest.flatMap((p: any) => Array.isArray(p?.content) ? p.content : []),
+    ];
+
+    return {
+      ...first,
+      content: mergedContent,
+    };
   }
 
   getIncident(id: number | string) {
