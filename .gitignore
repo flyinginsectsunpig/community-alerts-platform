@@ -74,6 +74,8 @@ obj/
 *.rsuser
 *.db
 *.sqlite
+*.db-shm
+*.db-wal
 
 # Docker
 *.pid
@@ -84,4 +86,3 @@ obj/
 # Test output
 test-results/
 reports/
-
