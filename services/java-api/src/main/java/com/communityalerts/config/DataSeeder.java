@@ -1,15 +1,24 @@
 package com.communityalerts.config;
 
-import com.communityalerts.model.*;
-import com.communityalerts.repository.*;
-import com.communityalerts.service.HeatScoreService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
+import com.communityalerts.model.Comment;
+import com.communityalerts.model.ForumPost;
+import com.communityalerts.model.Incident;
+import com.communityalerts.model.IncidentType;
+import com.communityalerts.model.Suburb;
+import com.communityalerts.repository.CommentRepository;
+import com.communityalerts.repository.ForumPostRepository;
+import com.communityalerts.repository.IncidentRepository;
+import com.communityalerts.repository.SuburbRepository;
+import com.communityalerts.service.HeatScoreService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Seeds the database with realistic Cape Town data on startup.
@@ -21,7 +30,7 @@ import java.util.List;
 @Slf4j
 public class DataSeeder {
 
-    private final SuburbRepository suburbRepository;
+private final SuburbRepository suburbRepository;
     private final IncidentRepository incidentRepository;
     private final CommentRepository commentRepository;
     private final ForumPostRepository forumPostRepository;

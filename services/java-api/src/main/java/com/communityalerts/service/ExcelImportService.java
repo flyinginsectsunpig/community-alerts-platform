@@ -1,24 +1,35 @@
 package com.communityalerts.service;
 
-import com.communityalerts.model.Incident;
-import com.communityalerts.model.IncidentType;
-import com.communityalerts.model.Suburb;
-import com.communityalerts.repository.IncidentRepository;
-import com.communityalerts.repository.SuburbRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import com.communityalerts.model.Incident;
+import com.communityalerts.model.IncidentType;
+import com.communityalerts.model.Suburb;
+import com.communityalerts.repository.IncidentRepository;
+import com.communityalerts.repository.SuburbRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Optimised Excel import pipeline for SAPS crime stats.
@@ -45,6 +56,10 @@ public class ExcelImportService {
     private final SuburbRepository suburbRepository;
     private final HeatScoreService heatScoreService;
 
+    @Autowired
+    @Lazy
+    private ExcelImportService self;
+
     /** In-memory job registry — keyed by UUID job ID. */
     private final ConcurrentHashMap<String, ImportJobStatus> jobs = new ConcurrentHashMap<>();
 
@@ -65,7 +80,7 @@ public class ExcelImportService {
         // once the request thread ends, so we must copy the bytes before
         // handing control to the async thread.
         byte[] bytes = file.getBytes();
-        runImport(jobId, bytes);
+        self.runImport(jobId, bytes);
         return jobId;
     }
 
