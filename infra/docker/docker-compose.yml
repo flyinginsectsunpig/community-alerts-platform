@@ -90,9 +90,14 @@ services:
       - NOTIFICATION_SERVICE_URL=http://backend-csharp:5001
       - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
-      - backend-csharp
-      - redis
-      - rabbitmq
+      postgres-communityalerts:
+        condition: service_healthy
+      backend-csharp:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - community-net
     healthcheck:

@@ -18,7 +18,7 @@ import java.util.List;
 @Table(name = "incidents", indexes = {
     @Index(name = "idx_incident_suburb", columnList = "suburb_id"),
     @Index(name = "idx_incident_type",   columnList = "type"),
-    @Index(name = "idx_incident_created", columnList = "createdAt"),
+    @Index(name = "idx_incident_created", columnList = "created_at"),
 })
 @Getter
 @Setter

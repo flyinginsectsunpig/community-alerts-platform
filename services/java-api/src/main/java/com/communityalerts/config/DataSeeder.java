@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.communityalerts.model.Comment;
 import com.communityalerts.model.ForumPost;
@@ -21,7 +22,6 @@ import com.communityalerts.service.HeatScoreService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Seeds the database with realistic Cape Town data on startup.
@@ -44,11 +44,6 @@ private final SuburbRepository suburbRepository;
     @Bean
     CommandLineRunner seedData() {
         return args -> {
-            if (suburbRepository.count() > 0) {
-                log.info("Database already seeded, skipping.");
-                return;
-            }
-
             log.info("Seeding Cape Town community data...");
 
             // ── Default admin user ───────────────────────────────────────────
@@ -59,6 +54,11 @@ private final SuburbRepository suburbRepository;
                         .role("ADMIN")
                         .build());
                 log.info("Default admin user created (admin / admin123)");
+            }
+
+            if (suburbRepository.count() > 0) {
+                log.info("Database already seeded, skipping.");
+                return;
             }
 
             // ── Suburbs ──────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ private final SuburbRepository suburbRepository;
                     .tags("Silver VW Polo,Red cap,Knife,CA 443 GP")
                     .latitude(-34.054).longitude(18.621).build());
 
-            Incident i3 = incidentRepository.save(Incident.builder()
+            incidentRepository.save(Incident.builder()
                     .suburb(grassy).type(IncidentType.SUSPICIOUS).severity(3)
                     .title("Suspicious Vehicle – Loitering outside school")
                     .description(
@@ -125,7 +125,7 @@ private final SuburbRepository suburbRepository;
                     .title("Power Outage – Durban Road & surrounds")
                     .description("Large section of Bellville CBD is dark. Eskom stage 6 — transformer fault reported.")
                     .tags("Eskom,Transformer fault,CBD,~6hr ETA")
-                    .latitude(-34.903).longitude(18.627).build());
+                    .latitude(-33.903).longitude(18.627).build());
 
             Incident i5 = incidentRepository.save(Incident.builder()
                     .suburb(wood).type(IncidentType.ACCIDENT).severity(4)
@@ -142,7 +142,7 @@ private final SuburbRepository suburbRepository;
                     .tags("Residential,Fire spreading,3 units on scene")
                     .latitude(-33.940).longitude(18.476).build());
 
-            Incident i7 = incidentRepository.save(Incident.builder()
+            incidentRepository.save(Incident.builder()
                     .suburb(gugulethu).type(IncidentType.CRIME).severity(5)
                     .title("Stabbing – NY1 & NY111 intersection")
                     .description("Man stabbed following an altercation. Suspect fled in a green Corolla heading west.")

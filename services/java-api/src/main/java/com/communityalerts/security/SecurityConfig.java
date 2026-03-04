@@ -37,10 +37,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())  // stateless API — no CSRF needed
             .cors(cors -> cors.configurationSource(request -> {
                 var config = new org.springframework.web.cors.CorsConfiguration();
-                config.setAllowedOrigins(java.util.List.of("http://localhost:3000", "https://communityalerts.local")); // Restrict to known frontends
+                config.setAllowedOrigins(java.util.List.of("http://localhost:3000", "https://communityalerts.local"));
                 config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type"));
                 config.setExposedHeaders(java.util.List.of("Authorization"));
+                config.setAllowCredentials(true);
                 return config;
             }))
             .headers(headers -> headers
