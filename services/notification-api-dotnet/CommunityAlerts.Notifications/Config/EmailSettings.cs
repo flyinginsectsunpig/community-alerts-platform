@@ -10,9 +10,3 @@ public class EmailSettings
     public string FromAddress { get; set; } = "alerts@communityalerts.co.za";
     public string FromName    { get; set; } = "Community Alerts";
 }
-
-public class ServiceUrls
-{
-    public string SpringBoot { get; set; } = "http://localhost:8080";
-    public string MLService  { get; set; } = "http://localhost:8001";
-}

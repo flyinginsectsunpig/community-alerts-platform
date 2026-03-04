@@ -29,6 +29,25 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres-communityalerts:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=communityalertsdb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5433:5432"
+    volumes:
+      - communityalerts-pg-data:/var/lib/postgresql/data
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d communityalertsdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+
   # ── Spring Boot API ──────────────────────────────────────────────────────────
   backend-java:
     build:
@@ -94,3 +113,4 @@ networks:
 
 volumes:
   notifications-pg-data:
+  communityalerts-pg-data:

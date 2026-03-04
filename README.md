@@ -1,82 +1,113 @@
-# Community Alerts Platform
+# 🛡️ Community Alerts Platform
 
-Monorepo structure organized by responsibility and deployment boundary.
+A modern, high-performance community safety and incident management platform built with a microservices architecture. It provides real-time heat mapping, ML-powered incident analysis, and automated resident notifications.
 
-## Folder Layout
+---
 
-```text
-community-alerts-platform/
-  apps/
-    web-map/                    # Frontend app (single-page map UI)
-      index.html
-      styles/
-        main.css
-      src/
-        main.js                 # Composition root
-        config/                 # Runtime config
-        constants/              # Type + UI constants
-        data/                   # Fallback seed data
-        map/                    # Leaflet loader + map manager
-        services/               # API client abstractions
-        state/                  # App state
-        ui/                     # Rendering functions
-        utils/                  # Mapping/format helpers
+## 🏗️ Architecture
 
-  services/
-    java-api/                   # Spring Boot incident + suburb heat API
-    notification-api-dotnet/    # ASP.NET Core notification service
-    ml-api-python/              # FastAPI ML inference service
+The platform is organized as a monorepo using a **Monolithic Repository / Distributed Services** pattern, ensuring high cohesion within domains and low coupling between services.
 
-  infra/
-    docker/
-      docker-compose.yml        # Multi-service orchestration
-
-  archives/
-    community-alerts-source.zip # Original exported bundle
+```mermaid
+graph TD
+    Client["Next.js Web App (:3000)"] --> JavaAPI["Spring Boot API (:8080)"]
+    Client --> MLAPI["Python ML Service (:8001)"]
+    Client --> NotifAPI[".NET Notification Svc (:5001)"]
+    
+    JavaAPI --> DB1[(PostgreSQL: communityalertsdb)]
+    JavaAPI -- "Webhooks" --> NotifAPI
+    NotifAPI --> DB2[(PostgreSQL: notifications)]
+    
+    subgraph "Local Development"
+        MapUI["Web Map (Vanilla JS)"]
+    end
 ```
 
-## Why This Makes Sense (SOLID-oriented)
+---
 
-- Single Responsibility:
-  - `apps/` contains UI only.
-  - `services/` contains independently deployable backend domains.
-  - `infra/` contains environment/runtime wiring only.
-  - `archives/` keeps non-source artifacts out of active code paths.
-- Open/Closed:
-  - New services can be added under `services/` without changing existing service internals.
-- Liskov + Interface Segregation:
-  - Service contracts remain local to each bounded context (Java, .NET, ML) instead of being mixed in one folder.
-- Dependency Inversion (repo-level):
-  - Runtime dependencies are defined in `infra/docker/docker-compose.yml`; service code does not depend on repository layout details.
+## 📂 Project Structure
 
-## Run
+### 💻 Applications
 
-From `infra/docker`:
+| Application | Technology | Description |
+|---|---|---|
+| [`apps/community-alerts-web`](file:///c:/community-alerts-platform/apps/community-alerts-web) | **Next.js 14, React, TypeScript, Zustand** | The primary modern frontend. Features interactive dashboards, real-time analytics, and incident forums. |
+| [`apps/web-map`](file:///c:/community-alerts-platform/apps/web-map) | **Vanilla HTML/JS, Leaflet** | A lightweight map-centric UI for quick incident visualization. |
+
+### ⚙️ Backend Services
+
+| Service | Technology | Port | Description |
+|---|---|---|---|
+| [`services/java-api`](file:///c:/community-alerts-platform/services/java-api) | **Java 17, Spring Boot, JPA** | `8080` | The core domain logic for incidents, suburbs, and heat scoring. Manages the primary PostgreSQL database. |
+| [`services/ml-api-python`](file:///c:/community-alerts-platform/services/ml-api-python) | **Python 3.12, FastAPI, scikit-learn** | `8001` | ML engine for NLP entity extraction, urgency classification, and heat score prediction. |
+| [`services/notification-api-dotnet`](file:///c:/community-alerts-platform/services/notification-api-dotnet) | **C# 12, .NET 8, EF Core** | `5001` | Handles alert subscriptions, email dispatch (MailKit), and push notifications. |
+
+### 🌍 Infrastructure
+
+| Component | Port | Description |
+|---|---|---|
+| [`infra/docker`](file:///c:/community-alerts-platform/infra/docker) | - | Docker Compose orchestration for the entire stack. |
+| **PostgreSQL (Main)** | `5433` | Stores incident and suburb data. |
+| **PostgreSQL (Notif)** | `5432` | Stores subscriber and notification log data. |
+
+---
+
+## 🚀 Quick Start
+
+### 1. Run with Docker (Recommended)
+
+The easiest way to start the entire backend stack:
 
 ```bash
+cd infra/docker
 docker compose up --build
 ```
 
-Then run the web app from the repo root (do not open `index.html` directly from disk):
+### 2. Start the Frontend
+
+In a new terminal:
 
 ```bash
-python -m http.server 5173
+cd apps/community-alerts-web
+npm install
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## 🛠️ Individual Service Setup
+
+If you need to run services individually for development:
+
+### **Java API**
+```bash
+cd services/java-api
+./mvnw spring-boot:run
 ```
 
-Open:
+### **Python ML API**
+```bash
+cd services/ml-api-python
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8001
+```
 
-`http://localhost:5173/apps/web-map/`
+### **.NET Notification API**
+```bash
+cd services/notification-api-dotnet/CommunityAlerts.Notifications
+dotnet run
+```
 
-Backend API defaults used by the frontend:
+---
 
-- Java API: `http://localhost:8080`
-- ML API: `http://localhost:8001`
-- C# API: `http://localhost:5001`
+## 🧪 Integration Highlights
 
-## Frontend Integration Coverage
+- **ML Analysis**: Every incident reported via the Java API is automatically processed by the ML Service for entity extraction and urgency leveling.
+- **Smart Notifications**: The .NET service deduplicates alerts to prevent resident fatigue using a sliding window algorithm.
+- **Heat Mapping**: Suburb "heat" labels (GREEN → RED) are calculated based on both deterministic logic (Java) and predictive modeling (Python).
 
-The web map now uses all backend services:
+---
 
-- Java API (`8080`): suburbs, incidents, incident comments
-- ML API (`8001`): entity extraction, urgency classification, heat prediction on alert submit
-- C# API (`5001`): notification service health, subscriber registration, suburb subscription
+## 📄 License
+Internal use only. Community Alerts Platform © 2026.

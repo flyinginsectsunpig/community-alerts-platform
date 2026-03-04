@@ -5,6 +5,7 @@ import { useStore } from '@/lib/store';
 import { communityApi, mlApi } from '@/lib/api';
 import type { Suburb, Incident } from '@/lib/types';
 import { BACKEND_TO_UI_TYPE } from '@/lib/constants';
+import { FALLBACK_SUBURBS, SEED_INCIDENTS } from '@/lib/data/fallback';
 
 // ─── Module-level flag ────────────────────────────────────────────────────────
 // React StrictMode (enabled by default in Next.js dev) intentionally mounts →
@@ -86,7 +87,7 @@ export function BackendBootstrap() {
         if (incidents.length) setIncidents(incidents);
         setBackendConnected(true);
       } catch {
-        // Java API unreachable — leave fallback data in the store untouched.
+        // Backend unreachable — store stays empty, UI shows empty state.
         if (!cancelled) setBackendConnected(false);
       }
 
@@ -107,8 +108,11 @@ export function BackendBootstrap() {
     bootstrap();
 
     // Cleanup: mark any outstanding fetch as stale so it can't touch the store.
+    // Also reset the guard so that if the component is genuinely remounted (e.g.
+    // after navigating away and back), the bootstrap runs again with fresh data.
     return () => {
       cancelled = true;
+      bootstrapStarted = false;
     };
   }, []);
 

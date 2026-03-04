@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { ForumPage } from '@/components/forum/ForumPage';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = { title: 'CommunityAlerts — Community Forum' };
 
 export default function Forum() {

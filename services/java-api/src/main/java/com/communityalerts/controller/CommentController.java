@@ -3,6 +3,7 @@ package com.communityalerts.controller;
 import com.communityalerts.dto.CommentRequest;
 import com.communityalerts.dto.CommentResponse;
 import com.communityalerts.service.CommentService;
+import com.communityalerts.config.RateLimitFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,19 +20,18 @@ import java.util.List;
 @Tag(name = "Comments", description = "Community sightings and updates on incidents")
 public class CommentController {
 
-    private final CommentService  commentService;
+    private final CommentService commentService;
     private final RateLimitFilter rateLimitFilter;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Add a comment to an incident",
-               description = "Set descriptionMatch=true if you spotted someone " +
-                             "matching the suspect description.")
+    @Operation(summary = "Add a comment to an incident", description = "Set descriptionMatch=true if you spotted someone "
+            +
+            "matching the suspect description.")
     public CommentResponse addComment(
-        @PathVariable Long incidentId,
-        @Valid @RequestBody CommentRequest request,
-        HttpServletRequest httpRequest
-    ) {
+            @PathVariable Long incidentId,
+            @Valid @RequestBody CommentRequest request,
+            HttpServletRequest httpRequest) {
         rateLimitFilter.checkCommentLimit(httpRequest.getRemoteAddr());
         return commentService.addComment(incidentId, request);
     }

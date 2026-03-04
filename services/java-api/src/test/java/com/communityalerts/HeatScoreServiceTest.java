@@ -1,9 +1,10 @@
 package com.communityalerts;
 
+import com.communityalerts.config.HeatScoreProperties;
 import com.communityalerts.model.Incident;
 import com.communityalerts.model.IncidentType;
 import com.communityalerts.model.Suburb;
-import com.communityalerts.service.HeatScoreService;
+import com.communityalerts.service.HeatScoreServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class HeatScoreServiceTest {
 
-    private HeatScoreService service;
+    private HeatScoreServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new HeatScoreService(null, null);
-        // recencyDaysFull and recencyDaysHalf are set to defaults via field injection
-        // We test the pure computeScore method directly
+        HeatScoreProperties props = new HeatScoreProperties();
+        // Uses default weights (crime=5, fire=4, etc.) and
+        // default recency windows (7d full, 30d half)
+        service = new HeatScoreServiceImpl(null, null, props);
     }
 
     @Test
@@ -50,10 +52,9 @@ class HeatScoreServiceTest {
     @DisplayName("Multiple crimes push suburb to RED")
     void multipleIncidentsTriggerRed() {
         List<Incident> incidents = List.of(
-            buildIncident(IncidentType.CRIME, 5, LocalDateTime.now().minusHours(1)),
-            buildIncident(IncidentType.CRIME, 4, LocalDateTime.now().minusHours(3)),
-            buildIncident(IncidentType.FIRE,  3, LocalDateTime.now().minusDays(2))
-        );
+                buildIncident(IncidentType.CRIME, 5, LocalDateTime.now().minusHours(1)),
+                buildIncident(IncidentType.CRIME, 4, LocalDateTime.now().minusHours(3)),
+                buildIncident(IncidentType.FIRE, 3, LocalDateTime.now().minusDays(2)));
         int score = service.computeScore(incidents);
         // 25 + 20 + 12 = 57
         assertThat(score).isGreaterThanOrEqualTo(30);
@@ -64,7 +65,7 @@ class HeatScoreServiceTest {
     @DisplayName("Old incidents (7–30 days) are half-weighted")
     void recencyDecayApplied() {
         Incident recent = buildIncident(IncidentType.CRIME, 2, LocalDateTime.now().minusDays(1));
-        Incident old    = buildIncident(IncidentType.CRIME, 2, LocalDateTime.now().minusDays(20));
+        Incident old = buildIncident(IncidentType.CRIME, 2, LocalDateTime.now().minusDays(20));
         // recent: 5*2*1.0=10, old: 5*2*0.5=5
         int score = service.computeScore(List.of(recent, old));
         assertThat(score).isEqualTo(15);
@@ -74,9 +75,8 @@ class HeatScoreServiceTest {
     @DisplayName("Info-only suburb stays GREEN")
     void infoOnlyIsGreen() {
         List<Incident> infos = List.of(
-            buildIncident(IncidentType.INFO, 1, LocalDateTime.now().minusHours(1)),
-            buildIncident(IncidentType.INFO, 2, LocalDateTime.now().minusHours(2))
-        );
+                buildIncident(IncidentType.INFO, 1, LocalDateTime.now().minusHours(1)),
+                buildIncident(IncidentType.INFO, 2, LocalDateTime.now().minusHours(2)));
         int score = service.computeScore(infos);
         assertThat(service.toAlertLevel(score)).isEqualTo("GREEN");
     }
@@ -85,7 +85,7 @@ class HeatScoreServiceTest {
 
     private Incident buildIncident(IncidentType type, int severity, LocalDateTime createdAt) {
         Suburb suburb = Suburb.builder().id("test").name("Test Suburb")
-            .latitude(-33.9).longitude(18.4).build();
+                .latitude(-33.9).longitude(18.4).build();
         Incident i = new Incident();
         i.setSuburb(suburb);
         i.setType(type);

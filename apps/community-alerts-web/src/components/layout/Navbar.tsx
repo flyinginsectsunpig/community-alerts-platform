@@ -2,18 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Map, Bell, BarChart3, MessageSquare, Plus, Rss } from 'lucide-react';
+import { Shield, Map, Bell, BarChart3, MessageSquare, Plus, Rss, Settings } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '@/lib/store';
 import { ReportModal } from '@/components/alerts/ReportModal';
 import { useState } from 'react';
 
 const NAV_LINKS = [
-  { href: '/',          label: 'Dashboard',  icon: Rss },
-  { href: '/map',       label: 'Live Map',   icon: Map },
-  { href: '/alerts',    label: 'Alerts',     icon: Bell },
-  { href: '/analytics', label: 'Analytics',  icon: BarChart3 },
-  { href: '/forum',     label: 'Forum',      icon: MessageSquare },
+  { href: '/', label: 'Dashboard', icon: Rss },
+  { href: '/map', label: 'Live Map', icon: Map },
+  { href: '/alerts', label: 'Alerts', icon: Bell },
+  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/forum', label: 'Forum', icon: MessageSquare },
+  { href: '/admin', label: 'Admin', icon: Settings },
 ];
 
 export function Navbar() {

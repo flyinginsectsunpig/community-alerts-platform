@@ -221,6 +221,7 @@ export function MapView() {
     selectedIncidentId,
     setSelectedIncident,
     updateIncident,
+    backendConnected,
   } = useStore();
   const [showFilters, setShowFilters] = useState(false);
 

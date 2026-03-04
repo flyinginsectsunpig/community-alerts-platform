@@ -44,8 +44,8 @@ interface Store {
 }
 
 export const useStore = create<Store>((set, get) => ({
-  incidents: [...SEED_INCIDENTS],
-  suburbs: [...FALLBACK_SUBURBS],
+  incidents: [],
+  suburbs: [],
   forumPosts: structuredClone(FORUM_POSTS),
   backendConnected: false,
   mlConnected: false,
