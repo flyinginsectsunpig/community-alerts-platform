@@ -15,11 +15,24 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          batch_size: 500          # flush every 500 INSERT/UPDATE statements
+        order_inserts: true        # group same-entity INSERTs for batching
+        order_updates: true        # group same-entity UPDATEs for batching
 
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+
+  # Async thread pool for Excel import jobs
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 10
+      thread-name-prefix: excel-import-
 
 server:
   port: 8080
