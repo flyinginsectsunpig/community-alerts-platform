@@ -26,22 +26,26 @@ public class AuthController {
     @PostMapping("/login")
     @Operation(summary = "Authenticate and receive a JWT token")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        User user = userRepository.findByUsername(request.username())
+        User user = userRepository.findByUsername(request.username)
                 .orElse(null);
 
-        if (user == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user == null || !passwordEncoder.matches(request.password, user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid username or password"));
         }
 
-        String token = tokenProvider.generateToken(user.getUsername(), user.getRole());
+        String role = user.getRole() != null ? user.getRole() : "ADMIN";
+        String token = tokenProvider.generateToken(user.getUsername(), role);
 
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "username", user.getUsername(),
-                "role", user.getRole()
+                "role", role
         ));
     }
 
-    public record LoginRequest(String username, String password) {}
+    public static class LoginRequest {
+        public String username;
+        public String password;
+    }
 }

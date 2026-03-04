@@ -29,8 +29,8 @@ public class ForumServiceImpl implements ForumService {
 
         ForumPost post = ForumPost.builder()
             .suburb(suburb)
-            .username(request.username())
-            .text(request.text())
+            .username(request.getUsername())
+            .text(request.getText())
             .build();
 
         return toResponse(forumPostRepository.save(post));

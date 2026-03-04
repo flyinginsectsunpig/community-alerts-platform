@@ -33,23 +33,23 @@ public class IncidentServiceImpl implements IncidentService {
     @Override
     @Transactional
     public IncidentResponse create(IncidentRequest request) {
-        Suburb suburb = suburbRepository.findById(request.suburbId())
+        Suburb suburb = suburbRepository.findById(request.getSuburbId())
             .orElseThrow(() -> new EntityNotFoundException(
-                "Suburb not found: " + request.suburbId()));
+                "Suburb not found: " + request.getSuburbId()));
 
-        String tagsString = request.tags() != null
-            ? String.join(",", request.tags())
+        String tagsString = request.getTags() != null
+            ? String.join(",", request.getTags())
             : null;
 
         Incident incident = Incident.builder()
             .suburb(suburb)
-            .type(request.type())
-            .title(request.title())
-            .description(request.description())
+            .type(request.getType())
+            .title(request.getTitle())
+            .description(request.getDescription())
             .tags(tagsString)
-            .severity(request.severity() != null ? request.severity() : 3)
-            .latitude(request.latitude())
-            .longitude(request.longitude())
+            .severity(request.getSeverity() != null ? request.getSeverity() : 3)
+            .latitude(request.getLatitude())
+            .longitude(request.getLongitude())
             .build();
 
         Incident saved = incidentRepository.save(incident);

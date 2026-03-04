@@ -29,9 +29,9 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = Comment.builder()
             .incident(incident)
-            .username(request.username())
-            .text(request.text())
-            .descriptionMatch(request.descriptionMatch() != null && request.descriptionMatch())
+            .username(request.getUsername())
+            .text(request.getText())
+            .descriptionMatch(request.getDescriptionMatch() != null && request.getDescriptionMatch())
             .build();
 
         return toResponse(commentRepository.save(comment));
