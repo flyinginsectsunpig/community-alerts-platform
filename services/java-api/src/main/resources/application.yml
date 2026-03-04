@@ -34,14 +34,22 @@ spring:
         queue-capacity: 10
       thread-name-prefix: excel-import-
 
+  # Redis and RabbitMQ are disabled in local dev.
+  # The docker profile (application-docker.yml) enables them.
   data:
     redis:
       host: localhost
       port: 6379
+      enabled: false
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
+    enabled: false
+    listener:
+      simple:
+        auto-startup: false   # prevent connection attempt at startup locally
 
 server:
+

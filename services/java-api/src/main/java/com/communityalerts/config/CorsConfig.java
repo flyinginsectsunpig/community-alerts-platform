@@ -7,5 +7,9 @@ package com.communityalerts.config;
  * This class is intentionally left empty — defining a separate CorsFilter
  * bean alongside Spring Security's built-in CORS support caused duplicate
  * CORS headers and a 500 on POST requests (e.g. /api/auth/login).
+ *
+ * DO NOT add @Configuration or any @Bean methods here.
  */
-// Removed: duplicate CorsFilter bean — see SecurityConfig for active CORS config
+public final class CorsConfig {
+    private CorsConfig() { /* utility class, no instantiation */ }
+}

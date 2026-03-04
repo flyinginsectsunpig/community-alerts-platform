@@ -165,6 +165,7 @@ export default function AdminPage() {
         try {
             const res = await fetch(`${baseUrl}/api/admin/upload`, {
                 method: "POST",
+                headers: authHeaders(),
                 body: formData,
             });
 

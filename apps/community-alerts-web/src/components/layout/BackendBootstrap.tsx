@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useStore } from '@/lib/store';
-import { communityApi, mlApi } from '@/lib/api';
+import { communityApi, mlApi, notificationApi } from '@/lib/api';
 import type { Suburb, Incident } from '@/lib/types';
 import { BACKEND_TO_UI_TYPE } from '@/lib/constants';
 import { FALLBACK_SUBURBS, SEED_INCIDENTS } from '@/lib/data/fallback';
@@ -53,7 +53,7 @@ export function mapIncident(raw: any): Incident {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BackendBootstrap() {
-  const { setIncidents, setSuburbs, setBackendConnected, setMlConnected } =
+  const { setIncidents, setSuburbs, setBackendConnected, setMlConnected, setNotificationConnected } =
     useStore();
 
   useEffect(() => {
@@ -102,6 +102,15 @@ export function BackendBootstrap() {
         }
       } catch {
         if (!cancelled) setMlConnected(false);
+      }
+
+      // ── Notification service (.NET) ──────────────────────────────────────────
+      if (cancelled) return;
+      try {
+        await notificationApi.getHealth();
+        if (!cancelled) setNotificationConnected(true);
+      } catch {
+        if (!cancelled) setNotificationConnected(false);
       }
     }
 

@@ -102,7 +102,7 @@ export class MlApi {
 export class NotificationApi {
   private client: HttpClient;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_NOTIF_API_URL || 'http://localhost:5000') {
+  constructor(baseUrl: string = process.env.NEXT_PUBLIC_NOTIF_API_URL || 'http://localhost:5001') {
     this.client = new HttpClient(baseUrl);
   }
 

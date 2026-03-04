@@ -22,3 +22,12 @@ spring:
     redis:
       host: redis
       port: 6379
+      enabled: true   # activates RedisConfig — set to false for local dev without Redis
+
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+    enabled: true     # activates RabbitMQConfig — set to false for local dev without RabbitMQ
+
