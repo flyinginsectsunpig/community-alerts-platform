@@ -63,6 +63,20 @@ public class ExcelImportService {
     /** In-memory job registry — keyed by UUID job ID. */
     private final ConcurrentHashMap<String, ImportJobStatus> jobs = new ConcurrentHashMap<>();
 
+    private static final class ImportLayout {
+        final int startRow;
+        final int offenceCol;
+        final int stationCol;
+        final Integer countCol;
+
+        ImportLayout(int startRow, int offenceCol, int stationCol, Integer countCol) {
+            this.startRow = startRow;
+            this.offenceCol = offenceCol;
+            this.stationCol = stationCol;
+            this.countCol = countCol;
+        }
+    }
+
     // ------------------------------------------------------------------
     // Public API
     // ------------------------------------------------------------------
@@ -102,7 +116,17 @@ public class ExcelImportService {
         try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(fileBytes);
                 Workbook workbook = new XSSFWorkbook(bais)) {
 
-            Sheet sheet = workbook.getSheetAt(0);
+            Sheet sheet = workbook.getSheet("RAW Data");
+            ImportLayout layout;
+            if (sheet != null) {
+                // SAPS workbook structure: headers on row 3, data from row 4.
+                // Station = col 5, offence category = col 8, quarter total = col 29.
+                layout = new ImportLayout(3, 7, 4, 28);
+            } else {
+                // Backward-compatible fallback for older import templates.
+                sheet = workbook.getSheetAt(0);
+                layout = new ImportLayout(1, 0, 3, null);
+            }
 
             // ── 1. Pre-load suburb cache ────────────────────────────────
             // One SELECT instead of two queries per row.
@@ -115,12 +139,12 @@ public class ExcelImportService {
             Set<String> seenSuburbIds = new HashSet<>();
             int totalRows = sheet.getLastRowNum();
 
-            for (int i = 1; i <= totalRows; i++) {
+            for (int i = layout.startRow; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null)
                     continue;
 
-                Cell stationCell = row.getCell(3, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                Cell stationCell = row.getCell(layout.stationCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                 if (stationCell == null)
                     continue;
 
@@ -150,13 +174,13 @@ public class ExcelImportService {
             // ── 3. Second pass: build & batch-insert incidents ──────────
             List<Incident> batch = new ArrayList<>(BATCH_SIZE);
 
-            for (int i = 1; i <= totalRows; i++) {
+            for (int i = layout.startRow; i <= totalRows; i++) {
                 Row row = sheet.getRow(i);
                 if (row == null)
                     continue;
 
-                Cell offenceCell = row.getCell(0, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                Cell stationCell = row.getCell(3, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                Cell offenceCell = row.getCell(layout.offenceCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+                Cell stationCell = row.getCell(layout.stationCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
                 if (offenceCell == null || stationCell == null)
                     continue;
 
@@ -171,19 +195,25 @@ public class ExcelImportService {
                     continue; // should never happen after pass-1
 
                 IncidentType type = IncidentTypeClassifier.classifyType(offenceStr);
+                int quarterCount = 1;
+                if (layout.countCol != null) {
+                    quarterCount = getPositiveIntCellValue(
+                            row.getCell(layout.countCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL));
+                    if (quarterCount <= 0)
+                        continue;
+                }
 
+                String countSuffix = layout.countCol == null ? "" : " (quarter count: " + quarterCount + ")";
                 batch.add(Incident.builder()
                         .suburb(suburb)
                         .type(type)
                         .severity(IncidentTypeClassifier.defaultSeverity(type))
-                        .title("Reported: " + offenceStr)
-                        .description("Imported from SAPS Crime Stats: " + offenceStr + " at " + stationStr)
+                        .title("Reported: " + offenceStr + countSuffix)
+                        .description("Imported from SAPS Crime Stats: " + offenceStr + " at " + stationStr + countSuffix)
                         .tags("Imported,SAPS")
                         .latitude(suburb.getLatitude())
                         .longitude(suburb.getLongitude())
                         .build());
-
-                jobStatus.setRowsProcessed(jobStatus.getRowsProcessed() + 1);
 
                 if (batch.size() >= BATCH_SIZE) {
                     incidentRepository.saveAll(batch);
@@ -192,6 +222,9 @@ public class ExcelImportService {
                             jobId, batch.size(), jobStatus.getIncidentsAdded());
                     batch.clear();
                 }
+
+                // Source rows successfully parsed (not multiplied incident count).
+                jobStatus.setRowsProcessed(jobStatus.getRowsProcessed() + 1);
             }
 
             // Flush remainder
@@ -202,6 +235,7 @@ public class ExcelImportService {
             }
 
             // ── 4. Deferred heat score recalc ───────────────────────────
+            jobStatus.setStatus(ImportJobStatus.Status.FINALIZING);
             log.info("[job={}] Starting heat score recalculation", jobId);
             heatScoreService.recalculateAll();
 
@@ -232,6 +266,24 @@ public class ExcelImportService {
             case STRING -> cell.getStringCellValue().trim();
             case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
             default -> "";
+        };
+    }
+
+    private static int getPositiveIntCellValue(Cell cell) {
+        if (cell == null)
+            return 0;
+
+        return switch (cell.getCellType()) {
+            case NUMERIC -> Math.max(0, (int) Math.round(cell.getNumericCellValue()));
+            case STRING -> {
+                String raw = cell.getStringCellValue();
+                try {
+                    yield Math.max(0, Integer.parseInt(raw.trim()));
+                } catch (NumberFormatException e) {
+                    yield 0;
+                }
+            }
+            default -> 0;
         };
     }
 }

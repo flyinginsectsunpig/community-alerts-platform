@@ -48,6 +48,36 @@ services:
       retries: 10
 
 
+  # ── Redis Cache ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── RabbitMQ Message Broker ──────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - community-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   # ── Spring Boot API ──────────────────────────────────────────────────────────
   backend-java:
     build:
@@ -58,8 +88,11 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - NOTIFICATION_SERVICE_URL=http://backend-csharp:5001
+      - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
       - backend-csharp
+      - redis
+      - rabbitmq
     networks:
       - community-net
     healthcheck:
@@ -91,6 +124,8 @@ services:
     depends_on:
       postgres-notifications:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     ports:
       - "5001:5001"
     environment:
@@ -99,6 +134,10 @@ services:
       - Email__Mode=Log     # Change to "Send" with SMTP credentials in production
       - DatabaseProvider=Postgres
       - ConnectionStrings__Default=Host=postgres-notifications;Port=5432;Database=notifications;Username=communityalerts;Password=communityalerts
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
     networks:
       - community-net
     healthcheck:

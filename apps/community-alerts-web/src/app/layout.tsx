@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from '@/components/layout/Providers';
 import { Navbar } from '@/components/layout/Navbar';
 import { StatusBar } from '@/components/layout/StatusBar';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 
 const syne = Syne({
   subsets: ['latin'],
@@ -33,13 +34,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${syne.variable} ${spaceMono.variable} ${dmSans.variable}`}>
       <body className="bg-bg text-text-primary font-body antialiased">
-        <Providers>
-          <div className="flex flex-col h-screen overflow-hidden">
-            <Navbar />
-            <StatusBar />
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
-        </Providers>
+        <AuthProvider>
+          <Providers>
+            <div className="flex flex-col h-screen overflow-hidden">
+              <Navbar />
+              <StatusBar />
+              <main className="flex-1 overflow-auto">{children}</main>
+            </div>
+          </Providers>
+        </AuthProvider>
       </body>
     </html>
   );

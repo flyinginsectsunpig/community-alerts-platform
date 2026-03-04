@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Community Alerts — Production Docker Compose (Azure Container Apps)
+#
+# Overrides:
+#  - No port publishing (managed by Azure)
+#  - Uses Azure-managed Postgres & Redis (connection via env)
+#  - Restarts always
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  backend-java:
+    build:
+      context: ../../services/java-api
+      dockerfile: Dockerfile
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - NOTIFICATION_SERVICE_URL=http://backend-csharp:5001
+      - SPRING_DATASOURCE_URL=${JAVA_DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${JAVA_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${JAVA_DB_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT:-6380}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SPRING_DATA_REDIS_SSL_ENABLED=true
+      - SPRING_RABBITMQ_HOST=${RABBITMQ_HOST}
+      - SPRING_RABBITMQ_PORT=${RABBITMQ_PORT:-5672}
+      - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USER}
+      - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - APP_JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - backend-csharp
+    restart: always
+
+  backend-ml-python:
+    build:
+      context: ../../services/ml-api-python
+      dockerfile: Dockerfile
+    restart: always
+
+  backend-csharp:
+    build:
+      context: ../../services/notification-api-dotnet
+      dockerfile: Dockerfile
+    environment:
+      - ServiceUrls__SpringBoot=http://backend-java:8080
+      - ServiceUrls__MLService=http://backend-ml-python:8001
+      - Email__Mode=${EMAIL_MODE:-Log}
+      - Email__SmtpHost=${SMTP_HOST:-}
+      - Email__SmtpPort=${SMTP_PORT:-587}
+      - Email__SmtpUser=${SMTP_USER:-}
+      - Email__SmtpPass=${SMTP_PASS:-}
+      - DatabaseProvider=Postgres
+      - ConnectionStrings__Default=${DOTNET_DB_URL}
+      - RabbitMQ__Host=${RABBITMQ_HOST}
+      - RabbitMQ__Port=${RABBITMQ_PORT:-5672}
+      - RabbitMQ__Username=${RABBITMQ_USER}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD}
+    restart: always

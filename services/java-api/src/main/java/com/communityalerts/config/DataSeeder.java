@@ -11,14 +11,17 @@ import com.communityalerts.model.ForumPost;
 import com.communityalerts.model.Incident;
 import com.communityalerts.model.IncidentType;
 import com.communityalerts.model.Suburb;
+import com.communityalerts.model.User;
 import com.communityalerts.repository.CommentRepository;
 import com.communityalerts.repository.ForumPostRepository;
 import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
+import com.communityalerts.repository.UserRepository;
 import com.communityalerts.service.HeatScoreService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Seeds the database with realistic Cape Town data on startup.
@@ -35,6 +38,8 @@ private final SuburbRepository suburbRepository;
     private final CommentRepository commentRepository;
     private final ForumPostRepository forumPostRepository;
     private final HeatScoreService heatScoreService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     CommandLineRunner seedData() {
@@ -45,6 +50,16 @@ private final SuburbRepository suburbRepository;
             }
 
             log.info("Seeding Cape Town community data...");
+
+            // ── Default admin user ───────────────────────────────────────────
+            if (!userRepository.existsByUsername("admin")) {
+                userRepository.save(User.builder()
+                        .username("admin")
+                        .password(passwordEncoder.encode("admin123"))
+                        .role("ADMIN")
+                        .build());
+                log.info("Default admin user created (admin / admin123)");
+            }
 
             // ── Suburbs ──────────────────────────────────────────────────────
             List<Suburb> suburbs = suburbRepository.saveAll(List.of(

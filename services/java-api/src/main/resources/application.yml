@@ -49,6 +49,9 @@ app:
   rate-limit:
     incident-capacity: 10      # max 10 new incidents per minute per IP
     comment-capacity: 20       # max 20 comments per minute per IP
+  jwt:
+    secret: community-alerts-super-secret-key-change-in-production-please
+    expiration-ms: 86400000    # 24 hours
   heat:
     weights:
       crime: 5
@@ -59,3 +62,14 @@ app:
       info: 1
     recency-days-full: 7       # incidents within 7 days → full weight
     recency-days-half: 30      # incidents 7–30 days → half weight
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest

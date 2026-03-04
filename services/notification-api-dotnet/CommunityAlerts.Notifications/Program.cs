@@ -65,8 +65,9 @@ builder.Services.AddScoped<IPushService,         PushService>();
 builder.Services.AddScoped<IValidator<CreateSubscriberRequest>,   CreateSubscriberValidator>();
 builder.Services.AddScoped<IValidator<CreateSubscriptionRequest>, CreateSubscriptionValidator>();
 
-// ── Background worker ─────────────────────────────────────────────────────────
+// ── Background workers ────────────────────────────────────────────────────────
 builder.Services.AddHostedService<SuburbPollingWorker>();
+builder.Services.AddHostedService<RabbitMqConsumerWorker>();
 
 // ── API ───────────────────────────────────────────────────────────────────────
 builder.Services.AddControllers();

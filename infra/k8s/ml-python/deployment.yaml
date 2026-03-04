@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-python
+  namespace: community-alerts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-python
+  template:
+    metadata:
+      labels:
+        app: ml-python
+    spec:
+      containers:
+        - name: ml-python
+          image: communityalertsacr.azurecr.io/community-alerts/ml-python:latest
+          ports:
+            - containerPort: 8001
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ml/health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

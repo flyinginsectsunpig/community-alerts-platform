@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dotnet-notifications
+  namespace: community-alerts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dotnet-notifications
+  template:
+    metadata:
+      labels:
+        app: dotnet-notifications
+    spec:
+      containers:
+        - name: dotnet-notifications
+          image: communityalertsacr.azurecr.io/community-alerts/dotnet-notifications:latest
+          ports:
+            - containerPort: 5001
+          envFrom:
+            - configMapRef:
+                name: community-alerts-config
+          env:
+            - name: ServiceUrls__SpringBoot
+              value: "http://java-api:8080"
+            - name: ServiceUrls__MLService
+              value: "http://ml-python:8001"
+            - name: DatabaseProvider
+              value: "Postgres"
+            - name: ConnectionStrings__Default
+              value: "Host=postgres-notifications;Port=5432;Database=notifications;Username=communityalerts;Password=$(NOTIFICATIONS_DB_PASSWORD)"
+            - name: NOTIFICATIONS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: community-alerts-secrets
+                  key: notifications-db-password
+            - name: RabbitMQ__Host
+              value: "rabbitmq"
+            - name: RabbitMQ__Port
+              value: "5672"
+            - name: RabbitMQ__Username
+              value: "guest"
+            - name: RabbitMQ__Password
+              valueFrom:
+                secretKeyRef:
+                  name: community-alerts-secrets
+                  key: rabbitmq-password
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 5001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

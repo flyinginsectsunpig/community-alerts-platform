@@ -27,7 +27,7 @@ class HeatScoreServiceTest {
         HeatScoreProperties props = new HeatScoreProperties();
         // Uses default weights (crime=5, fire=4, etc.) and
         // default recency windows (7d full, 30d half)
-        service = new HeatScoreServiceImpl(null, null, props);
+        service = new HeatScoreServiceImpl(null, null, props, null);
     }
 
     @Test

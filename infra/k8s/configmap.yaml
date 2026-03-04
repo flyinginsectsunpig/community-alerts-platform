@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: community-alerts-config
+  namespace: community-alerts
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  NOTIFICATION_SERVICE_URL: "http://dotnet-notifications:5001"
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"

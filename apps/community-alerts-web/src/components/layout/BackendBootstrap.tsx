@@ -18,7 +18,7 @@ let bootstrapStarted = false;
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
-function mapSuburb(raw: any): Suburb {
+export function mapSuburb(raw: any): Suburb {
   return {
     id: raw.id,
     name: raw.name,
@@ -29,7 +29,7 @@ function mapSuburb(raw: any): Suburb {
   };
 }
 
-function mapIncident(raw: any): Incident {
+export function mapIncident(raw: any): Incident {
   return {
     id: raw.id,
     suburb: raw.suburbId ?? raw.suburb,

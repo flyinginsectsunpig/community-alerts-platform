@@ -6,6 +6,7 @@ import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,9 +43,11 @@ public class HeatScoreServiceImpl implements HeatScoreService {
     private final IncidentRepository incidentRepository;
     private final SuburbRepository suburbRepository;
     private final HeatScoreProperties heatProperties;
+    private final SuburbAlertPublisher alertPublisher;
 
     @Override
     @Transactional
+    @CacheEvict(value = "suburbs", allEntries = true)
     public int recalculateForSuburb(String suburbId) {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(heatProperties.getRecencyDaysHalf());
         List<Incident> recent = incidentRepository.findRecentBySuburb(suburbId, cutoff);
@@ -56,6 +59,10 @@ public class HeatScoreServiceImpl implements HeatScoreService {
             suburbRepository.save(suburb);
             log.debug("Heat score updated → suburb={} score={} level={}",
                     suburbId, score, toAlertLevel(score));
+
+            // Publish escalation event to RabbitMQ
+            alertPublisher.publishIfEscalated(
+                    suburb.getId(), suburb.getName(), score, toAlertLevel(score));
         });
 
         return score;
@@ -63,6 +70,7 @@ public class HeatScoreServiceImpl implements HeatScoreService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "suburbs", allEntries = true)
     public void recalculateAll() {
         log.info("Running full heat score recalculation for all suburbs");
         suburbRepository.findAll().forEach(suburb -> recalculateForSuburb(suburb.getId()));

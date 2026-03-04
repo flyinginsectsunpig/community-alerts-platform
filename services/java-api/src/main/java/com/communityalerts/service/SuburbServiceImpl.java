@@ -6,6 +6,8 @@ import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class SuburbServiceImpl implements SuburbService {
     private final HeatScoreService   heatScoreService;
 
     @Override
+    @Cacheable(value = "suburbs")
     public List<SuburbResponse> findAll() {
         return suburbRepository.findAll()
             .stream()
@@ -38,6 +41,7 @@ public class SuburbServiceImpl implements SuburbService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "suburbs", allEntries = true)
     public SuburbResponse refreshHeatScore(String id) {
         heatScoreService.recalculateForSuburb(id);
         return findById(id);
@@ -62,3 +66,4 @@ public class SuburbServiceImpl implements SuburbService {
         );
     }
 }
+

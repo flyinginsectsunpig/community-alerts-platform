@@ -11,7 +11,7 @@ import lombok.Data;
 public class ImportJobStatus {
 
     public enum Status {
-        QUEUED, RUNNING, DONE, ERROR
+        QUEUED, RUNNING, FINALIZING, DONE, ERROR
     }
 
     private final String jobId;
