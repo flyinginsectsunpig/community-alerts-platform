@@ -102,7 +102,7 @@ public class IncidentServiceImpl implements IncidentService {
 
     @Override
     public List<com.communityalerts.dto.IncidentMapDTO> findAllMapData() {
-        return incidentRepository.findAllMapData();
+        return incidentRepository.findAllMapData(org.springframework.data.domain.PageRequest.of(0, 5000));
     }
 
 

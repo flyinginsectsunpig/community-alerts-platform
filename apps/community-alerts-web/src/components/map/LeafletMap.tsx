@@ -8,12 +8,29 @@ import 'leaflet/dist/leaflet.css';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-/** Cape Town bounding box for the heatmap image overlay */
-const CT_BOUNDS: [[number, number], [number, number]] = [
+/** Default fallback bounding box if no incidents exist */
+const DEFAULT_BOUNDS: [[number, number], [number, number]] = [
   [-34.45, 18.20],
   [-33.35, 19.10],
 ];
 
+function getBoundsFromIncidents(incidents: Incident[]): [[number, number], [number, number]] {
+  if (incidents.length === 0) return DEFAULT_BOUNDS;
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  for (const inc of incidents) {
+    if (inc.lat < minLat) minLat = inc.lat;
+    if (inc.lat > maxLat) maxLat = inc.lat;
+    if (inc.lng < minLng) minLng = inc.lng;
+    if (inc.lng > maxLng) maxLng = inc.lng;
+  }
+  // Add a small margin (~5%) so boundary points are not cut off
+  const latMargin = (maxLat - minLat) * 0.05 || 0.1;
+  const lngMargin = (maxLng - minLng) * 0.05 || 0.1;
+  return [
+    [minLat - latMargin, minLng - lngMargin],
+    [maxLat + latMargin, maxLng + lngMargin]
+  ];
+}
 /**
  * Zoom threshold.
  * Below  → KDE haze covering all of Cape Town (green → red)
@@ -28,10 +45,21 @@ const GRID_H = 200;
 /** Gaussian kernel bandwidth in degrees (~7 km spread) */
 const BANDWIDTH = 0.07;
 
+/** Maximum incidents fed into KDE — above this we subsample evenly */
+const KDE_MAX = 3000;
+
 // ─── KDE Computation ──────────────────────────────────────────────────────────
 
-function buildDensityGrid(incidents: Incident[]): Float32Array {
-  const [sw, ne] = CT_BOUNDS;
+type Bounds = [[number, number], [number, number]];
+
+function buildDensityGrid(incidents: Incident[], bounds: Bounds): Float32Array {
+  // Subsample to KDE_MAX to keep computation under ~50 ms even for large datasets
+  const sample =
+    incidents.length > KDE_MAX
+      ? incidents.filter((_, i) => i % Math.ceil(incidents.length / KDE_MAX) === 0)
+      : incidents;
+
+  const [sw, ne] = bounds;
   const minLat = sw[0], maxLat = ne[0];
   const minLng = sw[1], maxLng = ne[1];
 
@@ -42,7 +70,7 @@ function buildDensityGrid(incidents: Incident[]): Float32Array {
   const rangeX = Math.ceil(sigmaX * 3);
   const rangeY = Math.ceil(sigmaY * 3);
 
-  for (const inc of incidents) {
+  for (const inc of sample) {
     const gx = ((inc.lng - minLng) / (maxLng - minLng)) * GRID_W;
     const gy = (1 - (inc.lat - minLat) / (maxLat - minLat)) * GRID_H;
     const weight = inc.severity;
@@ -93,8 +121,8 @@ function lerpColor(t: number) {
   return COLOR_STOPS[COLOR_STOPS.length - 1];
 }
 
-function buildHeatmapDataURL(incidents: Incident[]): string {
-  const grid = buildDensityGrid(incidents);
+function buildHeatmapDataURL(incidents: Incident[], bounds: Bounds): string {
+  const grid = buildDensityGrid(incidents, bounds);
 
   // 98th-percentile cap prevents a single hot-spot from washing out the gradient
   const nonZero = Array.from(grid).filter((v) => v > 0).sort((a, b) => a - b);
@@ -168,8 +196,9 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
     clearMarkers();
     if (heatRef.current) return;
     if (incs.length === 0) return;
-    const url = buildHeatmapDataURL(incs);
-    heatRef.current = L.imageOverlay(url, CT_BOUNDS, { opacity: 0.82, zIndex: 200 }).addTo(map);
+    const bounds = getBoundsFromIncidents(incs);
+    const url = buildHeatmapDataURL(incs, bounds);
+    heatRef.current = L.imageOverlay(url, bounds, { opacity: 0.82, zIndex: 200 }).addTo(map);
     setShowHint(true);
   }
 
@@ -290,7 +319,14 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
 
   useEffect(() => {
     if (!mapRef.current || !LRef.current) return;
-    syncToZoom(LRef.current, mapRef.current, incidents);
+    // Debounce so a large batch of incidents arriving doesn't trigger dozens
+    // of expensive KDE rebuilds — only the final settled value matters.
+    const timer = setTimeout(() => {
+      if (mapRef.current && LRef.current) {
+        syncToZoom(LRef.current, mapRef.current, incidents);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incidents, selectedIncidentId]);
 
