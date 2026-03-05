@@ -1,12 +1,13 @@
 package com.communityalerts.service;
 
-import com.communityalerts.dto.IncidentRequest;
-import com.communityalerts.dto.IncidentResponse;
-import com.communityalerts.model.IncidentType;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
+import com.communityalerts.dto.IncidentRequest;
+import com.communityalerts.dto.IncidentResponse;
+import com.communityalerts.model.IncidentType;
 
 public interface IncidentService {
 
@@ -21,6 +22,8 @@ public interface IncidentService {
     Page<IncidentResponse> findByType(IncidentType type, Pageable pageable);
 
     List<IncidentResponse> findNearby(double lat, double lng, double radiusKm);
+
+    List<com.communityalerts.dto.IncidentMapDTO> findAllMapData();
 
     void delete(Long id);
 }

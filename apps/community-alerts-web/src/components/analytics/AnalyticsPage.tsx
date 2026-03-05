@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function AnalyticsPage() {
-  const { incidents, suburbs } = useStore();
+  const { mapIncidents: incidents, suburbs } = useStore();
 
   // Type breakdown
   const typeCounts = Object.keys(TYPE_CONFIG).map((type) => ({
@@ -44,12 +44,12 @@ export function AnalyticsPage() {
     .map((s) => ({
       name: s.name.replace(' (CT)', '').slice(0, 12),
       score: s.weight,
-      incidents: incidents.filter((i) => i.suburb === s.id).length,
+      incidents: incidents.filter((i) => i.suburbId === s.id).length,
       level: s.alertLevel ?? 'GREEN',
     }));
 
   // Severity distribution
-  const severityData = [1,2,3,4,5].map((sev) => ({
+  const severityData = [1, 2, 3, 4, 5].map((sev) => ({
     name: `Sev ${sev}`,
     count: incidents.filter((i) => i.severity === sev).length,
     color: SEVERITY_COLORS[sev],
@@ -187,7 +187,7 @@ export function AnalyticsPage() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {suburbs.map((suburb) => {
-            const subIncidents = incidents.filter((i) => i.suburb === suburb.id);
+            const subIncidents = incidents.filter((i) => i.suburbId === suburb.id);
             const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
             const pct = Math.min(100, (suburb.weight / 50) * 100);
 

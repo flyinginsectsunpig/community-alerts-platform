@@ -50,10 +50,22 @@ export function mapIncident(raw: any): Incident {
   };
 }
 
+export function mapMapIncident(raw: any): import('@/lib/types').IncidentMapDTO {
+  return {
+    id: raw.id,
+    suburbId: raw.suburbId,
+    type: BACKEND_TO_UI_TYPE[raw.type] ?? 'info',
+    severity: raw.severity ?? 3,
+    lat: raw.latitude ?? raw.lat,
+    lng: raw.longitude ?? raw.lng,
+  };
+}
+
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BackendBootstrap() {
-  const { setIncidents, setSuburbs, setBackendConnected, setMlConnected, setNotificationConnected } =
+  const { setIncidents, setMapIncidents, setSuburbs, setBackendConnected, setMlConnected, setNotificationConnected } =
     useStore();
 
   useEffect(() => {
@@ -70,9 +82,10 @@ export function BackendBootstrap() {
     async function bootstrap() {
       // ── Java backend ────────────────────────────────────────────────────────
       try {
-        const [suburbsRaw, incidentsRaw] = await Promise.all([
+        const [suburbsRaw, incidentsRaw, mapDataRaw] = await Promise.all([
           communityApi.getSuburbs() as Promise<any[]>,
           communityApi.getIncidents(200) as Promise<any>,
+          communityApi.getMapData() as Promise<any[]>,
         ]);
 
         // If the component unmounted while the fetch was in flight, stop here.
@@ -82,9 +95,11 @@ export function BackendBootstrap() {
         const incidents = (incidentsRaw?.content ?? incidentsRaw ?? []).map(
           mapIncident,
         );
+        const mapIncidents = (mapDataRaw ?? []).map(mapMapIncident);
 
         if (suburbs.length) setSuburbs(suburbs);
         if (incidents.length) setIncidents(incidents);
+        if (mapIncidents.length) setMapIncidents(mapIncidents);
         setBackendConnected(true);
       } catch {
         // Backend unreachable — store stays empty, UI shows empty state.
@@ -123,7 +138,7 @@ export function BackendBootstrap() {
       cancelled = true;
       bootstrapStarted = false;
     };
-  }, []);
+  }, [setBackendConnected, setIncidents, setMlConnected, setNotificationConnected, setSuburbs]);
 
   return null;
 }

@@ -101,7 +101,7 @@ services:
     networks:
       - community-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/suburbs"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/v1/suburbs"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,7 +116,13 @@ services:
     networks:
       - community-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8001/api/v1/ml/health"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/v1/ml/health', timeout=5)",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -146,7 +152,7 @@ services:
     networks:
       - community-net
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5001/api/v1/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5001/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3

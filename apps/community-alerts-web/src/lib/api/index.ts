@@ -41,6 +41,10 @@ export class CommunityApi {
     return this.client.get(`/api/v1/incidents/${id}`);
   }
 
+  getMapData() {
+    return this.client.get('/api/v1/incidents/map-data');
+  }
+
   createIncident(payload: unknown) {
     return this.client.post('/api/v1/incidents', payload);
   }
@@ -107,7 +111,7 @@ export class NotificationApi {
   }
 
   getHealth() {
-    return this.client.get('/health');
+    return this.client.get('/api/v1/health');
   }
 
   createSubscriber(payload: { email: string; username: string; pushToken: string | null }) {

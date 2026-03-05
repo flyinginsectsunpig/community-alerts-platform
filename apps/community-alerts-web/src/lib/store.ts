@@ -7,6 +7,7 @@ import { FALLBACK_SUBURBS, SEED_INCIDENTS, FORUM_POSTS } from '@/lib/data/fallba
 interface Store {
   // Data
   incidents: Incident[];
+  mapIncidents: import('@/lib/types').IncidentMapDTO[];
   suburbs: Suburb[];
   forumPosts: ForumPostsBySuburb;
 
@@ -26,6 +27,7 @@ interface Store {
 
   // Actions
   setIncidents: (incidents: Incident[]) => void;
+  setMapIncidents: (incidents: import('@/lib/types').IncidentMapDTO[]) => void;
   addIncident: (incident: Incident) => void;
   updateIncident: (id: number | string, updater: (current: Incident) => Incident) => void;
   setSuburbs: (suburbs: Suburb[]) => void;
@@ -45,6 +47,7 @@ interface Store {
 
 export const useStore = create<Store>((set, get) => ({
   incidents: [],
+  mapIncidents: [],
   suburbs: [],
   forumPosts: structuredClone(FORUM_POSTS),
   backendConnected: false,
@@ -59,6 +62,7 @@ export const useStore = create<Store>((set, get) => ({
   subscriberId: null,
 
   setIncidents: (incidents) => set({ incidents }),
+  setMapIncidents: (mapIncidents) => set({ mapIncidents }),
   addIncident: (incident) => set((s) => ({ incidents: [incident, ...s.incidents] })),
   updateIncident: (id, updater) => set((s) => ({
     incidents: s.incidents.map((inc) => inc.id === id ? updater(inc) : inc),

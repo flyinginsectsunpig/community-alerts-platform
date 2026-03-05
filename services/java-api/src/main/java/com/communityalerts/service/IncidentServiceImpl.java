@@ -1,5 +1,13 @@
 package com.communityalerts.service;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.communityalerts.dto.IncidentRequest;
 import com.communityalerts.dto.IncidentResponse;
 import com.communityalerts.model.Incident;
@@ -8,16 +16,10 @@ import com.communityalerts.model.Suburb;
 import com.communityalerts.repository.CommentRepository;
 import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Arrays;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -97,6 +99,12 @@ public class IncidentServiceImpl implements IncidentService {
             .map(this::toResponse)
             .toList();
     }
+
+    @Override
+    public List<com.communityalerts.dto.IncidentMapDTO> findAllMapData() {
+        return incidentRepository.findAllMapData();
+    }
+
 
     @Override
     @Transactional

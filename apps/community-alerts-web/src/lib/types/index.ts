@@ -19,6 +19,15 @@ export interface Incident {
   isFromBackend?: boolean;
 }
 
+export interface IncidentMapDTO {
+  id: number | string;
+  suburbId: string;
+  type: IncidentType;
+  severity: number;
+  lat: number;
+  lng: number;
+}
+
 export interface Comment {
   user: string;
   avatar: string;

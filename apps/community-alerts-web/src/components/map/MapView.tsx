@@ -8,13 +8,16 @@ import { TYPE_CONFIG, ALERT_LEVEL_COLOR, SEVERITY_COLORS } from '@/lib/constants
 import { clsx } from 'clsx';
 import { X, MapPin, Filter } from 'lucide-react';
 import type { Incident, IncidentType } from '@/lib/types';
+import { mapIncident } from '@/components/layout/BackendBootstrap';
 
 // Leaflet must be loaded client-side only
-const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false, loading: () => (
-  <div className="flex-1 bg-bg flex items-center justify-center">
-    <div className="text-text-dim font-mono text-sm animate-pulse">Loading map...</div>
-  </div>
-) });
+const LeafletMap = dynamic(() => import('./LeafletMap'), {
+  ssr: false, loading: () => (
+    <div className="flex-1 bg-bg flex items-center justify-center">
+      <div className="text-text-dim font-mono text-sm animate-pulse">Loading map...</div>
+    </div>
+  )
+});
 
 function FilterPill({ type, active, onToggle }: { type: IncidentType; active: boolean; onToggle: () => void }) {
   const cfg = TYPE_CONFIG[type];
@@ -149,7 +152,7 @@ function IncidentPanel({
         <div>
           <div className="form-label">Severity</div>
           <div className="flex items-center gap-2">
-            {[1,2,3,4,5].map((n) => (
+            {[1, 2, 3, 4, 5].map((n) => (
               <div
                 key={n}
                 className="h-1.5 rounded-full flex-1 transition-all"
@@ -215,6 +218,7 @@ function IncidentPanel({
 export function MapView() {
   const {
     incidents,
+    mapIncidents,
     suburbs,
     activeFilters,
     toggleFilter,
@@ -224,8 +228,33 @@ export function MapView() {
     backendConnected,
   } = useStore();
   const [showFilters, setShowFilters] = useState(false);
+  const [fetchedIncident, setFetchedIncident] = useState<Incident | null>(null);
 
-  const selectedIncident = incidents.find((i) => i.id === selectedIncidentId) ?? null;
+  useEffect(() => {
+    if (!selectedIncidentId) {
+      setFetchedIncident(null);
+      return;
+    }
+
+    // Fast path: it's in the recent 200 cache
+    const cached = incidents.find((i) => i.id === selectedIncidentId);
+    if (cached) {
+      setFetchedIncident(cached);
+      return;
+    }
+
+    // Slow path: user clicked an older map pin that was only loaded as a map item
+    let cancelled = false;
+    communityApi.getIncident(selectedIncidentId)
+      .then((data: any) => {
+        if (!cancelled) setFetchedIncident(mapIncident(data));
+      })
+      .catch((err) => console.error(err));
+
+    return () => { cancelled = true; };
+  }, [selectedIncidentId, incidents]);
+
+  const selectedIncident = fetchedIncident;
   const selectedSuburb = selectedIncident ? suburbs.find((s) => s.id === selectedIncident.suburb) : null;
 
   return (
@@ -280,7 +309,7 @@ export function MapView() {
         {/* Map */}
         <div className="flex-1 relative">
           <LeafletMap
-            incidents={incidents.filter((i) => activeFilters.has(i.type))}
+            incidents={mapIncidents.filter((i) => activeFilters.has(i.type))}
             suburbs={suburbs}
             onSelectIncident={setSelectedIncident}
             selectedIncidentId={selectedIncidentId}

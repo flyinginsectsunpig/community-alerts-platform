@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Clock, Loader2, BarChart3, LogOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { communityApi } from "@/lib/api";
@@ -83,7 +83,7 @@ export default function AdminPage() {
         router.push("/login");
     };
 
-    const refreshGlobalStore = async () => {
+    const refreshGlobalStore = useCallback(async () => {
         try {
             const [suburbsRaw, incidentsRaw] = await Promise.all([
                 communityApi.getSuburbs() as Promise<any[]>,
@@ -98,7 +98,7 @@ export default function AdminPage() {
         } catch (e) {
             console.error("Failed to refresh store data after upload", e);
         }
-    };
+    }, [setIncidents, setSuburbs]);
 
     const baseUrl = process.env.NEXT_PUBLIC_JAVA_API_URL || "http://localhost:8080";
 
@@ -140,7 +140,7 @@ export default function AdminPage() {
         }, 2000);
 
         return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [job?.jobId, job?.status]);
+    }, [job?.jobId, job?.status, baseUrl, refreshGlobalStore]);
 
     // ── Handlers ───────────────────────────────────────────────────────────
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

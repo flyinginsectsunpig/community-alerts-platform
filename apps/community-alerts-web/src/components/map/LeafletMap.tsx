@@ -68,12 +68,12 @@ function buildDensityGrid(incidents: Incident[]): Float32Array {
 // ─── Canvas Rendering ─────────────────────────────────────────────────────────
 
 const COLOR_STOPS = [
-  { t: 0.00, r: 34,  g: 197, b: 94,  a: 0   },
-  { t: 0.08, r: 34,  g: 197, b: 94,  a: 35  },
-  { t: 0.28, r: 132, g: 204, b: 22,  a: 80  },
-  { t: 0.50, r: 234, g: 179, b: 8,   a: 120 },
-  { t: 0.72, r: 249, g: 115, b: 22,  a: 160 },
-  { t: 1.00, r: 239, g: 68,  b: 68,  a: 210 },
+  { t: 0.00, r: 34, g: 197, b: 94, a: 0 },
+  { t: 0.08, r: 34, g: 197, b: 94, a: 35 },
+  { t: 0.28, r: 132, g: 204, b: 22, a: 80 },
+  { t: 0.50, r: 234, g: 179, b: 8, a: 120 },
+  { t: 0.72, r: 249, g: 115, b: 22, a: 160 },
+  { t: 1.00, r: 239, g: 68, b: 68, a: 210 },
 ];
 
 function lerpColor(t: number) {
@@ -98,19 +98,19 @@ function buildHeatmapDataURL(incidents: Incident[]): string {
 
   // 98th-percentile cap prevents a single hot-spot from washing out the gradient
   const nonZero = Array.from(grid).filter((v) => v > 0).sort((a, b) => a - b);
-  const p98    = nonZero[Math.floor(nonZero.length * 0.98)] ?? 1;
+  const p98 = nonZero[Math.floor(nonZero.length * 0.98)] ?? 1;
   const maxVal = Math.max(p98, 0.001);
 
   const canvas = document.createElement('canvas');
   canvas.width = GRID_W; canvas.height = GRID_H;
   const ctx = canvas.getContext('2d')!;
   const img = ctx.createImageData(GRID_W, GRID_H);
-  const px  = img.data;
+  const px = img.data;
 
   for (let i = 0; i < GRID_W * GRID_H; i++) {
     const t = Math.min(grid[i] / maxVal, 1);
     const { r, g, b, a } = lerpColor(t);
-    px[i * 4]     = r;
+    px[i * 4] = r;
     px[i * 4 + 1] = g;
     px[i * 4 + 2] = b;
     px[i * 4 + 3] = a;
@@ -138,18 +138,18 @@ interface Props {
 
 export default function LeafletMap({ incidents, onSelectIncident, selectedIncidentId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef       = useRef<any>(null);
-  const markersRef   = useRef<any[]>([]);
-  const heatRef      = useRef<any>(null);
-  const LRef         = useRef<any>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const heatRef = useRef<any>(null);
+  const LRef = useRef<any>(null);
 
   // Stable refs so event callbacks always see the latest props
   const incidentsRef = useRef(incidents);
-  const onSelectRef  = useRef(onSelectIncident);
-  const selectedRef  = useRef(selectedIncidentId);
+  const onSelectRef = useRef(onSelectIncident);
+  const selectedRef = useRef(selectedIncidentId);
   useEffect(() => { incidentsRef.current = incidents; }, [incidents]);
-  useEffect(() => { onSelectRef.current  = onSelectIncident; }, [onSelectIncident]);
-  useEffect(() => { selectedRef.current  = selectedIncidentId; }, [selectedIncidentId]);
+  useEffect(() => { onSelectRef.current = onSelectIncident; }, [onSelectIncident]);
+  useEffect(() => { selectedRef.current = selectedIncidentId; }, [selectedIncidentId]);
 
   const [showHint, setShowHint] = useState(true);
 
@@ -179,9 +179,19 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
     setShowHint(false);
 
     const selId = selectedRef.current;
-    incs.forEach((incident) => {
-      const cfg   = TYPE_CONFIG[incident.type];
-      const size  = 8 + incident.severity * 3;
+    const bounds = map.getBounds();
+    const visibleIncs = [];
+
+    for (const incident of incs) {
+      if (bounds.contains([incident.lat, incident.lng])) {
+        visibleIncs.push(incident);
+        if (visibleIncs.length > 500) break; // protect DOM
+      }
+    }
+
+    visibleIncs.forEach((incident) => {
+      const cfg = TYPE_CONFIG[incident.type];
+      const size = 8 + incident.severity * 3;
       const isSel = incident.id === selId;
 
       const icon = L.divIcon({
@@ -224,14 +234,15 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
   useEffect(() => {
     let cancelled = false;
     let localMap: any = null;
+    const containerEl = containerRef.current;
 
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerEl || mapRef.current) return;
 
     (async () => {
       const L = (await import('leaflet')).default;
-      if (cancelled || !containerRef.current) return;
+      if (cancelled || !containerEl) return;
 
-      const container = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
+      const container = containerEl as HTMLDivElement & { _leaflet_id?: number };
       if (container._leaflet_id) delete container._leaflet_id;
 
       const map = L.map(container, {
@@ -250,9 +261,14 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
       if (cancelled) { map.remove(); return; }
 
       mapRef.current = map;
-      LRef.current   = L;
+      LRef.current = L;
 
       map.on('zoomend', () => syncToZoom(L, map, incidentsRef.current));
+      map.on('moveend', () => {
+        if (map.getZoom() >= DETAIL_ZOOM) {
+          syncToZoom(L, map, incidentsRef.current);
+        }
+      });
       syncToZoom(L, map, incidentsRef.current);
     })();
 
@@ -263,9 +279,9 @@ export default function LeafletMap({ incidents, onSelectIncident, selectedIncide
       if (localMap) { localMap.remove(); localMap = null; }
       else if (mapRef.current) { mapRef.current.remove(); }
       mapRef.current = null;
-      LRef.current   = null;
-      const c = containerRef.current as (HTMLDivElement & { _leaflet_id?: number }) | null;
-      if (c?._leaflet_id) delete c._leaflet_id;
+      LRef.current = null;
+      const c = containerEl as (HTMLDivElement & { _leaflet_id?: number }) | null;
+      if (c && c._leaflet_id) delete c._leaflet_id;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

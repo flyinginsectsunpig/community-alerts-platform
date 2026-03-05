@@ -1,7 +1,8 @@
 package com.communityalerts.repository;
 
-import com.communityalerts.model.Incident;
-import com.communityalerts.model.IncidentType;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.communityalerts.model.Incident;
+import com.communityalerts.model.IncidentType;
 
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
@@ -46,4 +47,8 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findWithinRadius(@Param("lat") double lat,
             @Param("lng") double lng,
             @Param("radiusKm") double radiusKm);
+
+    /** Lightweight projection for the map & analytics */
+    @Query("SELECT new com.communityalerts.dto.IncidentMapDTO(i.id, i.suburb.id, i.type, i.severity, i.latitude, i.longitude) FROM Incident i")
+    List<com.communityalerts.dto.IncidentMapDTO> findAllMapData();
 }
