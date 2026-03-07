@@ -1,10 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Community Alerts — CI/CD Pipeline for Azure Container Apps
-#
-# Triggers on push to main. Builds all three service images, pushes
-# them to Azure Container Registry, and deploys to Container Apps.
-# ─────────────────────────────────────────────────────────────────────────────
-
 name: Deploy to Azure
 
 on:
@@ -15,15 +8,12 @@ on:
 env:
   ACR_NAME: communityalertsacr
   RESOURCE_GROUP: community-alerts-rg
-  LOCATION: southafricanorth
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -33,46 +23,60 @@ jobs:
       - name: Login to ACR
         run: az acr login --name ${{ env.ACR_NAME }}
 
-      # ── Build & Push Images ────────────────────────────────────────────────
-      - name: Build Java API
+      - name: Build & Push Java API
         run: |
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/java-api:${{ github.sha }} \
-            -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/java-api:latest \
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/java-api:${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/java-api:latest \
             services/java-api
-          docker push ${{ env.ACR_NAME }}.azurecr.io/community-alerts/java-api --all-tags
+          docker push ${{ env.ACR_NAME }}.azurecr.io/java-api --all-tags
 
-      - name: Build .NET Service
+      - name: Build & Push .NET Service
         run: |
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/dotnet-notifications:${{ github.sha }} \
-            -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/dotnet-notifications:latest \
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/notification-api-dotnet:${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/notification-api-dotnet:latest \
             services/notification-api-dotnet
-          docker push ${{ env.ACR_NAME }}.azurecr.io/community-alerts/dotnet-notifications --all-tags
+          docker push ${{ env.ACR_NAME }}.azurecr.io/notification-api-dotnet --all-tags
 
-      - name: Build Python ML Service
+      - name: Build & Push Python ML
         run: |
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/ml-python:${{ github.sha }} \
-            -t ${{ env.ACR_NAME }}.azurecr.io/community-alerts/ml-python:latest \
+          docker build -t ${{ env.ACR_NAME }}.azurecr.io/ml-api-python:${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/ml-api-python:latest \
             services/ml-api-python
-          docker push ${{ env.ACR_NAME }}.azurecr.io/community-alerts/ml-python --all-tags
+          docker push ${{ env.ACR_NAME }}.azurecr.io/ml-api-python --all-tags
 
-      # ── Deploy to Azure Container Apps ─────────────────────────────────────
+      - name: Build & Push Frontend
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_JAVA_API_URL=${{ secrets.JAVA_API_URL }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/web:${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/web:latest \
+            apps/community-alerts-web
+          docker push ${{ env.ACR_NAME }}.azurecr.io/web --all-tags
+
       - name: Deploy Java API
         uses: azure/container-apps-deploy-action@v2
         with:
           resourceGroup: ${{ env.RESOURCE_GROUP }}
           containerAppName: community-alerts-java
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/community-alerts/java-api:${{ github.sha }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/java-api:${{ github.sha }}
 
       - name: Deploy .NET Service
         uses: azure/container-apps-deploy-action@v2
         with:
           resourceGroup: ${{ env.RESOURCE_GROUP }}
           containerAppName: community-alerts-dotnet
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/community-alerts/dotnet-notifications:${{ github.sha }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/notification-api-dotnet:${{ github.sha }}
 
-      - name: Deploy Python ML Service
+      - name: Deploy Python ML
         uses: azure/container-apps-deploy-action@v2
         with:
           resourceGroup: ${{ env.RESOURCE_GROUP }}
           containerAppName: community-alerts-ml
-          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/community-alerts/ml-python:${{ github.sha }}
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/ml-api-python:${{ github.sha }}
+
+      - name: Deploy Frontend
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppName: community-alerts-web
+          imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/web:${{ github.sha }}
