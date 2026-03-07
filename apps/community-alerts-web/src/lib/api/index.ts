@@ -3,8 +3,8 @@
 class HttpClient {
   constructor(private baseUrl: string) { }
 
-  async get<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, { cache: 'no-store' });
+  async get<T>(path: string, signal?: AbortSignal): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, { cache: 'no-store', signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${path}`);
     return res.json();
   }
@@ -41,8 +41,8 @@ export class CommunityApi {
     return this.client.get(`/api/v1/incidents/${id}`);
   }
 
-  getMapData() {
-    return this.client.get('/api/v1/incidents/map-data');
+  getMapData(size = 10000, page = 0, signal?: AbortSignal) {
+    return this.client.get(`/api/v1/incidents/map-data?size=${size}&page=${page}`, signal);
   }
 
   createIncident(payload: unknown) {

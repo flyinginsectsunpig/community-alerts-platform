@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Transactional(readOnly = true)
 public class IncidentServiceImpl implements IncidentService {
+
+    private static final int MAX_MAP_DATA_PAGE_SIZE = 10_000;
 
     private final IncidentRepository incidentRepository;
     private final SuburbRepository   suburbRepository;
@@ -101,8 +104,10 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     @Override
-    public List<com.communityalerts.dto.IncidentMapDTO> findAllMapData() {
-        return incidentRepository.findAllMapData(org.springframework.data.domain.PageRequest.of(0, 5000));
+    public Page<com.communityalerts.dto.IncidentMapDTO> findAllMapData(Pageable pageable) {
+        int page = Math.max(pageable.getPageNumber(), 0);
+        int size = Math.max(1, Math.min(pageable.getPageSize(), MAX_MAP_DATA_PAGE_SIZE));
+        return incidentRepository.findAllMapData(PageRequest.of(page, size));
     }
 
 

@@ -48,7 +48,7 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             @Param("lng") double lng,
             @Param("radiusKm") double radiusKm);
 
-    /** Lightweight projection for the map & analytics — capped to most recent 5 000 rows. */
+    /** Lightweight projection for the map & analytics (paged for large datasets). */
     @Query("SELECT new com.communityalerts.dto.IncidentMapDTO(i.id, i.suburb.id, i.type, i.severity, i.latitude, i.longitude) FROM Incident i ORDER BY i.createdAt DESC")
-    List<com.communityalerts.dto.IncidentMapDTO> findAllMapData(Pageable pageable);
+    Page<com.communityalerts.dto.IncidentMapDTO> findAllMapData(Pageable pageable);
 }

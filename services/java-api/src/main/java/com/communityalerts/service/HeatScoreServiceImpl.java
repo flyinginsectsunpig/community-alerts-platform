@@ -84,7 +84,7 @@ public class HeatScoreServiceImpl implements HeatScoreService {
         double rawScore = incidents.stream()
                 .mapToDouble(incident -> {
                     int baseWeight = heatProperties.weightFor(incident.getType());
-                    int severity = incident.getSeverity() != null ? incident.getSeverity() : 3;
+                    int severity = clampSeverity(incident.getSeverity());
                     double recency = incident.getCreatedAt().isAfter(fullCutoff) ? 1.0 : 0.5;
                     return baseWeight * severity * recency;
                 })
@@ -102,5 +102,12 @@ public class HeatScoreServiceImpl implements HeatScoreService {
         if (score >= 12)
             return "YELLOW";
         return "GREEN";
+    }
+
+    private static int clampSeverity(Integer value) {
+        if (value == null) {
+            return 3;
+        }
+        return Math.max(1, Math.min(value, 5));
     }
 }

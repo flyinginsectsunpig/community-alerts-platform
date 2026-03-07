@@ -87,9 +87,10 @@ public class IncidentController {
     }
 
     @GetMapping("/map-data")
-    @Operation(summary = "Get all incidents as lightweight objects for mapping & analytics")
-    public List<com.communityalerts.dto.IncidentMapDTO> getMapData() {
-        return incidentService.findAllMapData();
+    @Operation(summary = "Get lightweight incident map points (paged) for mapping & analytics")
+    public Page<com.communityalerts.dto.IncidentMapDTO> getMapData(
+            @PageableDefault(size = 10000, page = 0) Pageable pageable) {
+        return incidentService.findAllMapData(pageable);
     }
 
 

@@ -16,6 +16,13 @@ import { FALLBACK_SUBURBS, SEED_INCIDENTS } from '@/lib/data/fallback';
 // store with stale / partial data.
 let bootstrapStarted = false;
 
+function clampSeverity(raw: unknown): 1 | 2 | 3 | 4 | 5 {
+  const value = Number(raw);
+  if (!Number.isFinite(value)) return 3;
+  const rounded = Math.round(value);
+  return Math.max(1, Math.min(5, rounded)) as 1 | 2 | 3 | 4 | 5;
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 export function mapSuburb(raw: any): Suburb {
@@ -43,7 +50,7 @@ export function mapIncident(raw: any): Incident {
     createdAt: raw.createdAt,
     lat: raw.latitude ?? raw.lat,
     lng: raw.longitude ?? raw.lng,
-    severity: raw.severity ?? 3,
+    severity: clampSeverity(raw.severity),
     comments: [],
     commentCount: raw.commentCount ?? 0,
     isFromBackend: true,
@@ -55,7 +62,7 @@ export function mapMapIncident(raw: any): import('@/lib/types').IncidentMapDTO {
     id: raw.id,
     suburbId: raw.suburbId,
     type: BACKEND_TO_UI_TYPE[raw.type] ?? 'info',
-    severity: raw.severity ?? 3,
+    severity: clampSeverity(raw.severity),
     lat: raw.latitude ?? raw.lat,
     lng: raw.longitude ?? raw.lng,
   };
@@ -82,10 +89,9 @@ export function BackendBootstrap() {
     async function bootstrap() {
       // ── Java backend ────────────────────────────────────────────────────────
       try {
-        const [suburbsRaw, incidentsRaw, mapDataRaw] = await Promise.all([
+        const [suburbsRaw, incidentsRaw] = await Promise.all([
           communityApi.getSuburbs() as Promise<any[]>,
           communityApi.getIncidents(200) as Promise<any>,
-          communityApi.getMapData() as Promise<any[]>,
         ]);
 
         // If the component unmounted while the fetch was in flight, stop here.
@@ -95,12 +101,34 @@ export function BackendBootstrap() {
         const incidents = (incidentsRaw?.content ?? incidentsRaw ?? []).map(
           mapIncident,
         );
-        const mapIncidents = (mapDataRaw ?? []).map(mapMapIncident);
 
         if (suburbs.length) setSuburbs(suburbs);
         if (incidents.length) setIncidents(incidents);
-        if (mapIncidents.length) setMapIncidents(mapIncidents);
         setBackendConnected(true);
+
+        // Pull map points in pages to avoid a single heavy 100k payload.
+        const mapIncidents: import('@/lib/types').IncidentMapDTO[] = [];
+        const pageSize = 10000;
+        let page = 0;
+        let totalPages = 1;
+
+        while (!cancelled && page < totalPages) {
+          const mapPage = (await communityApi.getMapData(pageSize, page)) as any;
+          const rows = (mapPage?.content ?? []) as any[];
+          if (rows.length > 0) {
+            mapIncidents.push(...rows.map(mapMapIncident));
+          }
+
+          totalPages = Math.max(1, Number(mapPage?.totalPages ?? 1));
+          page += 1;
+
+          // Yield between pages so UI stays responsive during large imports.
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+
+        if (!cancelled && mapIncidents.length) {
+          setMapIncidents(mapIncidents);
+        }
       } catch {
         // Backend unreachable — store stays empty, UI shows empty state.
         if (!cancelled) setBackendConnected(false);
@@ -138,7 +166,7 @@ export function BackendBootstrap() {
       cancelled = true;
       bootstrapStarted = false;
     };
-  }, [setBackendConnected, setIncidents, setMlConnected, setNotificationConnected, setSuburbs]);
+  }, [setBackendConnected, setIncidents, setMapIncidents, setMlConnected, setNotificationConnected, setSuburbs]);
 
   return null;
 }

@@ -23,7 +23,7 @@ public interface IncidentService {
 
     List<IncidentResponse> findNearby(double lat, double lng, double radiusKm);
 
-    List<com.communityalerts.dto.IncidentMapDTO> findAllMapData();
+    Page<com.communityalerts.dto.IncidentMapDTO> findAllMapData(Pageable pageable);
 
     void delete(Long id);
 }
