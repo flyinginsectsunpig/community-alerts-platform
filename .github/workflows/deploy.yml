@@ -44,10 +44,12 @@ jobs:
             services/ml-api-python
           docker push ${{ env.ACR_NAME }}.azurecr.io/ml-api-python --all-tags
 
-      - name: Build & Push Frontend
+          - name: Build & Push Frontend
         run: |
           docker build \
             --build-arg NEXT_PUBLIC_JAVA_API_URL=${{ secrets.JAVA_API_URL }} \
+            --build-arg NEXT_PUBLIC_ML_API_URL=${{ secrets.ML_API_URL }} \
+            --build-arg NEXT_PUBLIC_NOTIF_API_URL=${{ secrets.NOTIF_API_URL }} \
             -t ${{ env.ACR_NAME }}.azurecr.io/web:${{ github.sha }} \
             -t ${{ env.ACR_NAME }}.azurecr.io/web:latest \
             apps/community-alerts-web
