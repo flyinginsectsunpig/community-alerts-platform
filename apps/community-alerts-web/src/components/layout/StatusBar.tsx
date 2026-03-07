@@ -2,6 +2,7 @@
 
 import { useStore } from '@/lib/store';
 import { clsx } from 'clsx';
+import { useState, useEffect } from 'react';
 
 function Dot({ connected }: { connected: boolean }) {
   return (
@@ -17,6 +18,20 @@ export function StatusBar() {
 
   const crimeCount = incidents.filter(i => i.type === 'crime').length;
   const criticalSuburbs = suburbs.filter(s => s.alertLevel === 'RED' || s.alertLevel === 'ORANGE').length;
+
+  // ── Client-only clock ──────────────────────────────────────────────────────
+  // new Date() produces a different string server-side vs client-side, which
+  // triggers React hydration errors #418 / #423 / #425. We render null on the
+  // first (SSR) pass and only populate the time after the client mounts.
+  const [clock, setClock] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fmt = () =>
+      new Date().toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' });
+    setClock(fmt());
+    const id = setInterval(() => setClock(fmt()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="flex-shrink-0 h-7 bg-surface2/60 border-b border-border/50 flex items-center px-4 gap-4 overflow-x-auto scrollbar-hide">
@@ -53,9 +68,11 @@ export function StatusBar() {
 
       <div className="flex-1" />
 
-      <span className="font-mono text-[10px] text-text-dim flex-shrink-0">
-        Cape Town, ZA · {new Date().toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' })}
-      </span>
+      {clock && (
+        <span className="font-mono text-[10px] text-text-dim flex-shrink-0">
+          Cape Town, ZA · {clock}
+        </span>
+      )}
     </div>
   );
 }
