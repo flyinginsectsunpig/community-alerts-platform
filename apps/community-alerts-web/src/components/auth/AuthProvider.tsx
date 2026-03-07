@@ -43,8 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = useCallback(async (username: string, password: string) => {
-        const baseUrl = process.env.NEXT_PUBLIC_JAVA_API_URL || "http://localhost:8080";
-        const res = await fetch(`${baseUrl}/api/auth/login`, {
+        const res = await fetch(`/api-proxy/java/api/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, password }),
