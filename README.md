@@ -4,7 +4,7 @@ A **polyglot microservices platform** for real-time community safety in Cape Tow
 
 Built as a portfolio project to demonstrate production-grade system design across four distinct technology stacks.
 
-> 📖 **[Read the full Architecture & Design Decisions doc →](./docs/ARCHITECTURE.md)**
+> 📖 **[Read the full Architecture & Design Decisions doc →](ARCHITECTURE.md)**
 
 ---
 
