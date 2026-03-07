@@ -25,7 +25,10 @@ class HttpClient {
 export class CommunityApi {
   private client: HttpClient;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_JAVA_API_URL || 'http://localhost:8080') {
+  // Calls are routed through Next.js's /api-proxy/java rewrite, so the browser
+  // always talks to the same origin. The real backend URL is resolved server-side
+  // via the JAVA_API_URL env var in next.config.js — never baked into the bundle.
+  constructor(baseUrl: string = '/api-proxy/java') {
     this.client = new HttpClient(baseUrl);
   }
 
@@ -72,7 +75,7 @@ export class CommunityApi {
 export class MlApi {
   private client: HttpClient;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_ML_API_URL || 'http://localhost:8001') {
+  constructor(baseUrl: string = '/api-proxy/ml') {
     this.client = new HttpClient(baseUrl);
   }
 
@@ -106,7 +109,7 @@ export class MlApi {
 export class NotificationApi {
   private client: HttpClient;
 
-  constructor(baseUrl: string = process.env.NEXT_PUBLIC_NOTIF_API_URL || 'http://localhost:5001') {
+  constructor(baseUrl: string = '/api-proxy/notif') {
     this.client = new HttpClient(baseUrl);
   }
 

@@ -20,14 +20,10 @@ COPY . .
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 
-ARG NEXT_PUBLIC_JAVA_API_URL
-ENV NEXT_PUBLIC_JAVA_API_URL=$NEXT_PUBLIC_JAVA_API_URL
-
-ARG NEXT_PUBLIC_ML_API_URL
-ENV NEXT_PUBLIC_ML_API_URL=$NEXT_PUBLIC_ML_API_URL
-
-ARG NEXT_PUBLIC_NOTIF_API_URL
-ENV NEXT_PUBLIC_NOTIF_API_URL=$NEXT_PUBLIC_NOTIF_API_URL
+# Backend URLs are now resolved at runtime via Next.js rewrites (next.config.js).
+# They do NOT need to be passed as build args anymore — set them as container
+# environment variables in Azure Container Apps instead:
+#   JAVA_API_URL, ML_API_URL, NOTIF_API_URL
 
 RUN npm run build
 
