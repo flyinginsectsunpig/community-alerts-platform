@@ -1,6 +1,7 @@
 package com.communityalerts.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,11 +11,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.xssf.eventusermodel.XSSFReader;
+import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler;
+import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler.SheetContentsHandler;
+import org.apache.poi.xssf.model.SharedStrings;
+import org.apache.poi.xssf.model.StylesTable;
+import org.apache.poi.xssf.usermodel.XSSFComment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -22,6 +26,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 import com.communityalerts.model.Incident;
 import com.communityalerts.model.IncidentType;
@@ -35,16 +43,14 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Optimised Excel import pipeline for SAPS crime stats.
  *
- * Key improvements over the original:
- * 1. Streaming read via XSSFWorkbook opened from InputStream — avoids loading
- * the entire workbook DOM into heap at once.
+ * Key improvements over the original: 1. Streaming read via XSSFWorkbook opened
+ * from InputStream — avoids loading the entire workbook DOM into heap at once.
  * 2. Suburb pre-cache — all existing suburbs loaded once before the loop
- * instead of two DB round-trips per row.
- * 3. Batch inserts — incidents collected in a list and flushed every
- * BATCH_SIZE rows using saveAll(), relying on Hibernate JDBC batching.
- * 4. Async execution — the public entry-point is @Async and returns
- * immediately. Progress is tracked via a job-status map.
- * 5. Heat score recalculation deferred to the very end of the async job.
+ * instead of two DB round-trips per row. 3. Batch inserts — incidents collected
+ * in a list and flushed every BATCH_SIZE rows using saveAll(), relying on
+ * Hibernate JDBC batching. 4. Async execution — the public entry-point is
+ * @Async and returns immediately. Progress is tracked via a job-status map. 5.
+ * Heat score recalculation deferred to the very end of the async job.
  */
 @Service
 @RequiredArgsConstructor
@@ -65,6 +71,7 @@ public class ExcelImportService {
     private ExcelImportService self;
 
     private static final class ImportLayout {
+
         final int startRow;
         final int offenceCol;
         final int stationCol;
@@ -81,25 +88,23 @@ public class ExcelImportService {
     // ------------------------------------------------------------------
     // Public API
     // ------------------------------------------------------------------
-
     /**
-     * Creates a job entry and returns the job ID immediately.
-     * Actual processing happens asynchronously in {@link #runImport}.
+     * Creates a job entry and returns the job ID immediately. Actual processing
+     * happens asynchronously in {@link #runImport}.
      */
     public String startImport(MultipartFile file) throws IOException {
         String jobId = UUID.randomUUID().toString();
         ImportJobStatus status = new ImportJobStatus(jobId);
         importJobRedisTemplate.opsForValue().set(JOB_KEY_PREFIX + jobId, status, JOB_TTL);
 
-        // Read bytes eagerly — MultipartFile's temp storage may be deleted
-        // once the request thread ends, so we must copy the bytes before
-        // handing control to the async thread.
         byte[] bytes = file.getBytes();
         self.runImport(jobId, bytes);
         return jobId;
     }
 
-    /** Returns the current status of a previously started import job. */
+    /**
+     * Returns the current status of a previously started import job.
+     */
     public ImportJobStatus getJobStatus(String jobId) {
         return importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
     }
@@ -107,7 +112,6 @@ public class ExcelImportService {
     // ------------------------------------------------------------------
     // Async worker
     // ------------------------------------------------------------------
-
     @Async
     @Transactional
     public void runImport(String jobId, byte[] fileBytes) {
@@ -119,148 +123,251 @@ public class ExcelImportService {
         jobStatus.setStatus(ImportJobStatus.Status.RUNNING);
         saveJob(jobStatus);
 
-        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(fileBytes);
-                Workbook workbook = new XSSFWorkbook(bais)) {
+        try (OPCPackage pkg = OPCPackage.open(new java.io.ByteArrayInputStream(fileBytes))) {
 
-            Sheet sheet = workbook.getSheet("RAW Data");
-            ImportLayout layout;
-            if (sheet != null) {
-                // SAPS workbook structure: headers on row 3, data from row 4.
-                // Station = col 5, offence category = col 8, quarter total = col 29.
-                layout = new ImportLayout(3, 7, 4, 28);
-            } else {
-                // Backward-compatible fallback for older import templates.
-                sheet = workbook.getSheetAt(0);
-                layout = new ImportLayout(1, 0, 3, null);
-            }
+            XSSFReader reader = new XSSFReader(pkg);
+            SharedStrings sst = reader.getSharedStringsTable();
+            StylesTable styles = reader.getStylesTable();
 
-            // ── 1. Pre-load suburb cache ────────────────────────────────
-            // One SELECT instead of two queries per row.
+            // ── Detect sheet & layout ────────────────────────────────────
+            // SAPS workbooks use a sheet named "RAW Data"; fall back to sheet 0.
+            boolean isSaps = false;
+            String targetSheetName = null;
+            XSSFReader.SheetIterator it = (XSSFReader.SheetIterator) reader.getSheetsData();
+            while (it.hasNext()) {
+                try (InputStream s = it.next()) {
+                    /* just iterate */ }
+                String name = it.getSheetName();
+                if ("RAW Data".equalsIgnoreCase(name)) {
+                    isSaps = true;
+                    targetSheetName = name;
+                    break;
+                }
+                if (targetSheetName == null) {
+                    targetSheetName = name; // fallback = first sheet
+
+                            }}
+            final boolean saps = isSaps;
+            // SAPS: headers row 3 (0-based=2), data from row 4 (0-based=3)
+            // station=col 4 (E), offence=col 7 (H), count=col 28 (AC)
+            final int dataStartRow = saps ? 3 : 1;
+            final int stationCol = saps ? 4 : 3;
+            final int offenceCol = saps ? 7 : 0;
+            final int countCol = saps ? 28 : -1; // -1 = no count column
+
+            // ── Pass 1: stream sheet once to discover unique stations ────
             Map<String, Suburb> suburbCache = new HashMap<>();
             suburbRepository.findAll().forEach(s -> suburbCache.put(s.getId(), s));
-            List<Suburb> newSuburbs = new ArrayList<>();
 
-            // ── 2. First pass: discover & persist new suburbs ───────────
-            // Separated so we can re-use the persisted objects in incident batch.
-            Set<String> seenSuburbIds = new HashSet<>();
-            int totalRows = sheet.getLastRowNum();
+            Set<String> newStationNames = new HashSet<>();
 
-            for (int i = layout.startRow; i <= totalRows; i++) {
-                Row row = sheet.getRow(i);
-                if (row == null)
-                    continue;
+            streamSheet(reader, sst, styles, targetSheetName, new SheetContentsHandler() {
+                private int currentRow = -1;
+                private final Map<Integer, String> rowData = new HashMap<>();
 
-                Cell stationCell = row.getCell(layout.stationCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                if (stationCell == null)
-                    continue;
-
-                String stationStr = getCellValue(stationCell);
-                if (stationStr == null || stationStr.isEmpty())
-                    continue;
-
-                String suburbId = toSuburbId(stationStr);
-                if (!suburbCache.containsKey(suburbId) && seenSuburbIds.add(suburbId)) {
-                    Suburb newSuburb = Suburb.builder()
-                            .id(suburbId)
-                            .name(stationStr)
-                            .latitude(-33.9249) // Default Cape Town centroid
-                            .longitude(18.4241)
-                            .build();
-                    newSuburbs.add(newSuburb);
-                    jobStatus.setSuburbsAdded(jobStatus.getSuburbsAdded() + 1);
+                @Override
+                public void startRow(int rowNum) {
+                    currentRow = rowNum;
+                    rowData.clear();
                 }
-            }
 
-            if (!newSuburbs.isEmpty()) {
-                List<Suburb> saved = suburbRepository.saveAll(newSuburbs);
-                saved.forEach(s -> suburbCache.put(s.getId(), s));
-                log.info("[job={}] Persisted {} new suburbs", jobId, saved.size());
+                @Override
+                public void cell(String cellRef, String formattedValue, XSSFComment comment) {
+                    if (formattedValue == null || formattedValue.isBlank()) {
+                        return;
+                    }
+                    int col = new CellReference(cellRef).getCol();
+                    rowData.put(col, formattedValue.trim());
+                }
+
+                @Override
+                public void endRow(int rowNum) {
+                    if (currentRow < dataStartRow) {
+                        return;
+                    }
+                    String station = rowData.get(stationCol);
+                    if (station == null || station.isBlank()) {
+                        return;
+                    }
+                    String sid = toSuburbId(station);
+                    if (!suburbCache.containsKey(sid)) {
+                        newStationNames.add(station);
+                    }
+                }
+
+                @Override
+                public void headerFooter(String text, boolean isHeader, String tagName) {
+                }
+            });
+
+            // Persist new suburbs
+            if (!newStationNames.isEmpty()) {
+                List<Suburb> toSave = new ArrayList<>();
+                for (String name : newStationNames) {
+                    toSave.add(Suburb.builder()
+                            .id(toSuburbId(name))
+                            .name(name)
+                            .latitude(-33.9249)
+                            .longitude(18.4241)
+                            .build());
+                }
+                suburbRepository.saveAll(toSave).forEach(s -> suburbCache.put(s.getId(), s));
+                jobStatus.setSuburbsAdded(toSave.size());
+                log.info("[job={}] Persisted {} new suburbs", jobId, toSave.size());
                 saveJob(jobStatus);
             }
 
-            // ── 3. Second pass: build & batch-insert incidents ──────────
+            // ── Pass 2: stream sheet again, build & batch-insert incidents
             List<Incident> batch = new ArrayList<>(BATCH_SIZE);
+            // Use array to allow mutation inside lambda
+            int[] rowsProcessed = {0};
+            int[] incidentsAdded = {0};
 
-            for (int i = layout.startRow; i <= totalRows; i++) {
-                Row row = sheet.getRow(i);
-                if (row == null)
-                    continue;
+            streamSheet(reader, sst, styles, targetSheetName, new SheetContentsHandler() {
+                private int currentRow = -1;
+                private final Map<Integer, String> rowData = new HashMap<>();
 
-                Cell offenceCell = row.getCell(layout.offenceCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                Cell stationCell = row.getCell(layout.stationCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                if (offenceCell == null || stationCell == null)
-                    continue;
-
-                String offenceStr = getCellValue(offenceCell);
-                String stationStr = getCellValue(stationCell);
-                if (offenceStr == null || offenceStr.isEmpty() ||
-                        stationStr == null || stationStr.isEmpty())
-                    continue;
-
-                Suburb suburb = suburbCache.get(toSuburbId(stationStr));
-                if (suburb == null)
-                    continue; // should never happen after pass-1
-
-                IncidentType type = IncidentTypeClassifier.classifyType(offenceStr);
-                int quarterCount = 1;
-                if (layout.countCol != null) {
-                    quarterCount = getPositiveIntCellValue(
-                            row.getCell(layout.countCol, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL));
-                    if (quarterCount <= 0)
-                        continue;
+                @Override
+                public void startRow(int rowNum) {
+                    currentRow = rowNum;
+                    rowData.clear();
                 }
 
-                String countSuffix = layout.countCol == null ? "" : " (quarter count: " + quarterCount + ")";
-                batch.add(Incident.builder()
-                        .suburb(suburb)
-                        .type(type)
-                        .severity(IncidentTypeClassifier.defaultSeverity(type))
-                        .title("Reported: " + offenceStr + countSuffix)
-                        .description("Imported from SAPS Crime Stats: " + offenceStr + " at " + stationStr + countSuffix)
-                        .tags("Imported,SAPS")
-                        .latitude(suburb.getLatitude())
-                        .longitude(suburb.getLongitude())
-                        .build());
-
-                if (batch.size() >= BATCH_SIZE) {
-                    incidentRepository.saveAll(batch);
-                    jobStatus.setIncidentsAdded(jobStatus.getIncidentsAdded() + batch.size());
-                    log.debug("[job={}] Flushed batch of {} incidents (total: {})",
-                            jobId, batch.size(), jobStatus.getIncidentsAdded());
-                    batch.clear();
-                    saveJob(jobStatus);
+                @Override
+                public void cell(String cellRef, String formattedValue, XSSFComment comment) {
+                    if (formattedValue == null || formattedValue.isBlank()) {
+                        return;
+                    }
+                    int col = new CellReference(cellRef).getCol();
+                    rowData.put(col, formattedValue.trim());
                 }
 
-                // Source rows successfully parsed (not multiplied incident count).
-                jobStatus.setRowsProcessed(jobStatus.getRowsProcessed() + 1);
-            }
+                @Override
+                public void endRow(int rowNum) {
+                    if (currentRow < dataStartRow) {
+                        return;
+                    }
+
+                    String station = rowData.get(stationCol);
+                    String offence = rowData.get(offenceCol);
+                    if (station == null || offence == null || station.isBlank() || offence.isBlank()) {
+                        return;
+                    }
+
+                    Suburb suburb = suburbCache.get(toSuburbId(station));
+                    if (suburb == null) {
+                        return;
+                    }
+
+                    int count = 1;
+                    if (countCol >= 0) {
+                        String countStr = rowData.get(countCol);
+                        if (countStr != null) {
+                            try {
+                                count = Math.max(0, (int) Double.parseDouble(countStr));
+                            } catch (NumberFormatException ignored) {
+                                count = 0;
+                            }
+                        }
+                        if (count <= 0) {
+                            return;
+                        }
+                    }
+
+                    String suffix = countCol < 0 ? "" : " (quarter count: " + count + ")";
+                    IncidentType type = IncidentTypeClassifier.classifyType(offence);
+                    batch.add(Incident.builder()
+                            .suburb(suburb)
+                            .type(type)
+                            .severity(IncidentTypeClassifier.defaultSeverity(type))
+                            .title("Reported: " + offence + suffix)
+                            .description("Imported from SAPS Crime Stats: " + offence + " at " + station + suffix)
+                            .tags("Imported,SAPS")
+                            .latitude(suburb.getLatitude())
+                            .longitude(suburb.getLongitude())
+                            .build());
+
+                    rowsProcessed[0]++;
+
+                    if (batch.size() >= BATCH_SIZE) {
+                        incidentRepository.saveAll(batch);
+                        incidentsAdded[0] += batch.size();
+                        jobStatus.setIncidentsAdded(incidentsAdded[0]);
+                        jobStatus.setRowsProcessed(rowsProcessed[0]);
+                        log.debug("[job={}] Flushed batch (total incidents: {})", jobId, incidentsAdded[0]);
+                        batch.clear();
+                        saveJob(jobStatus);
+                    }
+                }
+
+                @Override
+                public void headerFooter(String text, boolean isHeader, String tagName) {
+                }
+            });
 
             // Flush remainder
             if (!batch.isEmpty()) {
                 incidentRepository.saveAll(batch);
-                jobStatus.setIncidentsAdded(jobStatus.getIncidentsAdded() + batch.size());
+                incidentsAdded[0] += batch.size();
                 batch.clear();
             }
 
-            // ── 4. Deferred heat score recalc ───────────────────────────
+            jobStatus.setRowsProcessed(rowsProcessed[0]);
+            jobStatus.setIncidentsAdded(incidentsAdded[0]);
             jobStatus.setStatus(ImportJobStatus.Status.FINALIZING);
             saveJob(jobStatus);
+
             log.info("[job={}] Starting heat score recalculation", jobId);
             heatScoreService.recalculateAll();
 
             jobStatus.setStatus(ImportJobStatus.Status.DONE);
             saveJob(jobStatus);
             log.info("[job={}] Import complete — rows={} incidents={} suburbs={}",
-                    jobId,
-                    jobStatus.getRowsProcessed(),
-                    jobStatus.getIncidentsAdded(),
-                    jobStatus.getSuburbsAdded());
+                    jobId, rowsProcessed[0], incidentsAdded[0], jobStatus.getSuburbsAdded());
 
         } catch (Exception e) {
             log.error("[job={}] Import failed", jobId, e);
-            jobStatus.setStatus(ImportJobStatus.Status.ERROR);
-            jobStatus.setErrorMessage(e.getMessage());
-            saveJob(jobStatus);
+            ImportJobStatus js = importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
+            if (js != null) {
+                js.setStatus(ImportJobStatus.Status.ERROR);
+                js.setErrorMessage(e.getMessage());
+                saveJob(js);
+            }
+        }
+    }
+
+    /**
+     * Streams a single named sheet through a SAX handler. Falls back to sheet
+     * index 0 if the name is not found.
+     */
+    @SuppressWarnings("deprecation")
+    private void streamSheet(XSSFReader reader, SharedStrings sst, StylesTable styles,
+            String sheetName, SheetContentsHandler handler) throws Exception {
+
+        ContentHandler xmlHandler = new XSSFSheetXMLHandler(styles, null, sst, handler, new org.apache.poi.ss.usermodel.DataFormatter(), false);
+        XMLReader parser = XMLReaderFactory.createXMLReader();
+        parser.setContentHandler(xmlHandler);
+
+        XSSFReader.SheetIterator it = (XSSFReader.SheetIterator) reader.getSheetsData();
+        InputStream target = null;
+        InputStream first = null;
+
+        while (it.hasNext()) {
+            InputStream s = it.next();
+            if (first == null) {
+                first = s;
+            }
+            if (it.getSheetName().equalsIgnoreCase(sheetName)) {
+                target = s;
+                break;
+            }
+        }
+
+        try (InputStream sheet = target != null ? target : first) {
+            if (sheet == null) {
+                throw new IllegalStateException("No sheets found in workbook");
+            }
+            parser.parse(new InputSource(sheet));
         }
     }
 
@@ -272,34 +379,7 @@ public class ExcelImportService {
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
-
     private static String toSuburbId(String stationStr) {
         return stationStr.toLowerCase().replaceAll("[^a-z0-9]", "-");
-    }
-
-    private static String getCellValue(Cell cell) {
-        return switch (cell.getCellType()) {
-            case STRING -> cell.getStringCellValue().trim();
-            case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
-            default -> "";
-        };
-    }
-
-    private static int getPositiveIntCellValue(Cell cell) {
-        if (cell == null)
-            return 0;
-
-        return switch (cell.getCellType()) {
-            case NUMERIC -> Math.max(0, (int) Math.round(cell.getNumericCellValue()));
-            case STRING -> {
-                String raw = cell.getStringCellValue();
-                try {
-                    yield Math.max(0, Integer.parseInt(raw.trim()));
-                } catch (NumberFormatException e) {
-                    yield 0;
-                }
-            }
-            default -> 0;
-        };
     }
 }

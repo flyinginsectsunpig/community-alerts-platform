@@ -60,6 +60,15 @@ jobs:
           containerAppName: community-alerts-java
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/java-api:${{ github.sha }}
 
+      - name: Scale Java API Resources
+        run: |
+          az containerapp update \
+            --name community-alerts-java \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --cpu 2.0 \
+            --memory 4.0Gi \
+            --set-env-vars JAVA_TOOL_OPTIONS="-Xmx3g -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
       - name: Deploy .NET Service
         uses: azure/container-apps-deploy-action@v2
         with:
