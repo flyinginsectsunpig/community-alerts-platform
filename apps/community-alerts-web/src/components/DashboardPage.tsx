@@ -1,20 +1,13 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import { TYPE_CONFIG, SEVERITY_COLORS, ALERT_LEVEL_COLOR } from '@/lib/constants';
+import { TYPE_CONFIG, ALERT_LEVEL_COLOR } from '@/lib/constants';
 import { clsx } from 'clsx';
 import Link from 'next/link';
-import { ArrowRight, TrendingUp, AlertTriangle, MapPin, Activity, Users, Clock } from 'lucide-react';
+import { ArrowRight, TrendingUp, AlertTriangle, MapPin, Activity, Users } from 'lucide-react';
+import { StatCard } from '@/components/shared/StatCard';
+import { SuburbHeatBar } from '@/components/shared/SuburbHeatBar';
 
-function StatCard({ value, label, sub, color }: { value: string | number; label: string; sub?: string; color?: string }) {
-  return (
-    <div className="stat-card">
-      <div className="stat-value" style={color ? { color } : undefined}>{value}</div>
-      <div className="stat-label">{label}</div>
-      {sub && <div className="font-mono text-[9px] text-text-dim mt-0.5">{sub}</div>}
-    </div>
-  );
-}
 
 function IncidentRow({ incident, suburbName }: { incident: any; suburbName: string }) {
   const cfg = TYPE_CONFIG[incident.type as keyof typeof TYPE_CONFIG];
@@ -51,14 +44,12 @@ function IncidentRow({ incident, suburbName }: { incident: any; suburbName: stri
 
 function SuburbHeatRow({ suburb }: { suburb: any }) {
   const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
-  const pct = Math.min(100, (suburb.weight / 50) * 100);
-
   return (
     <Link href={`/suburb/${suburb.id}`} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-surface2 transition-colors group">
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
       <span className="font-body text-sm text-text-secondary flex-1 group-hover:text-text-primary transition-colors truncate">{suburb.name}</span>
-      <div className="w-20 h-1 rounded-full bg-border overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      <div className="w-20">
+        <SuburbHeatBar weight={suburb.weight} alertLevel={suburb.alertLevel} />
       </div>
       <span className="font-mono text-[10px] text-text-dim w-6 text-right">{suburb.weight}</span>
     </Link>

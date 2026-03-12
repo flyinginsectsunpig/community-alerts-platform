@@ -1,14 +1,3 @@
-"""
-main.py — FastAPI application for the Community Alerts ML service.
-
-Endpoints:
-  POST /api/v1/ml/extract-entities   — NLP entity extraction from description text
-  POST /api/v1/ml/classify-urgency   — Incident urgency classification (LOW→CRITICAL)
-  POST /api/v1/ml/predict-heat       — Suburb heat score prediction (24hr ahead)
-  POST /api/v1/ml/detect-patterns    — K-Means serial crime pattern detection
-  POST /api/v1/ml/forecast-risk      — Time-of-day risk profiling
-  GET  /api/v1/ml/health             — Service health + model status
-"""
 from __future__ import annotations
 
 import logging

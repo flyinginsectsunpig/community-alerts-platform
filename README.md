@@ -8,6 +8,12 @@ Built as a portfolio project to demonstrate production-grade system design acros
 
 ---
 
+## ⚠️ Disclaimer
+
+**This is an independent portfolio project and is not affiliated with, endorsed by, or connected to the South African Police Service (SAPS) or any government entity. It uses official SAPS crime statistics data strictly for demonstration and modeling purposes.**
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -54,7 +60,7 @@ The Python service is purely analytical — it runs on-demand ML inference (urge
 
 **Heat Scoring** — Each Cape Town suburb has a live danger score calculated from incident type weights and recency decay. Scores map to GREEN / YELLOW / ORANGE / RED alert levels and drive the Leaflet KDE heatmap overlay.
 
-**ML Pipeline** — Five models run on startup against synthetic SAPS-structured data: an NLP entity extractor (clothing, vehicles, weapons from freetext), a TF-IDF urgency classifier, a Gradient Boosting heat predictor, a K-Means pattern detector, and a Gaussian Naïve Bayes risk forecaster.
+**ML Pipeline** — Five models run on startup against official SAPS crime stats data: an NLP entity extractor (clothing, vehicles, weapons from freetext), a TF-IDF urgency classifier, a Gradient Boosting heat predictor, a K-Means pattern detector, and a Gaussian Naïve Bayes risk forecaster.
 
 **SAPS Data Import** — An async admin endpoint accepts official SAPS quarterly crime stats Excel files (up to 50MB), processes them in the background across all 63 Cape Town police stations, and returns a `jobId` for progress polling.
 

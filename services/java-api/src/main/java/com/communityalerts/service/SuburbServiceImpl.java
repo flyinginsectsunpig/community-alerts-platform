@@ -26,17 +26,31 @@ public class SuburbServiceImpl implements SuburbService {
     @Override
     @Cacheable(value = "suburbs")
     public List<SuburbResponse> findAll() {
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        
+        List<Object[]> queryResults = incidentRepository.countRecentBySuburb(thirtyDaysAgo);
+        java.util.Map<String, Long> incidentCounts = queryResults.stream()
+            .collect(java.util.stream.Collectors.toMap(
+                row -> (String) row[0],
+                row -> (Long) row[1]
+            ));
+
         return suburbRepository.findAll()
             .stream()
-            .map(this::toResponse)
+            .map(suburb -> toResponse(suburb, incidentCounts.getOrDefault(suburb.getId(), 0L).intValue()))
             .sorted((a, b) -> b.heatScore() - a.heatScore())  // hottest first
             .toList();
     }
 
     @Override
     public SuburbResponse findById(String id) {
-        return toResponse(suburbRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Suburb not found: " + id)));
+        Suburb suburb = suburbRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Suburb not found: " + id));
+            
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        int incidentCount = incidentRepository.findRecentBySuburb(id, thirtyDaysAgo).size();
+        
+        return toResponse(suburb, incidentCount);
     }
 
     @Override
@@ -49,12 +63,7 @@ public class SuburbServiceImpl implements SuburbService {
 
     // ── Mapping ──────────────────────────────────────────────────────────────
 
-    private SuburbResponse toResponse(Suburb suburb) {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-        int incidentCount = incidentRepository
-            .findRecentBySuburb(suburb.getId(), thirtyDaysAgo)
-            .size();
-
+    private SuburbResponse toResponse(Suburb suburb, int incidentCount) {
         return new SuburbResponse(
             suburb.getId(),
             suburb.getName(),

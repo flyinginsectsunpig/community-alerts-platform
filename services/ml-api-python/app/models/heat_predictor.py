@@ -18,7 +18,7 @@ Target: heat score 24 hours from now
 from __future__ import annotations
 
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
@@ -43,7 +43,6 @@ def _generate_training_data(n_samples: int = 2000, seed: int = 42):
     """
     rng = np.random.default_rng(seed)
 
-    # Base features
     current_scores   = rng.integers(0, 60, n_samples).astype(float)
     incidents_7d     = rng.integers(0, 30, n_samples).astype(float)
     incidents_30d    = incidents_7d + rng.integers(0, 50, n_samples)
@@ -54,29 +53,23 @@ def _generate_training_data(n_samples: int = 2000, seed: int = 42):
     hour_of_day      = rng.integers(0, 24, n_samples).astype(float)
     day_of_week      = rng.integers(0,  7, n_samples).astype(float)
 
-    # Target: future score
-    #   Base: decay current score
+    # Decay current score, then add incident-type contributions
     future_score = current_scores * 0.85
 
-    #   Crime contribution (non-linear — high crime + night = spike)
     night_mask = (hour_of_day >= 20) | (hour_of_day <= 4)
     future_score += crime_count * 2.5
     future_score += crime_count * night_mask * 1.8      # night amplifier
 
-    #   Weekend spike (Fri=4, Sat=5)
     weekend_mask = (day_of_week >= 4) & (day_of_week <= 5)
     future_score += weekend_mask * rng.uniform(2, 8, n_samples)
 
-    #   Other incident types
     future_score += fire_count       * 3.0
     future_score += suspicious_count * 1.5
     future_score += accident_count   * 1.0
 
-    #   Momentum
     momentum = (incidents_7d / (incidents_30d + 1)) * 10
     future_score += momentum
 
-    #   Noise
     future_score += rng.normal(0, 2, n_samples)
     future_score  = np.clip(future_score, 0, 80)
 

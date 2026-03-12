@@ -32,6 +32,15 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findRecentBySuburb(@Param("suburbId") String suburbId,
             @Param("since") LocalDateTime since);
 
+    /** Bulk count incidents per suburb in a time window — used to fix N+1 in SuburbServiceImpl. */
+    @Query("""
+                SELECT i.suburb.id, COUNT(i)
+                FROM Incident i
+                WHERE i.createdAt >= :since
+                GROUP BY i.suburb.id
+            """)
+    List<Object[]> countRecentBySuburb(@Param("since") LocalDateTime since);
+
     /**
      * Radius search — finds incidents within approximately N km of a coordinate.
      */

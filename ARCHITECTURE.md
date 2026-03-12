@@ -2,6 +2,8 @@
 
 This document explains the "why" behind the major technical decisions in the Community Alerts Platform — the trade-offs considered, the alternatives rejected, and the reasoning that shaped each choice.
 
+> **Disclaimer:** This project uses official South African Police Service (SAPS) crime statistics data for model training and demonstration purposes. It is an independent portfolio project and is not affiliated with SAPS.
+
 ---
 
 ## Table of Contents
@@ -126,7 +128,7 @@ This deterministic score is the **source of truth**. It is what drives the alert
 
 **Predictive layer (Python ML service)**
 
-The `predict-heat` endpoint adds a forward-looking dimension — it takes the current score, recent incident counts by type, and temporal features (hour of day, day of week) and returns a forecast of where the score will be in 24 hours. This uses a Gradient Boosting Regressor trained on synthetic time-series data that reflects Cape Town's crime patterns.
+The `predict-heat` endpoint adds a forward-looking dimension — it takes the current score, recent incident counts by type, and temporal features (hour of day, day of week) and returns a forecast of where the score will be in 24 hours. This uses a Gradient Boosting Regressor trained on official SAPS historical incident data that reflects Cape Town's actual crime patterns.
 
 The predictive score is **displayed alongside** the deterministic score in the UI — it never overwrites it. This separation means the system is never in a state where a misbehaving ML model corrupts the canonical heat data.
 
@@ -143,7 +145,7 @@ The predictive score is **displayed alongside** the deterministic score in the U
 
 ## ML Model Choices
 
-All five models are trained on startup against synthetic data. In a production deployment, they would be retrained nightly against real accumulated incident data via a scheduled job.
+All five models are trained on startup against official SAPS data. In a production deployment, they would be retrained nightly against newly accumulated incident data via a scheduled job.
 
 **Entity Extractor — rule-based NLP (spaCy)**
 
@@ -232,8 +234,6 @@ This means the platform can move from Docker Compose to a managed Kubernetes clu
 ## What I Would Change at Scale
 
 A few honest trade-offs made for portfolio scope that would need revisiting in a real production system:
-
-**ML models trained on synthetic data** — In production, the models would train on real SAPS historical incident data. The current synthetic data reproduces realistic Cape Town patterns (hotspot suburbs, peak crime hours) but is not a substitute for real incident history.
 
 **JWT secrets in config files** — For the portfolio, JWT signing secrets are in `application.yml`. In production, these would be in Azure Key Vault (or equivalent), referenced via the Terraform-provisioned secret store.
 

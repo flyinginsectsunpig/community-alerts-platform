@@ -4,6 +4,8 @@ using CommunityAlerts.Notifications.Data;
 using CommunityAlerts.Notifications.DTOs;
 using CommunityAlerts.Notifications.Services;
 using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -71,6 +73,7 @@ builder.Services.AddHostedService<RabbitMqConsumerWorker>();
 
 // ── API ───────────────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -107,6 +110,29 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "swagger";
     });
 }
+
+app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
+{
+    var feature = ctx.Features.Get<IExceptionHandlerFeature>();
+    var ex      = feature?.Error;
+
+    var (status, title) = ex switch
+    {
+        KeyNotFoundException      => (404, "Not Found"),
+        InvalidOperationException => (409, "Conflict"),
+        _                         => (500, "An unexpected error occurred"),
+    };
+
+    ctx.Response.StatusCode  = status;
+    ctx.Response.ContentType = "application/problem+json";
+
+    await ctx.Response.WriteAsJsonAsync(new ProblemDetails
+    {
+        Status = status,
+        Title  = title,
+        Detail = ex?.Message,
+    });
+}));
 
 app.UseSerilogRequestLogging();
 app.UseCors();

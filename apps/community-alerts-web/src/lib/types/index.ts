@@ -105,19 +105,6 @@ export interface ApiError {
   timestamp: string;
 }
 
-// ─── Store Types ──────────────────────────────────────────────────────────────
-
-export interface AppState {
-  incidents: Incident[];
-  suburbs: Suburb[];
-  forumPosts: ForumPostsBySuburb;
-  activeFilters: Set<IncidentType>;
-  selectedIncidentId: number | string | null;
-  backendConnected: boolean;
-  mlConnected: boolean;
-  notificationConnected: boolean;
-}
-
 // ─── Type Config ──────────────────────────────────────────────────────────────
 
 export interface TypeConfig {

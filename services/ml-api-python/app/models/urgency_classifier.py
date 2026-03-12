@@ -20,8 +20,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 # ── Training data ─────────────────────────────────────────────────────────────
-# Each sample is a concatenation of incident title + description.
-# Labels are 0=LOW, 1=MEDIUM, 2=HIGH, 3=CRITICAL
 
 _TRAINING_DATA: list[tuple[str, int]] = [
     # CRITICAL (3) — armed violence, fire spreading, life-threatening

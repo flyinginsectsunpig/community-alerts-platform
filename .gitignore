@@ -65,8 +65,6 @@ secrets/
 *.tsv
 tmp-upload.*
 upload-*.xlsx
-2025-*
-2026-*
 
 # ─── Scratch / temp scripts ───────────────────────────────────────────────────
 test.js

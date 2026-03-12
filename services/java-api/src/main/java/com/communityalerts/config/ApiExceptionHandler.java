@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -52,6 +53,16 @@ public class ApiExceptionHandler {
         ProblemDetail detail = ProblemDetail.forStatus(ex.getStatusCode());
         detail.setType(URI.create("/errors/request-error"));
         detail.setTitle(ex.getReason() != null ? ex.getReason() : "Request Error");
+        detail.setDetail(ex.getMessage());
+        detail.setProperty("timestamp", Instant.now());
+        return detail;
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
+        ProblemDetail detail = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        detail.setType(URI.create("/errors/unauthorized"));
+        detail.setTitle("Unauthorized");
         detail.setDetail(ex.getMessage());
         detail.setProperty("timestamp", Instant.now());
         return detail;

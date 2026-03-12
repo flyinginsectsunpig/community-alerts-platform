@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { TYPE_CONFIG, UI_TO_BACKEND_TYPE } from '@/lib/constants';
+import { TYPE_CONFIG, SEVERITY_LABELS, SEVERITY_COLORS } from '@/lib/constants';
 import type { IncidentType } from '@/lib/types';
 import { X, MapPin, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -54,9 +54,6 @@ export function ReportModal({ open, onClose }: Props) {
     setSubmitting(false);
     onClose();
   }
-
-  const SEVERITY_LABELS = ['', 'Minor', 'Low', 'Moderate', 'High', 'Critical'];
-  const SEVERITY_COLORS = ['', '#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'];
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>

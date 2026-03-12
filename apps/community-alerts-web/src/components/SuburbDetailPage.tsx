@@ -1,11 +1,13 @@
 'use client';
 
 import { useStore } from '@/lib/store';
-import { TYPE_CONFIG, ALERT_LEVEL_COLOR, SEVERITY_COLORS } from '@/lib/constants';
+import { TYPE_CONFIG, ALERT_LEVEL_COLOR } from '@/lib/constants';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, AlertTriangle, TrendingUp, MessageSquare } from 'lucide-react';
 import { clsx } from 'clsx';
+import { SeverityBar } from '@/components/shared/SeverityBar';
+import { SuburbHeatBar } from '@/components/shared/SuburbHeatBar';
 
 export function SuburbDetailPage({ suburbId }: { suburbId: string }) {
   const { suburbs, incidents, forumPosts } = useStore();
@@ -23,7 +25,6 @@ export function SuburbDetailPage({ suburbId }: { suburbId: string }) {
   }
 
   const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
-  const pct = Math.min(100, (suburb.weight / 50) * 100);
 
   const typeCounts = Object.keys(TYPE_CONFIG).map((t) => ({
     name: TYPE_CONFIG[t as keyof typeof TYPE_CONFIG].label,
@@ -63,8 +64,8 @@ export function SuburbDetailPage({ suburbId }: { suburbId: string }) {
             <div className="text-right">
               <div className="font-display font-extrabold text-5xl" style={{ color }}>{suburb.weight}</div>
               <div className="font-mono text-[11px] text-text-dim uppercase tracking-wider mt-1">Heat Score</div>
-              <div className="w-24 mt-2 ml-auto heat-bar">
-                <div className="heat-fill" style={{ width: `${pct}%`, background: color }} />
+              <div className="w-24 mt-2 ml-auto">
+                <SuburbHeatBar weight={suburb.weight} alertLevel={suburb.alertLevel} />
               </div>
             </div>
           </div>
@@ -133,9 +134,7 @@ export function SuburbDetailPage({ suburbId }: { suburbId: string }) {
                       <div className="font-mono text-[10px] text-text-dim mt-0.5">{incident.time}</div>
                     </div>
                     <div className="flex gap-0.5 flex-shrink-0 mt-1">
-                      {[1,2,3,4,5].map(n => (
-                        <div key={n} className="w-1 h-3 rounded-sm" style={{ background: n <= incident.severity ? SEVERITY_COLORS[incident.severity] : '#222636' }} />
-                      ))}
+                      <SeverityBar severity={incident.severity} size="sm" />
                     </div>
                   </div>
                 );

@@ -35,15 +35,8 @@ public class SubscriberController : ControllerBase
         if (!validation.IsValid)
             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
 
-        try
-        {
-            var result = await _service.CreateAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(new { error = ex.Message });
-        }
+        var result = await _service.CreateAsync(request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
     /// <summary>Get subscriber by ID including their suburb subscriptions.</summary>
@@ -76,13 +69,8 @@ public class SubscriberController : ControllerBase
         if (!validation.IsValid)
             return BadRequest(validation.Errors.Select(e => e.ErrorMessage));
 
-        try
-        {
-            var result = await _service.AddSubscriptionAsync(id, request, ct);
-            return CreatedAtAction(nameof(GetById), new { id }, result);
-        }
-        catch (KeyNotFoundException ex)       { return NotFound(new { error = ex.Message }); }
-        catch (InvalidOperationException ex)  { return Conflict(new { error = ex.Message }); }
+        var result = await _service.AddSubscriptionAsync(id, request, ct);
+        return CreatedAtAction(nameof(GetById), new { id }, result);
     }
 
     /// <summary>Unsubscribe from a suburb.</summary>
@@ -91,12 +79,8 @@ public class SubscriberController : ControllerBase
     public async Task<IActionResult> RemoveSubscription(
         int id, int subscriptionId, CancellationToken ct)
     {
-        try
-        {
-            await _service.RemoveSubscriptionAsync(id, subscriptionId, ct);
-            return NoContent();
-        }
-        catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        await _service.RemoveSubscriptionAsync(id, subscriptionId, ct);
+        return NoContent();
     }
 
     /// <summary>Get notification history for a subscriber (last 50).</summary>
@@ -104,10 +88,6 @@ public class SubscriberController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<NotificationLogResponse>), 200)]
     public async Task<IActionResult> GetLogs(int id, CancellationToken ct)
     {
-        try
-        {
-            return Ok(await _service.GetLogsAsync(id, ct));
-        }
-        catch (KeyNotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        return Ok(await _service.GetLogsAsync(id, ct));
     }
 }

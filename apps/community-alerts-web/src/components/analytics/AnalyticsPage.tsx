@@ -4,11 +4,13 @@ import { useStore } from '@/lib/store';
 import { TYPE_CONFIG, ALERT_LEVEL_COLOR, SEVERITY_COLORS } from '@/lib/constants';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  PieChart, Pie, Cell, Legend,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis,
+  PieChart, Pie, Cell,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, BarChart3, Activity } from 'lucide-react';
+import { TrendingUp, BarChart3, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { StatCard } from '@/components/shared/StatCard';
+import { SuburbHeatBar } from '@/components/shared/SuburbHeatBar';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -81,18 +83,10 @@ export function AnalyticsPage() {
 
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Incidents', value: totalAlerts, sub: 'All time' },
-          { label: 'Crime Rate', value: `${crimeRatio}%`, sub: 'Of all alerts', color: '#ef4444' },
-          { label: 'Avg Severity', value: avgSeverity, sub: 'Out of 5', color: '#f97316' },
-          { label: 'Critical Events', value: criticalCount, sub: 'Severity 5', color: '#f43f5e' },
-        ].map(({ label, value, sub, color }) => (
-          <div key={label} className="stat-card">
-            <div className="stat-value" style={color ? { color } : undefined}>{value}</div>
-            <div className="stat-label">{label}</div>
-            <div className="font-mono text-[9px] text-text-dim mt-0.5">{sub}</div>
-          </div>
-        ))}
+        <StatCard value={totalAlerts} label="Total Incidents" sub="All time" />
+        <StatCard value={`${crimeRatio}%`} label="Crime Rate" sub="Of all alerts" color="#ef4444" />
+        <StatCard value={avgSeverity} label="Avg Severity" sub="Out of 5" color="#f97316" />
+        <StatCard value={criticalCount} label="Critical Events" sub="Severity 5" color="#f43f5e" />
       </div>
 
       {/* Charts grid */}
@@ -189,7 +183,6 @@ export function AnalyticsPage() {
           {suburbs.map((suburb) => {
             const subIncidents = incidents.filter((i) => i.suburbId === suburb.id);
             const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
-            const pct = Math.min(100, (suburb.weight / 50) * 100);
 
             return (
               <Link
@@ -203,9 +196,7 @@ export function AnalyticsPage() {
                 </div>
                 <div className="font-mono text-lg font-bold" style={{ color }}>{suburb.weight}</div>
                 <div className="font-mono text-[10px] text-text-dim mb-2">Heat score</div>
-                <div className="heat-bar">
-                  <div className="heat-fill" style={{ width: `${pct}%`, background: color }} />
-                </div>
+                <SuburbHeatBar weight={suburb.weight} alertLevel={suburb.alertLevel} />
                 <div className="font-mono text-[10px] text-text-dim mt-1.5">
                   {subIncidents.length} incident{subIncidents.length !== 1 ? 's' : ''}
                 </div>
