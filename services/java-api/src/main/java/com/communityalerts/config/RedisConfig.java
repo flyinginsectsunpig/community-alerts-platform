@@ -9,9 +9,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import com.communityalerts.service.ImportJobStatus;
 
 /**
  * Redis-backed caching for the Community Alerts platform.
@@ -44,5 +47,19 @@ public class RedisConfig {
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaults)
                 .build();
+    }
+
+    /**
+     * RedisTemplate used by ExcelImportService to share job status across
+     * all container replicas instead of keeping it in a local ConcurrentHashMap.
+     */
+    @Bean
+    public RedisTemplate<String, ImportJobStatus> importJobRedisTemplate(
+            RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, ImportJobStatus> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new JdkSerializationRedisSerializer());
+        return template;
     }
 }

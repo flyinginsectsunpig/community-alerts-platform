@@ -1,6 +1,7 @@
 package com.communityalerts.service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
@@ -17,6 +17,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,17 +52,17 @@ import lombok.extern.slf4j.Slf4j;
 public class ExcelImportService {
 
     private static final int BATCH_SIZE = 500;
+    private static final String JOB_KEY_PREFIX = "import-job:";
+    private static final Duration JOB_TTL = Duration.ofHours(2);
 
     private final IncidentRepository incidentRepository;
     private final SuburbRepository suburbRepository;
     private final HeatScoreService heatScoreService;
+    private final RedisTemplate<String, ImportJobStatus> importJobRedisTemplate;
 
     @Autowired
     @Lazy
     private ExcelImportService self;
-
-    /** In-memory job registry — keyed by UUID job ID. */
-    private final ConcurrentHashMap<String, ImportJobStatus> jobs = new ConcurrentHashMap<>();
 
     private static final class ImportLayout {
         final int startRow;
@@ -88,7 +89,7 @@ public class ExcelImportService {
     public String startImport(MultipartFile file) throws IOException {
         String jobId = UUID.randomUUID().toString();
         ImportJobStatus status = new ImportJobStatus(jobId);
-        jobs.put(jobId, status);
+        importJobRedisTemplate.opsForValue().set(JOB_KEY_PREFIX + jobId, status, JOB_TTL);
 
         // Read bytes eagerly — MultipartFile's temp storage may be deleted
         // once the request thread ends, so we must copy the bytes before
@@ -100,7 +101,7 @@ public class ExcelImportService {
 
     /** Returns the current status of a previously started import job. */
     public ImportJobStatus getJobStatus(String jobId) {
-        return jobs.get(jobId);
+        return importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
     }
 
     // ------------------------------------------------------------------
@@ -110,8 +111,13 @@ public class ExcelImportService {
     @Async
     @Transactional
     public void runImport(String jobId, byte[] fileBytes) {
-        ImportJobStatus jobStatus = jobs.get(jobId);
+        ImportJobStatus jobStatus = importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
+        if (jobStatus == null) {
+            log.error("[job={}] Job not found in Redis at start of runImport", jobId);
+            return;
+        }
         jobStatus.setStatus(ImportJobStatus.Status.RUNNING);
+        saveJob(jobStatus);
 
         try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(fileBytes);
                 Workbook workbook = new XSSFWorkbook(bais)) {
@@ -169,6 +175,7 @@ public class ExcelImportService {
                 List<Suburb> saved = suburbRepository.saveAll(newSuburbs);
                 saved.forEach(s -> suburbCache.put(s.getId(), s));
                 log.info("[job={}] Persisted {} new suburbs", jobId, saved.size());
+                saveJob(jobStatus);
             }
 
             // ── 3. Second pass: build & batch-insert incidents ──────────
@@ -221,6 +228,7 @@ public class ExcelImportService {
                     log.debug("[job={}] Flushed batch of {} incidents (total: {})",
                             jobId, batch.size(), jobStatus.getIncidentsAdded());
                     batch.clear();
+                    saveJob(jobStatus);
                 }
 
                 // Source rows successfully parsed (not multiplied incident count).
@@ -236,10 +244,12 @@ public class ExcelImportService {
 
             // ── 4. Deferred heat score recalc ───────────────────────────
             jobStatus.setStatus(ImportJobStatus.Status.FINALIZING);
+            saveJob(jobStatus);
             log.info("[job={}] Starting heat score recalculation", jobId);
             heatScoreService.recalculateAll();
 
             jobStatus.setStatus(ImportJobStatus.Status.DONE);
+            saveJob(jobStatus);
             log.info("[job={}] Import complete — rows={} incidents={} suburbs={}",
                     jobId,
                     jobStatus.getRowsProcessed(),
@@ -250,7 +260,13 @@ public class ExcelImportService {
             log.error("[job={}] Import failed", jobId, e);
             jobStatus.setStatus(ImportJobStatus.Status.ERROR);
             jobStatus.setErrorMessage(e.getMessage());
+            saveJob(jobStatus);
         }
+    }
+
+    private void saveJob(ImportJobStatus jobStatus) {
+        importJobRedisTemplate.opsForValue().set(
+                JOB_KEY_PREFIX + jobStatus.getJobId(), jobStatus, JOB_TTL);
     }
 
     // ------------------------------------------------------------------
