@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Clock, Loader2, BarChart3, LogOut } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { communityApi } from "@/lib/api";
-import { mapSuburb, mapIncident } from "@/components/layout/BackendBootstrap";
+import { mapSuburb, mapIncident } from "@/lib/mappers";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useRouter } from "next/navigation";
 
