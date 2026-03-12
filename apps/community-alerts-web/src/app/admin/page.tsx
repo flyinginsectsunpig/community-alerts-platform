@@ -100,7 +100,7 @@ export default function AdminPage() {
         }
     }, [setIncidents, setSuburbs]);
 
-    const baseUrl = process.env.NEXT_PUBLIC_JAVA_API_URL || "http://localhost:8080";
+    const baseUrl = '/api-proxy/java';
 
     const authHeaders = (): Record<string, string> => {
         if (user?.token) return { Authorization: `Bearer ${user.token}` };
