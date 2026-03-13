@@ -113,7 +113,6 @@ public class ExcelImportService {
     // Async worker
     // ------------------------------------------------------------------
     @Async
-    @Transactional
     public void runImport(String jobId, byte[] fileBytes) {
         ImportJobStatus jobStatus = importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
         if (jobStatus == null) {
@@ -296,7 +295,10 @@ public class ExcelImportService {
                         jobStatus.setRowsProcessed(rowsProcessed[0]);
                         log.debug("[job={}] Flushed batch (total incidents: {})", jobId, incidentsAdded[0]);
                         batch.clear();
-                        saveJob(jobStatus);
+                        // Persist progress to Redis every ~5k rows to avoid hammering it on every batch
+                        if (rowsProcessed[0] % 5000 < BATCH_SIZE) {
+                            saveJob(jobStatus);
+                        }
                     }
                 }
 
@@ -317,13 +319,24 @@ public class ExcelImportService {
             jobStatus.setStatus(ImportJobStatus.Status.FINALIZING);
             saveJob(jobStatus);
 
-            log.info("[job={}] Starting heat score recalculation", jobId);
-            heatScoreService.recalculateAll();
-
+            // Heat score recalculation runs in a separate try-catch so a timeout
+            // or RabbitMQ hiccup never rolls back a fully successful import.
+            // With 1,200+ suburbs each triggering a RabbitMQ publish this can be
+            // slow; mark the job DONE first, then recalculate in the background.
             jobStatus.setStatus(ImportJobStatus.Status.DONE);
             saveJob(jobStatus);
             log.info("[job={}] Import complete — rows={} incidents={} suburbs={}",
                     jobId, rowsProcessed[0], incidentsAdded[0], jobStatus.getSuburbsAdded());
+
+            try {
+                log.info("[job={}] Starting background heat score recalculation", jobId);
+                heatScoreService.recalculateAll();
+                log.info("[job={}] Heat score recalculation complete", jobId);
+            } catch (Exception heatEx) {
+                // Non-fatal: data is already committed. Scores will catch up on
+                // the next recalculation triggered by an incident submission.
+                log.warn("[job={}] Heat score recalculation failed (non-fatal): {}", jobId, heatEx.getMessage());
+            }
 
         } catch (Exception e) {
             log.error("[job={}] Import failed", jobId, e);
