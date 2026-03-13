@@ -55,31 +55,31 @@ public class AdminController {
         if (status == null) {
             return ResponseEntity.notFound().build();
         }
-        /**
-         * Deletes all SAPS-imported incidents and their orphaned suburbs. Safe
-         * to call before a re-import to start fresh.
-         */
-        @DeleteMapping("/imported-data")
-        @Transactional
-        @Operation(summary = "Clear all SAPS-imported incidents and suburbs")
-        public ResponseEntity<Map<String, Object>> clearImportedData
-            
-        () {
-        long incidentsBefore = incidentRepository.countByTagsContaining("SAPS");
-            incidentRepository.deleteByTagsContaining("SAPS");
-
-            // Remove suburbs that have no remaining incidents
-            long suburbsRemoved = suburbRepository.findAll().stream()
-                    .filter(s -> incidentRepository.findBySuburbIdOrderByCreatedAtDesc(
-                    s.getId(), org.springframework.data.domain.PageRequest.of(0, 1)).isEmpty())
-                    .peek(suburbRepository::delete)
-                    .count();
-
-            log.info("Cleared {} SAPS incidents and {} orphaned suburbs", incidentsBefore, suburbsRemoved);
-            return ResponseEntity.ok(Map.of(
-                    "incidentsDeleted", incidentsBefore,
-                    "suburbsDeleted", suburbsRemoved
-            ));
-        }
-
+        return ResponseEntity.ok(status);
     }
+
+    /**
+     * Deletes all SAPS-imported incidents and their orphaned suburbs. Safe to
+     * call before a re-import to start fresh.
+     */
+    @DeleteMapping("/imported-data")
+    @Transactional
+    @Operation(summary = "Clear all SAPS-imported incidents and suburbs")
+    public ResponseEntity<Map<String, Object>> clearImportedData() {
+        long incidentsBefore = incidentRepository.countByTagsContaining("SAPS");
+        incidentRepository.deleteByTagsContaining("SAPS");
+
+        // Remove suburbs that have no remaining incidents
+        long suburbsRemoved = suburbRepository.findAll().stream()
+                .filter(s -> incidentRepository.findBySuburbIdOrderByCreatedAtDesc(
+                s.getId(), org.springframework.data.domain.PageRequest.of(0, 1)).isEmpty())
+                .peek(suburbRepository::delete)
+                .count();
+
+        log.info("Cleared {} SAPS incidents and {} orphaned suburbs", incidentsBefore, suburbsRemoved);
+        return ResponseEntity.ok(Map.of(
+                "incidentsDeleted", incidentsBefore,
+                "suburbsDeleted", suburbsRemoved
+        ));
+    }
+}
