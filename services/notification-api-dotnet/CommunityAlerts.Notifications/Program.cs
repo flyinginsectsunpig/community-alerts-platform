@@ -11,8 +11,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Keep runtime port consistent with README, Docker, and other services.
-builder.WebHost.UseUrls("http://0.0.0.0:5001");
+// Port is configured via ASPNETCORE_URLS environment variable (80 in production, 5001 locally)
 
 // ── Serilog ───────────────────────────────────────────────────────────────────
 builder.Host.UseSerilog((ctx, config) =>

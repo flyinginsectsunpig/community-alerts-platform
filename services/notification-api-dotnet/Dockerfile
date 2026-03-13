@@ -20,9 +20,9 @@ USER appuser
 
 COPY --from=build /app/publish .
 
-EXPOSE 5001
+EXPOSE 80
 
-ENV ASPNETCORE_URLS=http://+:5001
+ENV ASPNETCORE_URLS=http://+:80
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 ENTRYPOINT ["dotnet", "CommunityAlerts.Notifications.dll"]
