@@ -76,6 +76,13 @@ jobs:
           containerAppName: community-alerts-dotnet
           imageToDeploy: ${{ env.ACR_NAME }}.azurecr.io/notification-api-dotnet:${{ github.sha }}
 
+      - name: Configure .NET Service Environment
+        run: |
+          az containerapp update \
+            --name community-alerts-dotnet \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --set-env-vars "ASPNETCORE_ENVIRONMENT=Production"
+
       - name: Deploy Python ML
         uses: azure/container-apps-deploy-action@v2
         with:
