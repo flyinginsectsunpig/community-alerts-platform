@@ -16,13 +16,19 @@ import com.communityalerts.model.IncidentType;
 @Repository
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
 
-    /** All incidents for a suburb, newest first — used by the map feed. */
+    /**
+     * All incidents for a suburb, newest first — used by the map feed.
+     */
     Page<Incident> findBySuburbIdOrderByCreatedAtDesc(String suburbId, Pageable pageable);
 
-    /** Filter by type across all suburbs. */
+    /**
+     * Filter by type across all suburbs.
+     */
     Page<Incident> findByTypeOrderByCreatedAtDesc(IncidentType type, Pageable pageable);
 
-    /** Count incidents per suburb in a time window — used by HeatScoreService. */
+    /**
+     * Count incidents per suburb in a time window — used by HeatScoreService.
+     */
     @Query("""
                 SELECT i FROM Incident i
                 WHERE i.suburb.id = :suburbId
@@ -32,7 +38,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findRecentBySuburb(@Param("suburbId") String suburbId,
             @Param("since") LocalDateTime since);
 
-    /** Bulk count incidents per suburb in a time window — used to fix N+1 in SuburbServiceImpl. */
+    /**
+     * Bulk count incidents per suburb in a time window — used to fix N+1 in
+     * SuburbServiceImpl.
+     */
     @Query("""
                 SELECT i.suburb.id, COUNT(i)
                 FROM Incident i
@@ -42,7 +51,8 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Object[]> countRecentBySuburb(@Param("since") LocalDateTime since);
 
     /**
-     * Radius search — finds incidents within approximately N km of a coordinate.
+     * Radius search — finds incidents within approximately N km of a
+     * coordinate.
      */
     @Query("""
                 SELECT i FROM Incident i
@@ -57,7 +67,17 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             @Param("lng") double lng,
             @Param("radiusKm") double radiusKm);
 
-    /** Lightweight projection for the map & analytics (paged for large datasets). */
+    /**
+     * Delete all SAPS-imported incidents (tagged "SAPS") — used by the admin
+     * clear endpoint.
+     */
+    void deleteByTagsContaining(String tag);
+
+    /**
+     * Count SAPS-imported incidents.
+     */
+    long countByTagsContaining(String tag);
+
     @Query("SELECT new com.communityalerts.dto.IncidentMapDTO(i.id, i.suburb.id, i.type, i.severity, i.latitude, i.longitude) FROM Incident i ORDER BY i.createdAt DESC")
     Page<com.communityalerts.dto.IncidentMapDTO> findAllMapData(Pageable pageable);
 }
