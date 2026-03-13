@@ -81,7 +81,9 @@ jobs:
           az containerapp update \
             --name community-alerts-dotnet \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --set-env-vars "ASPNETCORE_ENVIRONMENT=Production"
+            --set-env-vars \
+              "ASPNETCORE_ENVIRONMENT=Production" \
+              "ConnectionStrings__Default=Host=community-alerts-pg-dotnet.postgres.database.azure.com;Port=5432;Database=notifications;Username=communityalerts;Password=${{ secrets.DOTNET_DB_PASSWORD }};SslMode=Require"
 
       - name: Deploy Python ML
         uses: azure/container-apps-deploy-action@v2
