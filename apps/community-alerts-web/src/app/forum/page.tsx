@@ -1,10 +1,8 @@
-import type { Metadata } from 'next';
-import { ForumPage } from '@/components/forum/ForumPage';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = { title: 'CommunityAlerts — Community Forum' };
-
-export default function Forum() {
-  return <ForumPage />;
+/**
+ * Redirects legacy /forum route to the new SOC Shell at /
+ */
+export default function ForumRedirect() {
+  redirect('/');
 }

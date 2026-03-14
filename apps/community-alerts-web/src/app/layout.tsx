@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { Syne, Space_Mono, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/layout/Providers';
-import { Navbar } from '@/components/layout/Navbar';
-import { StatusBar } from '@/components/layout/StatusBar';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { ToastProvider } from '@/components/ui/ToastProvider';
 
 const syne = Syne({
   subsets: ['latin'],
@@ -33,14 +32,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${syne.variable} ${spaceMono.variable} ${dmSans.variable}`}>
-      <body className="bg-bg text-text-primary font-body antialiased">
+      <body className="bg-bg text-text-primary font-body antialiased overflow-hidden w-full h-full">
         <AuthProvider>
           <Providers>
-            <div className="flex flex-col h-screen overflow-hidden">
-              <Navbar />
-              <StatusBar />
-              <main className="flex-1 overflow-auto">{children}</main>
-            </div>
+            <div className="noise-overlay" />
+            <ToastProvider />
+            {children}
           </Providers>
         </AuthProvider>
       </body>

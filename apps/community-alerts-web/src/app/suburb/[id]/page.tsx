@@ -1,10 +1,8 @@
-import type { Metadata } from 'next';
-import { SuburbDetailPage } from '@/components/SuburbDetailPage';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = { title: 'CommunityAlerts — Suburb Detail' };
-
-export default function SuburbPage({ params }: { params: { id: string } }) {
-  return <SuburbDetailPage suburbId={params.id} />;
+/**
+ * Redirects legacy /suburb/[id] route to the new SOC Shell at /?suburb=[id]
+ */
+export default function SuburbRedirect({ params }: { params: { id: string } }) {
+  redirect(\`/?suburb=\${params.id}\`);
 }

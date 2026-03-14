@@ -1,10 +1,8 @@
-import type { Metadata } from 'next';
-import { AlertsFeed } from '@/components/alerts/AlertsFeed';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export const metadata: Metadata = { title: 'CommunityAlerts — Alerts Feed' };
-
-export default function AlertsPage() {
-  return <AlertsFeed />;
+/**
+ * Redirects legacy /alerts route to the new SOC Shell at /
+ */
+export default function AlertsRedirect() {
+  redirect('/');
 }
