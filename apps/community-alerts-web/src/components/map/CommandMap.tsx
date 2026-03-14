@@ -159,7 +159,6 @@ export function CommandMap() {
       mapRef.current = map;
       LRef.current = L;
 
-      renderSuburbs(L, map);
       syncView();
     };
 
@@ -185,6 +184,12 @@ export function CommandMap() {
   useEffect(() => {
     syncView();
   }, [view, mapIncidents, activeFilters, incidentId, suburbId]);
+
+  useEffect(() => {
+    if (!mapRef.current || !LRef.current) return;
+    renderSuburbs(LRef.current, mapRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suburbs]);
 
   const syncView = () => {
     if (!mapRef.current || !LRef.current) return;
