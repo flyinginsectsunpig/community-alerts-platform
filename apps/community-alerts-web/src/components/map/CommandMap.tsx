@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { TYPE_CONFIG, DEFAULT_CENTER, DEFAULT_ZOOM } from '@/lib/constants';
@@ -115,6 +115,11 @@ export function CommandMap() {
   const suburbsRef = useRef<any[]>([]);
   const heatRef = useRef<any>(null);
 
+  // Keep a ref to suburbs so renderSuburbs always sees the latest value
+  // even when called from inside the map-init effect (which closes over stale state).
+  const suburbsRef2 = useRef(suburbs);
+  useEffect(() => { suburbsRef2.current = suburbs; }, [suburbs]);
+
   const view = searchParams.get('view');
   const incidentId = searchParams.get('incident');
   const suburbId = searchParams.get('suburb');
@@ -122,10 +127,12 @@ export function CommandMap() {
   // Filter incidents locally for the map based on store filters
   const filteredIncidents = mapIncidents.filter(inc => activeFilters.has(inc.type));
 
+  // Keep a ref to filteredIncidents for the same reason
+  const filteredIncidentsRef = useRef(filteredIncidents);
+  useEffect(() => { filteredIncidentsRef.current = filteredIncidents; });
+
+  // ── Map init (runs once) ────────────────────────────────────────────────────
   useEffect(() => {
-    // StrictMode guard: if a map instance already exists on the ref, skip init.
-    // StrictMode mounts->unmounts->remounts; the cleanup below removes the map
-    // instance but the DOM node's _leaflet_id can persist. We handle both cases.
     if (mapRef.current) return;
 
     let cancelled = false;
@@ -135,11 +142,8 @@ export function CommandMap() {
       const L = (await import('leaflet')).default;
       if (cancelled || !containerRef.current) return;
 
-      // Clear any stale Leaflet instance left on the DOM node from a prior mount
       const el = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
-      if (el._leaflet_id) {
-        delete el._leaflet_id;
-      }
+      if (el._leaflet_id) delete el._leaflet_id;
 
       const map = L.map(containerRef.current, {
         center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lng],
@@ -152,27 +156,24 @@ export function CommandMap() {
         maxZoom: 19,
       }).addTo(map);
 
-      // Map-level click clears all URL params (dismisses panels)
       map.on('click', () => { router.push('/'); });
 
       localMap = map;
       mapRef.current = map;
       LRef.current = L;
 
-      syncView();
+      // Render whatever is already in the store at init time (may be empty on cold start)
+      renderSuburbs(L, map);
+      syncView(L, map);
     };
 
     init();
 
     return () => {
       cancelled = true;
-      if (localMap) {
-        localMap.remove();
-        localMap = null;
-      }
+      if (localMap) { localMap.remove(); localMap = null; }
       mapRef.current = null;
       LRef.current = null;
-      // Clean up stale _leaflet_id so the next mount can reinitialise cleanly
       if (containerRef.current) {
         const el = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
         delete el._leaflet_id;
@@ -181,22 +182,41 @@ export function CommandMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    syncView();
-  }, [view, mapIncidents, activeFilters, incidentId, suburbId]);
-
+  // ── Re-render suburb markers whenever suburbs arrive from the API ───────────
   useEffect(() => {
     if (!mapRef.current || !LRef.current) return;
     renderSuburbs(LRef.current, mapRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suburbs]);
 
-  const syncView = () => {
+  // ── Re-render incident markers when incidents/filters/selection change ──────
+  useEffect(() => {
     if (!mapRef.current || !LRef.current) return;
-    const L = LRef.current;
-    const map = mapRef.current;
+    syncView(LRef.current, mapRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, mapIncidents, activeFilters, incidentId, suburbId]);
 
-    // Clear existing
+  // ── Render helpers (accept L and map as params — no stale closure risk) ─────
+
+  const renderSuburbs = (L: any, map: any) => {
+    suburbsRef.current.forEach(m => m.remove());
+    suburbsRef.current = [];
+    suburbsRef2.current.forEach(sub => {
+      const dot = L.divIcon({
+        className: 'suburb-centroid',
+        html: `<div class="w-1.5 h-1.5 bg-text-dim/40 rounded-sm rotate-45 group relative">
+                 <div class="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[8px] text-text-dim/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${sub.name}</div>
+               </div>`,
+        iconSize: [6, 6],
+      });
+      const marker = L.marker([sub.lat, sub.lng], { icon: dot })
+        .addTo(map)
+        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?suburb=${sub.id}`); });
+      suburbsRef.current.push(marker);
+    });
+  };
+
+  const syncView = (L: any, map: any) => {
     if (heatRef.current) { heatRef.current.remove(); heatRef.current = null; }
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
@@ -209,9 +229,10 @@ export function CommandMap() {
   };
 
   const renderHeatmap = (L: any, map: any) => {
-    if (filteredIncidents.length === 0) return;
-    const bounds: [[number, number], [number, number]] = [[-34.45, 18.2], [-33.35, 19.1]]; // CT Region
-    const grid = buildDensityGrid(filteredIncidents, bounds);
+    const incidents = filteredIncidentsRef.current;
+    if (incidents.length === 0) return;
+    const bounds: [[number, number], [number, number]] = [[-34.45, 18.2], [-33.35, 19.1]];
+    const grid = buildDensityGrid(incidents, bounds);
 
     const nonZero = Array.from(grid).filter((v) => v > 0).sort((a, b) => a - b);
     const p98 = nonZero[Math.floor(nonZero.length * 0.98)] ?? 1;
@@ -236,26 +257,9 @@ export function CommandMap() {
     heatRef.current = L.imageOverlay(smooth.toDataURL(), bounds, { opacity: 0.8, zIndex: 200 }).addTo(map);
   };
 
-  const renderSuburbs = (L: any, map: any) => {
-    suburbsRef.current.forEach(m => m.remove());
-    suburbsRef.current = [];
-    suburbs.forEach(sub => {
-      const dot = L.divIcon({
-        className: 'suburb-centroid',
-        html: `<div class="w-1.5 h-1.5 bg-text-dim/40 rounded-sm rotate-45 group relative">
-                 <div class="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[8px] text-text-dim/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${sub.name}</div>
-               </div>`,
-        iconSize: [6, 6]
-      });
-      const marker = L.marker([sub.lat, sub.lng], { icon: dot })
-        .addTo(map)
-        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?suburb=${sub.id}`); });
-      suburbsRef.current.push(marker);
-    });
-  };
-
   const renderIncidents = (L: any, map: any) => {
-    const visible = filteredIncidents.slice(0, 800);
+    const incidents = filteredIncidentsRef.current;
+    const visible = incidents.slice(0, 800);
     visible.forEach(inc => {
       const isSelected = String(inc.id) === String(incidentId);
       const cfg = TYPE_CONFIG[inc.type];
@@ -269,7 +273,7 @@ export function CommandMap() {
                  ${isCritical ? '<div class="absolute inset-0 rounded-full animate-pinHalo bg-red/30" style="width: 28px; height: 28px; margin: -14px 0 0 -14px;"></div>' : ''}
                  <div style="width: ${size}px; height: ${size}px; background: ${cfg.color}; border: ${isSelected ? '2px solid white' : '1.5px solid rgba(255,255,255,0.4)'}; border-radius: 50%; box-shadow: 0 0 10px ${cfg.color}80;"></div>
                </div>`,
-        iconSize: [size, size], iconAnchor: [size / 2, size / 2]
+        iconSize: [size, size], iconAnchor: [size / 2, size / 2],
       });
 
       const marker = L.marker([inc.lat, inc.lng], { icon, zIndexOffset: isSelected ? 1000 : 0 })

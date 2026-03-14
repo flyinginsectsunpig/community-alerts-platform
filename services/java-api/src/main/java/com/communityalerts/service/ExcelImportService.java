@@ -8,8 +8,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.ss.util.CellReference;
@@ -61,6 +70,8 @@ public class ExcelImportService {
     private static final String JOB_KEY_PREFIX = "import-job:";
     private static final Duration JOB_TTL = Duration.ofHours(2);
 
+
+
     private final IncidentRepository incidentRepository;
     private final SuburbRepository suburbRepository;
     private final HeatScoreService heatScoreService;
@@ -70,20 +81,7 @@ public class ExcelImportService {
     @Lazy
     private ExcelImportService self;
 
-    private static final class ImportLayout {
 
-        final int startRow;
-        final int offenceCol;
-        final int stationCol;
-        final Integer countCol;
-
-        ImportLayout(int startRow, int offenceCol, int stationCol, Integer countCol) {
-            this.startRow = startRow;
-            this.offenceCol = offenceCol;
-            this.stationCol = stationCol;
-            this.countCol = countCol;
-        }
-    }
 
     // ------------------------------------------------------------------
     // Public API
@@ -236,11 +234,14 @@ public class ExcelImportService {
             if (!newStationNames.isEmpty()) {
                 List<Suburb> toSave = new ArrayList<>();
                 for (String name : newStationNames) {
+                    // Nominatim rate limit: 1 request per second (their usage policy)
+                    Thread.sleep(1100);
+                    double[] coords = geocodeStation(name);
                     toSave.add(Suburb.builder()
                             .id(toSuburbId(name))
                             .name(name)
-                            .latitude(-33.9249)
-                            .longitude(18.4241)
+                            .latitude(coords[0])
+                            .longitude(coords[1])
                             .build());
                 }
                 suburbRepository.saveAll(toSave).forEach(s -> suburbCache.put(s.getId(), s));
@@ -425,6 +426,31 @@ public class ExcelImportService {
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+    private double[] geocodeStation(String stationName) {
+        try {
+            String query = URLEncoder.encode(stationName + ", Cape Town, South Africa", StandardCharsets.UTF_8);
+            URI uri = URI.create("https://nominatim.openstreetmap.org/search?q=" + query + "&format=json&limit=1");
+            
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .header("User-Agent", "CommunityAlertsPlatform/1.0")  // Nominatim requires a User-Agent
+                .GET()
+                .build();
+            
+            HttpResponse<String> response = HttpClient.newHttpClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            
+            JsonNode results = new ObjectMapper().readTree(response.body());
+            if (results.isArray() && results.size() > 0) {
+                double lat = results.get(0).get("lat").asDouble();
+                double lon = results.get(0).get("lon").asDouble();
+                return new double[]{lat, lon};
+            }
+        } catch (Exception e) {
+            log.warn("Geocoding failed for station '{}': {}", stationName, e.getMessage());
+        }
+        return new double[]{-33.9249, 18.4241};  // fallback only if geocoding fails
+    }
+
     private static String toSuburbId(String stationStr) {
         return stationStr.toLowerCase().replaceAll("[^a-z0-9]", "-");
     }
