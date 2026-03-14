@@ -34,8 +34,9 @@ export function IncidentBrief({ id }: { id: string | number }) {
   if (!incident) {
     return (
       <div className="p-10 text-center font-mono text-xs text-text-dim">
-        <div className="mb-2 text-text-secondary">Intelligence ID {id}</div>
-        not found in local cache — it may have been reported before this session.
+        <div className="mb-2 text-text-secondary">
+          Intelligence ID {id} not found in local cache — it may have been reported before this session.
+        </div>
       </div>
     );
   }

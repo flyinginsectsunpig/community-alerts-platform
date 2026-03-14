@@ -238,13 +238,13 @@ export function CommandMap() {
       const dot = L.divIcon({
         className: 'suburb-centroid',
         html: `<div class="w-1.5 h-1.5 bg-text-dim/40 rounded-sm rotate-45 group relative">
-                 <div class="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[8px] text-text-dim/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">\${sub.name}</div>
+                 <div class="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[8px] text-text-dim/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${sub.name}</div>
                </div>`,
         iconSize: [6, 6]
       });
       const marker = L.marker([sub.lat, sub.lng], { icon: dot })
         .addTo(map)
-        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?suburb=\${sub.id}`); });
+        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?suburb=${sub.id}`); });
       suburbsRef.current.push(marker);
     });
   };
@@ -261,15 +261,15 @@ export function CommandMap() {
       const icon = L.divIcon({
         className: 'incident-pin',
         html: `<div class="relative flex items-center justify-center">
-                 \${isCritical ? '<div class="absolute inset-0 rounded-full animate-pinHalo bg-red/30" style="width: 28px; height: 28px; margin: -14px 0 0 -14px;"></div>' : ''}
-                 <div style="width: \${size}px; height: \${size}px; background: \${cfg.color}; border: \${isSelected ? '2px solid white' : '1.5px solid rgba(255,255,255,0.4)'}; border-radius: 50%; box-shadow: 0 0 10px \${cfg.color}80;"></div>
+                 ${isCritical ? '<div class="absolute inset-0 rounded-full animate-pinHalo bg-red/30" style="width: 28px; height: 28px; margin: -14px 0 0 -14px;"></div>' : ''}
+                 <div style="width: ${size}px; height: ${size}px; background: ${cfg.color}; border: ${isSelected ? '2px solid white' : '1.5px solid rgba(255,255,255,0.4)'}; border-radius: 50%; box-shadow: 0 0 10px ${cfg.color}80;"></div>
                </div>`,
         iconSize: [size, size], iconAnchor: [size / 2, size / 2]
       });
 
       const marker = L.marker([inc.lat, inc.lng], { icon, zIndexOffset: isSelected ? 1000 : 0 })
         .addTo(map)
-        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?incident=\${inc.id}`); });
+        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?incident=${inc.id}`); });
       markersRef.current.push(marker);
     });
   };

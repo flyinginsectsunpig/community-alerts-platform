@@ -32,7 +32,7 @@ export function ReportModal() {
   const close = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('report');
-    router.push(`/?\${params.toString()}`);
+    router.push(`/?${params.toString()}`);
   };
 
   const cfg = TYPE_CONFIG[type];
