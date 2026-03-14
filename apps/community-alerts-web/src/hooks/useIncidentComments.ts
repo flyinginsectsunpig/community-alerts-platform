@@ -5,13 +5,15 @@ import { communityApi } from '@/lib/api';
 import type { Incident } from '@/lib/types';
 
 export function useIncidentComments(
-  incident: Incident,
+  incident: Incident | undefined | null,
   onUpdateIncident: (id: number | string, updater: (current: Incident) => Incident) => void,
 ) {
   const [comment, setComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
   useEffect(() => {
+    // Guard: incident must be defined with a valid id
+    if (!incident?.id) return;
     if (!incident.isFromBackend || incident.comments.length > 0 || incident.commentCount === 0) return;
     if (typeof incident.id !== 'number') return;
 
@@ -23,7 +25,9 @@ export function useIncidentComments(
         const comments = (Array.isArray(rows) ? rows : []).map((row: any) => ({
           user: row.username ?? 'Resident',
           avatar: '#3b82f6',
-          time: row.createdAt ? new Date(row.createdAt).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' }) : 'Unknown',
+          time: row.createdAt
+            ? new Date(row.createdAt).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' })
+            : 'Unknown',
           text: row.text ?? '',
         }));
         onUpdateIncident(incident.id, (current) => ({
@@ -40,9 +44,11 @@ export function useIncidentComments(
     return () => {
       cancelled = true;
     };
-  }, [incident.id, incident.isFromBackend, incident.commentCount, incident.comments.length, onUpdateIncident]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incident?.id, incident?.isFromBackend, incident?.commentCount, incident?.comments?.length, onUpdateIncident]);
 
   async function submitComment() {
+    if (!incident?.id) return;
     const text = comment.trim();
     if (!text) return;
 

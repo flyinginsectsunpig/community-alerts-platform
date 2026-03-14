@@ -2,7 +2,7 @@
 
 import { useStore } from '@/lib/store';
 import { TYPE_CONFIG, ALERT_LEVEL_COLOR, SEVERITY_LABELS, SEVERITY_COLORS } from '@/lib/constants';
-import { useIncidentComments } from '@/hooks/useIncidentComments';
+
 import { MapPin, Clock, Send, ShieldAlert, ChevronLeft, Radio, History } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -20,11 +20,27 @@ export function SuburbBrief({ id }: { id: string }) {
   const posts = forumPosts[id] || [];
   const [newPost, setNewPost] = useState('');
 
-  if (!suburb) return (
-     <div className="p-10 text-center font-mono text-xs text-text-dim">
-      Suburb ID {id} not found.
-    </div>
-  );
+  // Suburbs load async — show skeleton while waiting, hard error only if suburbs are loaded
+  if (!suburb) {
+    if (suburbs.length === 0) {
+      return (
+        <div className="p-8 flex flex-col gap-4 animate-pulse">
+          <div className="h-4 w-24 bg-surface2 rounded" />
+          <div className="h-8 w-48 bg-surface2 rounded" />
+          <div className="h-3 w-32 bg-surface2 rounded" />
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="h-12 bg-surface2 rounded-lg" />
+            <div className="h-12 bg-surface2 rounded-lg" />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="p-10 text-center font-mono text-xs text-text-dim">
+        Suburb <span className="text-text-secondary">{id}</span> not found.
+      </div>
+    );
+  }
 
   const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
   const pct = Math.min(100, (suburb.weight / 50) * 100);

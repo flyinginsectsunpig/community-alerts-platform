@@ -6,19 +6,33 @@ import { useStore } from '@/lib/store';
 import { communityApi } from '@/lib/api';
 import { TYPE_CONFIG, ALERT_LEVEL_COLOR } from '@/lib/constants';
 import { clsx } from 'clsx';
-import { X, MapPin, Filter } from 'lucide-react';
+import { X, MapPin, Filter, LayoutGrid } from 'lucide-react';
 import type { Incident, IncidentType } from '@/lib/types';
 import { mapIncident } from '@/lib/mappers';
 import { IncidentDetailPane } from '@/components/alerts/IncidentDetailPane';
 
 // Leaflet must be loaded client-side only
 const LeafletMap = dynamic(() => import('./LeafletMap'), {
-  ssr: false, loading: () => (
+  ssr: false,
+  loading: () => (
     <div className="flex-1 bg-bg flex items-center justify-center">
-      <div className="text-text-dim font-mono text-sm animate-pulse">Loading map...</div>
+      <div className="text-text-dim font-mono text-sm animate-pulse">Loading map…</div>
     </div>
-  )
+  ),
 });
+
+// Station intelligence map
+const StationMapView = dynamic(
+  () => import('./StationMapView').then((m) => ({ default: m.StationMapView })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex-1 bg-bg flex items-center justify-center">
+        <div className="text-text-dim font-mono text-sm animate-pulse">Loading station map…</div>
+      </div>
+    ),
+  },
+);
 
 function FilterPill({ type, active, onToggle }: { type: IncidentType; active: boolean; onToggle: () => void }) {
   const cfg = TYPE_CONFIG[type];
@@ -39,6 +53,8 @@ function FilterPill({ type, active, onToggle }: { type: IncidentType; active: bo
   );
 }
 
+type MapMode = 'live' | 'stations';
+
 export function MapView() {
   const {
     incidents,
@@ -50,30 +66,19 @@ export function MapView() {
     setSelectedIncident,
     updateIncident,
   } = useStore();
+
   const [showFilters, setShowFilters] = useState(false);
   const [fetchedIncident, setFetchedIncident] = useState<Incident | null>(null);
+  const [mapMode, setMapMode] = useState<MapMode>('stations');  // default to station view
 
   useEffect(() => {
-    if (!selectedIncidentId) {
-      setFetchedIncident(null);
-      return;
-    }
-
-    // Fast path: it's in the recent 200 cache
+    if (!selectedIncidentId) { setFetchedIncident(null); return; }
     const cached = incidents.find((i) => i.id === selectedIncidentId);
-    if (cached) {
-      setFetchedIncident(cached);
-      return;
-    }
-
-    // Slow path: user clicked an older map pin that was only loaded as a map item
+    if (cached) { setFetchedIncident(cached); return; }
     let cancelled = false;
     communityApi.getIncident(selectedIncidentId)
-      .then((data: any) => {
-        if (!cancelled) setFetchedIncident(mapIncident(data));
-      })
+      .then((data: any) => { if (!cancelled) setFetchedIncident(mapIncident(data)); })
       .catch((err) => console.error(err));
-
     return () => { cancelled = true; };
   }, [selectedIncidentId, incidents]);
 
@@ -82,75 +87,122 @@ export function MapView() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Filter bar */}
+
+      {/* ── Mode + filter bar ──────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-4 py-2 bg-surface border-b border-border flex items-center gap-3 overflow-x-auto scrollbar-hide">
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={clsx('btn-ghost text-xs flex-shrink-0', showFilters && 'text-accent border-accent/30')}
-        >
-          <Filter size={12} /> Filters
-        </button>
-        <div className="flex items-center gap-2">
-          {(Object.keys(TYPE_CONFIG) as IncidentType[]).map((type) => (
-            <FilterPill
-              key={type}
-              type={type}
-              active={activeFilters.has(type)}
-              onToggle={() => toggleFilter(type)}
-            />
-          ))}
-        </div>
-      </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Suburb heat sidebar */}
-        <div className="w-56 flex-shrink-0 border-r border-border bg-surface flex flex-col overflow-y-auto">
-          <div className="px-3 py-2 border-b border-border">
-            <div className="font-mono text-[10px] text-text-dim uppercase tracking-wider">Suburb Heat</div>
-          </div>
-          <div className="flex-1 py-1">
-            {[...suburbs].sort((a, b) => b.weight - a.weight).map((suburb) => {
-              const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
-              const pct = Math.min(100, (suburb.weight / 50) * 100);
-              return (
-                <div
-                  key={suburb.id}
-                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface2 cursor-pointer transition-colors group"
-                >
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="font-body text-xs text-text-secondary flex-1 truncate group-hover:text-text-primary">{suburb.name}</span>
-                  <div className="w-12 h-0.5 rounded-full bg-border overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {/* Mode toggle */}
+        <div className="flex items-center gap-1 p-0.5 bg-surface2 rounded-lg flex-shrink-0">
+          <button
+            onClick={() => setMapMode('stations')}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider transition-all',
+              mapMode === 'stations'
+                ? 'bg-accent/20 text-accent border border-accent/30'
+                : 'text-text-dim hover:text-text-secondary',
+            )}
+          >
+            <LayoutGrid size={10} />
+            Stations
+          </button>
+          <button
+            onClick={() => setMapMode('live')}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1 rounded-md font-mono text-[10px] uppercase tracking-wider transition-all',
+              mapMode === 'live'
+                ? 'bg-accent/20 text-accent border border-accent/30'
+                : 'text-text-dim hover:text-text-secondary',
+            )}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            Live
+          </button>
         </div>
 
-        {/* Map */}
-        <div className="flex-1 relative">
-          <LeafletMap
-            incidents={mapIncidents.filter((i) => activeFilters.has(i.type))}
-            suburbs={suburbs}
-            onSelectIncident={setSelectedIncident}
-            selectedIncidentId={selectedIncidentId}
-          />
-        </div>
+        {/* Filters — only shown in live mode */}
+        {mapMode === 'live' && (
+          <>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={clsx('btn-ghost text-xs flex-shrink-0', showFilters && 'text-accent border-accent/30')}
+            >
+              <Filter size={12} /> Filters
+            </button>
+            <div className="flex items-center gap-2">
+              {(Object.keys(TYPE_CONFIG) as IncidentType[]).map((type) => (
+                <FilterPill
+                  key={type}
+                  type={type}
+                  active={activeFilters.has(type)}
+                  onToggle={() => toggleFilter(type)}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
-        {/* Incident detail pane */}
-        {selectedIncident && (
-          <IncidentDetailPane
-            incident={selectedIncident}
-            suburbName={selectedSuburb?.name ?? 'Unknown'}
-            onClose={() => setSelectedIncident(null)}
-            onUpdateIncident={updateIncident}
-            width="w-80"
-            tagLabel="Tags"
-          />
+        {mapMode === 'stations' && (
+          <span className="font-mono text-[10px] text-text-dim">
+            SAPS Q3 2025 · 1 173 stations · Click any marker to view crime breakdown
+          </span>
         )}
       </div>
+
+      {/* ── Map area ──────────────────────────────────────────────────── */}
+      {mapMode === 'stations' ? (
+        <div className="flex-1 overflow-hidden">
+          <StationMapView />
+        </div>
+      ) : (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Suburb heat sidebar */}
+          <div className="w-56 flex-shrink-0 border-r border-border bg-surface flex flex-col overflow-y-auto">
+            <div className="px-3 py-2 border-b border-border">
+              <div className="font-mono text-[10px] text-text-dim uppercase tracking-wider">Suburb Heat</div>
+            </div>
+            <div className="flex-1 py-1">
+              {[...suburbs].sort((a, b) => b.weight - a.weight).map((suburb) => {
+                const color = ALERT_LEVEL_COLOR[suburb.alertLevel ?? 'GREEN'];
+                const pct = Math.min(100, (suburb.weight / 50) * 100);
+                return (
+                  <div
+                    key={suburb.id}
+                    className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface2 cursor-pointer transition-colors group"
+                  >
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <span className="font-body text-xs text-text-secondary flex-1 truncate group-hover:text-text-primary">{suburb.name}</span>
+                    <div className="w-12 h-0.5 rounded-full bg-border overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Incident map */}
+          <div className="flex-1 relative">
+            <LeafletMap
+              incidents={mapIncidents.filter((i) => activeFilters.has(i.type))}
+              suburbs={suburbs}
+              onSelectIncident={setSelectedIncident}
+              selectedIncidentId={selectedIncidentId}
+            />
+          </div>
+
+          {/* Incident detail pane */}
+          {selectedIncident && (
+            <IncidentDetailPane
+              incident={selectedIncident}
+              suburbName={selectedSuburb?.name ?? 'Unknown'}
+              onClose={() => setSelectedIncident(null)}
+              onUpdateIncident={updateIncident}
+              width="w-80"
+              tagLabel="Tags"
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

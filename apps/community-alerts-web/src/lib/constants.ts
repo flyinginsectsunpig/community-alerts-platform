@@ -50,5 +50,5 @@ export const ALERT_LEVEL_COLOR: Record<string, string> = {
   RED:    '#ef4444',
 };
 
-export const DEFAULT_CENTER = { lat: -33.96, lng: 18.55 };
-export const DEFAULT_ZOOM = 11;
+export const DEFAULT_CENTER = { lat: -28.5, lng: 25.5 };
+export const DEFAULT_ZOOM = 6;
