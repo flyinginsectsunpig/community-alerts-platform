@@ -107,7 +107,7 @@ export function CommandMap() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { mapIncidents, suburbs, activeFilters } = useStore();
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const LRef = useRef<any>(null);
@@ -123,28 +123,63 @@ export function CommandMap() {
   const filteredIncidents = mapIncidents.filter(inc => activeFilters.has(inc.type));
 
   useEffect(() => {
-    let map: any = null;
-    let L: any = null;
+    // StrictMode guard: if a map instance already exists on the ref, skip init.
+    // StrictMode mounts->unmounts->remounts; the cleanup below removes the map
+    // instance but the DOM node's _leaflet_id can persist. We handle both cases.
+    if (mapRef.current) return;
+
+    let cancelled = false;
+    let localMap: any = null;
+
     const init = async () => {
-      L = (await import('leaflet')).default;
-      LRef.current = L;
-      if (!containerRef.current) return;
-      map = L.map(containerRef.current, {
+      const L = (await import('leaflet')).default;
+      if (cancelled || !containerRef.current) return;
+
+      // Clear any stale Leaflet instance left on the DOM node from a prior mount
+      const el = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
+      if (el._leaflet_id) {
+        delete el._leaflet_id;
+      }
+
+      const map = L.map(containerRef.current, {
         center: [DEFAULT_CENTER.lat, DEFAULT_CENTER.lng],
-        zoom: DEFAULT_ZOOM, zoomControl: false, attributionControl: false,
+        zoom: DEFAULT_ZOOM,
+        zoomControl: false,
+        attributionControl: false,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Map-level click clears all URL params (dismisses panels)
+      map.on('click', () => { router.push('/'); });
+
+      localMap = map;
       mapRef.current = map;
-      map.on('click', (e: any) => {
-        if (e.originalEvent.target.id === 'map-canvas' || e.originalEvent.target.classList.contains('leaflet-container')) {
-           router.push('/');
-        }
-      });
+      LRef.current = L;
+
       renderSuburbs(L, map);
       syncView();
     };
+
     init();
-    return () => { if (map) map.remove(); };
+
+    return () => {
+      cancelled = true;
+      if (localMap) {
+        localMap.remove();
+        localMap = null;
+      }
+      mapRef.current = null;
+      LRef.current = null;
+      // Clean up stale _leaflet_id so the next mount can reinitialise cleanly
+      if (containerRef.current) {
+        const el = containerRef.current as HTMLDivElement & { _leaflet_id?: number };
+        delete el._leaflet_id;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -202,14 +237,14 @@ export function CommandMap() {
     suburbs.forEach(sub => {
       const dot = L.divIcon({
         className: 'suburb-centroid',
-        html: \`<div class="w-1.5 h-1.5 bg-text-dim/40 rounded-sm rotate-45 group relative">
+        html: `<div class="w-1.5 h-1.5 bg-text-dim/40 rounded-sm rotate-45 group relative">
                  <div class="absolute top-4 left-1/2 -translate-x-1/2 font-mono text-[8px] text-text-dim/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">\${sub.name}</div>
-               </div>\`,
+               </div>`,
         iconSize: [6, 6]
       });
       const marker = L.marker([sub.lat, sub.lng], { icon: dot })
         .addTo(map)
-        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(\`/?suburb=\${sub.id}\`); });
+        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?suburb=\${sub.id}`); });
       suburbsRef.current.push(marker);
     });
   };
@@ -222,19 +257,19 @@ export function CommandMap() {
       const baseSize = 8 + (inc.severity ?? 3) * 2.5;
       const size = isSelected ? baseSize * 1.4 : baseSize;
       const isCritical = inc.severity === 5;
-      
+
       const icon = L.divIcon({
         className: 'incident-pin',
-        html: \`<div class="relative flex items-center justify-center">
+        html: `<div class="relative flex items-center justify-center">
                  \${isCritical ? '<div class="absolute inset-0 rounded-full animate-pinHalo bg-red/30" style="width: 28px; height: 28px; margin: -14px 0 0 -14px;"></div>' : ''}
                  <div style="width: \${size}px; height: \${size}px; background: \${cfg.color}; border: \${isSelected ? '2px solid white' : '1.5px solid rgba(255,255,255,0.4)'}; border-radius: 50%; box-shadow: 0 0 10px \${cfg.color}80;"></div>
-               </div>\`,
-        iconSize: [size, size], iconAnchor: [size/2, size/2]
+               </div>`,
+        iconSize: [size, size], iconAnchor: [size / 2, size / 2]
       });
 
       const marker = L.marker([inc.lat, inc.lng], { icon, zIndexOffset: isSelected ? 1000 : 0 })
         .addTo(map)
-        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(\`/?incident=\${inc.id}\`); });
+        .on('click', (e: any) => { L.DomEvent.stopPropagation(e); router.push(`/?incident=\${inc.id}`); });
       markersRef.current.push(marker);
     });
   };

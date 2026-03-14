@@ -109,6 +109,39 @@ public class ExcelImportService {
         return importJobRedisTemplate.opsForValue().get(JOB_KEY_PREFIX + jobId);
     }
 
+    /**
+     * Deletes all SAPS-imported incidents and their orphaned suburbs.
+     * Starts an async process and returns immediately.
+     */
+    public void clearImportedData() {
+        log.info("Request to clear all imported data received");
+        self.runDataClear();
+    }
+
+    /**
+     * Async worker that performs the deletion of SAPS-imported data.
+     */
+    @Async
+    @Transactional
+    public void runDataClear() {
+        log.info("Starting async data clear...");
+        try {
+            // 1. Delete all incidents tagged with SAPS
+            incidentRepository.deleteByTagsContaining("SAPS");
+            log.info("Deleted SAPS-imported incidents.");
+
+            // 2. Clear orphaned suburbs (those with no incidents)
+            suburbRepository.deleteOrphanedSuburbs();
+            log.info("Cleared orphaned suburbs.");
+
+            // 3. Recalculate heat scores to reflect the cleared data
+            heatScoreService.recalculateAll();
+            log.info("Data clear and heat score recalculation complete.");
+        } catch (Exception e) {
+            log.error("Failed to clear imported data", e);
+        }
+    }
+
     // ------------------------------------------------------------------
     // Async worker
     // ------------------------------------------------------------------

@@ -1,17 +1,17 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
 /**
- * Skeleton Loader Component
- * Pulse animation for loading states.
+ * Skeleton.tsx
+ * FIX: Removed tailwind-merge import — not in package.json, causes build crash.
+ * Simple className concatenation is sufficient here; no conflicting Tailwind
+ * classes need merging. The shimmer gradient is applied via the .skeleton CSS
+ * class in globals.css (not just the animation keyframe).
  */
-export function Skeleton({ className }: { className?: string }) {
+
+interface Props {
+  className?: string;
+}
+
+export function Skeleton({ className = '' }: Props) {
   return (
-    <div 
-      className={twMerge(
-        'animate-skeleton bg-surface2 rounded-md',
-        className
-      )} 
-    />
+    <div className={`skeleton ${className}`} />
   );
 }
