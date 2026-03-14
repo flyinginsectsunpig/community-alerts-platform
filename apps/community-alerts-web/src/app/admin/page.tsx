@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Clock, Loader2, BarChart3, LogOut } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, Clock, Loader2, BarChart3, LogOut, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { communityApi } from "@/lib/api";
 import { mapSuburb, mapIncident } from "@/lib/mappers";
@@ -70,6 +70,8 @@ export default function AdminPage() {
     const [error, setError] = useState<string | null>(null);
     const [job, setJob] = useState<ImportJob | null>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
+    const [clearing, setClearing] = useState(false);
+    const [clearMsg, setClearMsg] = useState<string | null>(null);
 
     // Client-side auth guard (complements edge middleware)
     useEffect(() => {
@@ -148,6 +150,26 @@ export default function AdminPage() {
             setFile(e.target.files[0]);
             setJob(null);
             setError(null);
+        }
+    };
+
+    const handleClear = async () => {
+        if (!confirm("This will delete all SAPS-imported incidents and their suburbs. Seeded data is kept. Continue?")) return;
+        setClearing(true);
+        setClearMsg(null);
+        try {
+            const res = await fetch(`${baseUrl}/api/admin/imported-data/clear`, {
+                method: "POST",
+                headers: authHeaders(),
+            });
+            if (!res.ok) throw new Error(`Clear failed with status ${res.status}`);
+            setClearMsg("Cleared — imported data is being deleted in the background.");
+            // Refresh the store so the map updates
+            setTimeout(refreshGlobalStore, 3000);
+        } catch (err: any) {
+            setClearMsg(`Error: ${err.message}`);
+        } finally {
+            setClearing(false);
         }
     };
 
@@ -355,6 +377,36 @@ export default function AdminPage() {
                             </div>
                         </button>
                     </form>
+                </div>
+
+                {/* ── Clear Imported Data ─────────────────────────────────── */}
+                <div className="bg-surface border border-border rounded-2xl p-8 shadow-2xl overflow-hidden relative mt-6">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-900 via-red-700 to-red-500" />
+
+                    <h2 className="text-2xl font-bold text-text-primary mb-2 flex items-center gap-3">
+                        <Trash2 className="text-red-500" size={28} />
+                        Clear Imported Data
+                    </h2>
+                    <p className="text-text-secondary text-sm mb-6">
+                        Removes all SAPS-imported incidents and their suburbs. Seeded demo data is not affected.
+                        Use this before re-importing to avoid duplicates.
+                    </p>
+
+                    {clearMsg && (
+                        <div className={`mb-4 p-4 rounded-xl border text-sm flex items-start gap-3 ${clearMsg.startsWith("Error") ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-green/10 border-green/30 text-green"}`}>
+                            {clearMsg.startsWith("Error") ? <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> : <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />}
+                            {clearMsg}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleClear}
+                        disabled={clearing}
+                        className="w-full py-3 rounded-xl font-bold text-base border border-red-500/40 text-red-400 bg-red-500/10 hover:bg-red-500/20 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {clearing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 size={18} />}
+                        {clearing ? "Clearing…" : "Clear All Imported Data"}
+                    </button>
                 </div>
             </div>
         </div>

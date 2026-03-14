@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -67,11 +68,13 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             @Param("lng") double lng,
             @Param("radiusKm") double radiusKm);
 
-    /**
-     * Delete all SAPS-imported incidents (tagged "SAPS") — used by the admin
-     * clear endpoint.
-     */
-    void deleteByTagsContaining(String tag);
+    @Modifying
+    @Query("DELETE FROM Comment c WHERE c.incident.id IN (SELECT i.id FROM Incident i WHERE i.tags LIKE %:tag%)")
+    void deleteCommentsByIncidentTag(@Param("tag") String tag);
+
+    @Modifying
+    @Query("DELETE FROM Incident i WHERE i.tags LIKE %:tag%")
+    void bulkDeleteByTagsContaining(@Param("tag") String tag);
 
     /**
      * Count SAPS-imported incidents.

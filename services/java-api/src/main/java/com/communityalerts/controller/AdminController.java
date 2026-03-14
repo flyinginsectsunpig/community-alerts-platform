@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,11 +60,7 @@ public class AdminController {
         return ResponseEntity.ok(status);
     }
 
-    /**
-     * Deletes all SAPS-imported incidents and their orphaned suburbs.
-     * Runs async and returns 202 immediately — deletion of 100k+ rows takes time.
-     */
-    @DeleteMapping("/imported-data")
+    @PostMapping("/imported-data/clear")
     @Operation(summary = "Clear all SAPS-imported incidents and suburbs")
     public ResponseEntity<Map<String, String>> clearImportedData() {
         excelImportService.clearImportedData();

@@ -125,7 +125,8 @@ public class ExcelImportService {
         log.info("Starting async data clear...");
         try {
             // 1. Delete all incidents tagged with SAPS
-            incidentRepository.deleteByTagsContaining("SAPS");
+            incidentRepository.deleteCommentsByIncidentTag("SAPS");
+            incidentRepository.bulkDeleteByTagsContaining("SAPS");
             log.info("Deleted SAPS-imported incidents.");
 
             // 2. Clear orphaned suburbs (those with no incidents)
