@@ -45,6 +45,7 @@ import com.communityalerts.model.IncidentType;
 import com.communityalerts.model.Suburb;
 import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
+import com.communityalerts.repository.ForumPostRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,7 @@ import lombok.extern.slf4j.Slf4j;
  * instead of two DB round-trips per row. 3. Batch inserts — incidents collected
  * in a list and flushed every BATCH_SIZE rows using saveAll(), relying on
  * Hibernate JDBC batching. 4. Async execution — the public entry-point is
+ *
  * @Async and returns immediately. Progress is tracked via a job-status map. 5.
  * Heat score recalculation deferred to the very end of the async job.
  */
@@ -70,18 +72,15 @@ public class ExcelImportService {
     private static final String JOB_KEY_PREFIX = "import-job:";
     private static final Duration JOB_TTL = Duration.ofHours(2);
 
-
-
     private final IncidentRepository incidentRepository;
     private final SuburbRepository suburbRepository;
     private final HeatScoreService heatScoreService;
+    private final ForumPostRepository forumPostRepository;
     private final RedisTemplate<String, ImportJobStatus> importJobRedisTemplate;
 
     @Autowired
     @Lazy
     private ExcelImportService self;
-
-
 
     // ------------------------------------------------------------------
     // Public API
@@ -108,32 +107,45 @@ public class ExcelImportService {
     }
 
     /**
-     * Deletes all SAPS-imported incidents and their orphaned suburbs.
-     * Starts an async process and returns immediately.
+     * Deletes all SAPS-imported incidents and their orphaned suburbs. Starts an
+     * async process and returns immediately.
      */
     public void clearImportedData() {
         log.info("Request to clear all imported data received");
         self.runDataClear();
     }
 
-    /**
-     * Async worker that performs the deletion of SAPS-imported data.
-     */
     @Async
     @Transactional
     public void runDataClear() {
         log.info("Starting async data clear...");
         try {
-            // 1. Delete all incidents tagged with SAPS
+            // 1. Delete comments on SAPS-imported incidents
             incidentRepository.deleteCommentsByIncidentTag("SAPS");
+            log.info("Deleted comments on SAPS incidents.");
+
+            // 2. Delete SAPS-imported incidents
             incidentRepository.bulkDeleteByTagsContaining("SAPS");
             log.info("Deleted SAPS-imported incidents.");
 
-            // 2. Clear orphaned suburbs (those with no incidents)
-            suburbRepository.deleteOrphanedSuburbs();
-            log.info("Cleared orphaned suburbs.");
+            // 3. Find suburbs that are now orphaned (no remaining incidents)
+            //    Must be queried AFTER incident deletion so the list is accurate
+            List<String> orphanedIds = suburbRepository.findOrphanedSuburbIds();
+            log.info("Found {} orphaned suburbs to remove.", orphanedIds.size());
 
-            // 3. Recalculate heat scores to reflect the cleared data
+            if (!orphanedIds.isEmpty()) {
+                // 4. Remove forum posts for those suburbs before deleting the suburbs
+                //    (ForumPost has a non-nullable FK to Suburb — skipping this causes a
+                //    DataIntegrityViolationException and rolls back the whole transaction)
+                forumPostRepository.deleteBySuburbIdIn(orphanedIds);
+                log.info("Deleted forum posts for orphaned suburbs.");
+
+                // 5. Now safe to delete the orphaned suburbs
+                suburbRepository.deleteOrphanedSuburbs();
+                log.info("Deleted orphaned suburbs.");
+            }
+
+            // 6. Recalculate heat scores to reflect cleared data
             heatScoreService.recalculateAll();
             log.info("Data clear and heat score recalculation complete.");
         } catch (Exception e) {
@@ -177,7 +189,8 @@ public class ExcelImportService {
                 if (targetSheetName == null) {
                     targetSheetName = name; // fallback = first sheet
 
-                            }}
+                }
+            }
             final boolean saps = isSaps;
             // SAPS: headers row 3 (0-based=2), data from row 4 (0-based=3)
             // station=col 4 (E), offence=col 7 (H), count=col 28 (AC)
@@ -431,15 +444,15 @@ public class ExcelImportService {
         try {
             String query = URLEncoder.encode(stationName + ", Cape Town, South Africa", StandardCharsets.UTF_8);
             URI uri = URI.create("https://nominatim.openstreetmap.org/search?q=" + query + "&format=json&limit=1");
-            
+
             HttpRequest request = HttpRequest.newBuilder(uri)
-                .header("User-Agent", "CommunityAlertsPlatform/1.0")  // Nominatim requires a User-Agent
-                .GET()
-                .build();
-            
+                    .header("User-Agent", "CommunityAlertsPlatform/1.0") // Nominatim requires a User-Agent
+                    .GET()
+                    .build();
+
             HttpResponse<String> response = HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
-            
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+
             JsonNode results = new ObjectMapper().readTree(response.body());
             if (results.isArray() && results.size() > 0) {
                 double lat = results.get(0).get("lat").asDouble();

@@ -6,10 +6,11 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.communityalerts.model.Incident;
 import com.communityalerts.model.IncidentType;
@@ -69,10 +70,12 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             @Param("radiusKm") double radiusKm);
 
     @Modifying
+    @Transactional
     @Query("DELETE FROM Comment c WHERE c.incident.id IN (SELECT i.id FROM Incident i WHERE i.tags LIKE %:tag%)")
     void deleteCommentsByIncidentTag(@Param("tag") String tag);
 
     @Modifying
+    @Transactional
     @Query("DELETE FROM Incident i WHERE i.tags LIKE %:tag%")
     void bulkDeleteByTagsContaining(@Param("tag") String tag);
 
