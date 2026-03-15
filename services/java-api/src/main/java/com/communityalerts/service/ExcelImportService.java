@@ -2,23 +2,20 @@ package com.communityalerts.service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.ss.util.CellReference;
@@ -43,9 +40,11 @@ import org.xml.sax.helpers.XMLReaderFactory;
 import com.communityalerts.model.Incident;
 import com.communityalerts.model.IncidentType;
 import com.communityalerts.model.Suburb;
+import com.communityalerts.repository.ForumPostRepository;
 import com.communityalerts.repository.IncidentRepository;
 import com.communityalerts.repository.SuburbRepository;
-import com.communityalerts.repository.ForumPostRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -343,10 +342,7 @@ public class ExcelImportService {
                         jobStatus.setRowsProcessed(rowsProcessed[0]);
                         log.debug("[job={}] Flushed batch (total incidents: {})", jobId, incidentsAdded[0]);
                         batch.clear();
-                        // Persist progress to Redis every ~5k rows to avoid hammering it on every batch
-                        if (rowsProcessed[0] % 5000 < BATCH_SIZE) {
-                            saveJob(jobStatus);
-                        }
+                        saveJob(jobStatus);
                     }
                 }
 
@@ -447,10 +443,13 @@ public class ExcelImportService {
 
             HttpRequest request = HttpRequest.newBuilder(uri)
                     .header("User-Agent", "CommunityAlertsPlatform/1.0") // Nominatim requires a User-Agent
+                    .timeout(Duration.ofSeconds(10))
                     .GET()
                     .build();
 
-            HttpResponse<String> response = HttpClient.newHttpClient()
+            HttpResponse<String> response = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build()
                     .send(request, HttpResponse.BodyHandlers.ofString());
 
             JsonNode results = new ObjectMapper().readTree(response.body());

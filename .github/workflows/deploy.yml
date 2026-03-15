@@ -67,7 +67,9 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --cpu 2.0 \
             --memory 4.0Gi \
-            --set-env-vars JAVA_TOOL_OPTIONS="-Xmx3g -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+            --set-env-vars \
+              JAVA_TOOL_OPTIONS="-Xmx3g -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0" \
+              SPRING_PROFILES_ACTIVE="docker"
 
       - name: Deploy .NET Service
         uses: azure/container-apps-deploy-action@v2
