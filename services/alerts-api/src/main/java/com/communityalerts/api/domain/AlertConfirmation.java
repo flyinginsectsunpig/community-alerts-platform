@@ -1,0 +1,51 @@
+package com.communityalerts.api.domain;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+@Table(name = "alert_confirmations")
+public class AlertConfirmation {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "alert_id", nullable = false)
+    private UUID alertId;
+
+    @Column(nullable = false, length = 64)
+    private String fingerprint;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    protected AlertConfirmation() {
+        // for JPA
+    }
+
+    public AlertConfirmation(UUID alertId, String fingerprint) {
+        this.alertId = alertId;
+        this.fingerprint = fingerprint;
+    }
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+    }
+
+    public Long getId() { return id; }
+    public UUID getAlertId() { return alertId; }
+    public String getFingerprint() { return fingerprint; }
+    public Instant getCreatedAt() { return createdAt; }
+}
