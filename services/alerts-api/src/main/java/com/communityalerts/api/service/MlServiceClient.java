@@ -4,7 +4,6 @@ import com.communityalerts.api.dto.SeverityPreview;
 import com.communityalerts.api.error.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -32,7 +31,7 @@ public class MlServiceClient {
                             .build())
                     .retrieve()
                     .body(String.class);
-        } catch (ResourceAccessException | RestClientException e) {
+        } catch (RestClientException e) {
             throw new ServiceUnavailableException("Hotspot analysis is temporarily unavailable", e);
         }
     }
@@ -44,7 +43,7 @@ public class MlServiceClient {
                     .body(Map.of("text", text))
                     .retrieve()
                     .body(SeverityPreview.class);
-        } catch (ResourceAccessException | RestClientException e) {
+        } catch (RestClientException e) {
             throw new ServiceUnavailableException("Severity preview is temporarily unavailable", e);
         }
     }
