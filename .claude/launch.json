@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/web"],
+      "port": 3000
+    },
+    {
+      "name": "alerts-api",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "--build", "alerts-api"],
+      "port": 8080
+    },
+    {
+      "name": "ml-service",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "--build", "ml-service"],
+      "port": 8000
+    }
+  ]
+}

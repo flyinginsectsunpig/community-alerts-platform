@@ -1,0 +1,29 @@
+# Copy to terraform.tfvars (gitignored) and fill in. Better: pass secrets via
+# TF_VAR_* environment variables or a CI secret store instead of a file.
+
+project_name = "community-alerts"
+environment  = "prod"
+location     = "uksouth"
+image_tag    = "latest"
+
+# Neon PostgreSQL
+database_jdbc_url          = "jdbc:postgresql://<neon-host>/<db>?sslmode=require"
+database_user              = "<user>"
+database_password          = "<password>"
+database_url               = "postgresql://<user>:<password>@<neon-host>/<db>?sslmode=require&channel_binding=require"
+postgres_connection_string = "Host=<neon-host>;Database=<db>;Username=<user>;Password=<password>;SSL Mode=Require;Channel Binding=Require"
+
+# Upstash Redis
+redis_host     = "<name>.upstash.io"
+redis_port     = 6379
+redis_password = "<token>"
+
+# CloudAMQP LavinMQ
+rabbitmq_host     = "<name>.lmq.cloudamqp.com"
+rabbitmq_port     = 5671
+rabbitmq_username = "<user>"
+rabbitmq_password = "<password>"
+rabbitmq_vhost    = "<vhost>"
+
+# Optional escalation webhook (Slack-compatible)
+notification_webhook_url = ""
