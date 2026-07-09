@@ -18,6 +18,7 @@ public record AlertResponse(
         Double riskScore,
         AlertStatus status,
         int confirmationCount,
+        int commentCount,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -32,6 +33,7 @@ public record AlertResponse(
                 alert.getRiskScore(),
                 alert.getStatus(),
                 alert.getConfirmationCount(),
+                alert.getCommentCount(),
                 alert.getCreatedAt(),
                 alert.getUpdatedAt());
     }

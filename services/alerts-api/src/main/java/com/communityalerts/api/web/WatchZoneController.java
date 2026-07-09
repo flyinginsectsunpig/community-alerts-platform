@@ -1,6 +1,9 @@
 package com.communityalerts.api.web;
 
+import com.communityalerts.api.auth.AuthContext;
+import com.communityalerts.api.auth.AuthUser;
 import com.communityalerts.api.dto.CreateWatchZoneRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import com.communityalerts.api.dto.NotificationResponse;
 import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.service.WatchZoneService;
@@ -28,8 +31,10 @@ public class WatchZoneController {
     }
 
     @PostMapping
-    public ResponseEntity<WatchZoneResponse> create(@Valid @RequestBody CreateWatchZoneRequest request) {
-        WatchZoneResponse created = watchZoneService.create(request);
+    public ResponseEntity<WatchZoneResponse> create(@Valid @RequestBody CreateWatchZoneRequest request,
+                                                    HttpServletRequest httpRequest) {
+        WatchZoneResponse created = watchZoneService.create(
+                request, AuthContext.optional(httpRequest).map(AuthUser::id).orElse(null));
         return ResponseEntity
                 .created(URI.create("/api/v1/watch-zones/" + created.id()))
                 .body(created);

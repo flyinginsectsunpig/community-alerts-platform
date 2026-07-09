@@ -49,6 +49,9 @@ public class Alert {
     @Column(name = "confirmation_count", nullable = false)
     private int confirmationCount;
 
+    @Column(name = "comment_count", nullable = false)
+    private int commentCount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -98,6 +101,9 @@ public class Alert {
 
     public int getConfirmationCount() { return confirmationCount; }
     public void setConfirmationCount(int confirmationCount) { this.confirmationCount = confirmationCount; }
+
+    public int getCommentCount() { return commentCount; }
+    public void setCommentCount(int commentCount) { this.commentCount = commentCount; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

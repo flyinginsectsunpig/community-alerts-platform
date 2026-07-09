@@ -72,6 +72,11 @@ within milliseconds and re-color when scoring lands.
   heartbeats keep proxies from dropping streams.
 - **Community verification** — "I saw this too" confirmations; 3 unique
   confirmers flip an alert to VERIFIED (self- and duplicate-confirms rejected).
+- **Accounts + discussion threads** — email/password signup with HS256 JWTs
+  (`POST /api/v1/auth/signup|login`); each alert carries a flat, chronological
+  updates thread (`GET|POST /api/v1/alerts/{id}/comments`). Threads are
+  publicly readable, posting requires sign-in, and new comments stream live
+  to every open dashboard. Hybrid model: reporting stays anonymous.
 - **Watch zones** — draw a radius, pick categories, get durable notifications;
   CRITICAL (or high-risk HIGH) alerts escalate to 2x every zone's radius and
   optionally POST to a Slack-compatible webhook.
@@ -160,9 +165,11 @@ build time — build it with the API app's FQDN.
   App secrets in Azure. `.env` and `terraform.tfvars` are gitignored.
 - **Rotate any credential that has ever been shared in plaintext** (chat,
   email, tickets) via the Neon / Upstash / CloudAMQP consoles.
-- Reporting is deliberately anonymous (random client fingerprint + rate
-  limiting + community verification) — a crime-watch product decision. The
-  `JWT_SECRET` env var is reserved for the planned moderator/authenticated
-  tier; no code consumes it yet.
+- Hybrid identity model: reporting and confirming are deliberately anonymous
+  (random client fingerprint + rate limiting + community verification), while
+  commenting requires an account. Auth is a small explicit JWT filter
+  (`JWT_SECRET`, HS256) with bcrypt password hashes — spring-security-crypto
+  only, no full Spring Security stack. Auth endpoints share the write-path
+  rate limiter for brute-force protection.
 - Geo queries use bounding-box + haversine on vanilla PostgreSQL — no PostGIS
   extension required on Neon's free tier.

@@ -105,6 +105,7 @@ resource "azurerm_container_app" "alerts_api" {
       { name = "redis-password", value = var.redis_password },
       { name = "rabbitmq-username", value = var.rabbitmq_username },
       { name = "rabbitmq-password", value = var.rabbitmq_password },
+      { name = "jwt-secret", value = var.jwt_secret },
     ])
     content {
       name  = secret.value.name
@@ -154,6 +155,10 @@ resource "azurerm_container_app" "alerts_api" {
       env {
         name        = "RABBITMQ_PASSWORD"
         secret_name = "rabbitmq-password"
+      }
+      env {
+        name        = "JWT_SECRET"
+        secret_name = "jwt-secret"
       }
       env {
         name  = "ML_SERVICE_URL"

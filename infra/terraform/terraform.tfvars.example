@@ -25,6 +25,9 @@ rabbitmq_username = "<user>"
 rabbitmq_password = "<password>"
 rabbitmq_vhost    = "<vhost>"
 
+# API auth token signing key (>= 32 bytes)
+jwt_secret = "<random-64-hex-chars>"
+
 # Optional escalation webhook (Slack-compatible)
 notification_webhook_url = ""
 

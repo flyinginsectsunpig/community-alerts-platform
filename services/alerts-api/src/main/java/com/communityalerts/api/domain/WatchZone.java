@@ -35,6 +35,10 @@ public class WatchZone {
     @Column(name = "categories", nullable = false, length = 512)
     private String categoriesCsv = "";
 
+    /** Set when the zone was created by a signed-in user; null for anonymous. */
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -65,6 +69,9 @@ public class WatchZone {
 
     public String getCategoriesCsv() { return categoriesCsv; }
     public void setCategoriesCsv(String categoriesCsv) { this.categoriesCsv = categoriesCsv; }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public Instant getCreatedAt() { return createdAt; }
 }

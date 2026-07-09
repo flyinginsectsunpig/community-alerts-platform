@@ -28,9 +28,10 @@ public class WatchZoneService {
     }
 
     @Transactional
-    public WatchZoneResponse create(CreateWatchZoneRequest request) {
+    public WatchZoneResponse create(CreateWatchZoneRequest request, UUID ownerUserId) {
         WatchZone zone = new WatchZone();
         zone.setId(UUID.randomUUID());
+        zone.setUserId(ownerUserId);
         zone.setName(request.name().trim());
         zone.setContactEmail(request.contactEmail().trim().toLowerCase());
         zone.setCenterLat(request.centerLat());

@@ -45,7 +45,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
         boolean limited = uri.equals("/api/v1/alerts")
                 || uri.endsWith("/confirm")
-                || uri.equals("/api/v1/watch-zones");
+                || uri.endsWith("/comments")
+                || uri.equals("/api/v1/watch-zones")
+                || uri.startsWith("/api/v1/auth/"); // brute-force protection
         return !limited;
     }
 

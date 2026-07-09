@@ -108,6 +108,12 @@ variable "notification_webhook_url" {
   default     = ""
 }
 
+variable "jwt_secret" {
+  description = "HS256 signing key for API auth tokens (min 32 bytes)"
+  type        = string
+  sensitive   = true
+}
+
 variable "resend_api_key" {
   description = "Optional Resend API key for watch-zone notification emails"
   type        = string
