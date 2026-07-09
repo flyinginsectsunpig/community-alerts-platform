@@ -9,6 +9,8 @@ interface AlertFeedProps {
   loading: boolean;
   connected: boolean;
   selectedId: string | null;
+  /** Ids that just arrived over the live stream — get the "new" animation. */
+  newIds: ReadonlySet<string>;
   onSelect: (alert: Alert) => void;
 }
 
@@ -17,6 +19,7 @@ export default function AlertFeed({
   loading,
   connected,
   selectedId,
+  newIds,
   onSelect,
 }: AlertFeedProps) {
   return (
@@ -38,12 +41,14 @@ export default function AlertFeed({
       ) : alerts.length === 0 ? (
         <p className="feed__empty">No alerts in this area yet. Click the map to report one.</p>
       ) : (
-        <ul className="feed__list">
+        <ul className="feed__list fade-in">
           {alerts.map((alert) => (
             <li key={alert.id}>
               <button
                 type="button"
-                className={`feed-item${alert.id === selectedId ? " feed-item--active" : ""}`}
+                className={`feed-item${alert.id === selectedId ? " feed-item--active" : ""}${
+                  newIds.has(alert.id) ? " feed-item--new" : ""
+                }`}
                 aria-current={alert.id === selectedId || undefined}
                 onClick={() => onSelect(alert)}
               >

@@ -20,6 +20,9 @@ import type { Alert, Hotspot, LatLng } from "@/lib/types";
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
 
+/** A point the map should fly to, optionally at a specific zoom. */
+export type FocusTarget = LatLng & { zoom?: number };
+
 // Hotspots wear violet — deliberately distinct from every severity status
 // color so density never impersonates severity.
 const HOTSPOT_COLOR = "#9085e9";
@@ -29,7 +32,7 @@ interface AlertMapProps {
   hotspots: Hotspot[];
   showHotspots: boolean;
   pendingPoint: LatLng | null;
-  focus: LatLng | null;
+  focus: FocusTarget | null;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
@@ -56,7 +59,7 @@ function ClickCapture({ onMapClick }: { onMapClick: (point: LatLng) => void }) {
   return null;
 }
 
-function FlyTo({ focus }: { focus: LatLng | null }) {
+function FlyTo({ focus }: { focus: FocusTarget | null }) {
   const map = useMap();
   useEffect(() => {
     if (!focus) {
@@ -68,7 +71,9 @@ function FlyTo({ focus }: { focus: LatLng | null }) {
       console.warn("FlyTo ignoring non-finite focus", focus);
       return;
     }
-    map.flyTo([focus.lat, focus.lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
+    map.flyTo([focus.lat, focus.lng], focus.zoom ?? Math.max(map.getZoom(), 15), {
+      duration: 0.8,
+    });
   }, [focus, map]);
   return null;
 }
@@ -123,10 +128,13 @@ export default function AlertMap({
           center={[alert.lat, alert.lng]}
           radius={9}
           pathOptions={{
-            color: "#1a1a19", // 2px surface ring separates overlapping pings
+            // Critical pings trade the surface ring for a pulsing halo in
+            // their own color; everything else keeps the 2px separator ring.
+            color: alert.severity === "CRITICAL" ? SEVERITY_COLORS.CRITICAL : "#1a1a19",
             weight: 2,
             fillColor: SEVERITY_COLORS[alert.severity],
             fillOpacity: 0.95,
+            className: alert.severity === "CRITICAL" ? "marker--critical" : undefined,
           }}
         >
           <Tooltip>

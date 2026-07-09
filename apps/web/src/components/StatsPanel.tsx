@@ -42,7 +42,7 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
     .map((severity) => [severity, bySeverity[severity]] as const);
 
   return (
-    <section className="stats" aria-label="7-day statistics">
+    <section className="stats fade-in" aria-label="7-day statistics">
       <div className="stats__header">
         <h2>Last 7 days</h2>
         <span className="stats__source">{stats.source === "cache" ? "live snapshot" : "database"}</span>

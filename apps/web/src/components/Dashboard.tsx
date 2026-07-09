@@ -11,6 +11,7 @@ import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
+import type { FocusTarget } from "./AlertMap";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
 import type {
   Alert,
@@ -32,6 +33,7 @@ const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const INITIAL_RADIUS_M = 10000;
 const REFRESH_INTERVAL_MS = 60_000;
 const TOAST_DURATION_MS = 4_000;
+const HINT_KEY = "communityalerts.hintDismissed";
 
 type PanelMode = "report" | "zone" | null;
 
@@ -49,23 +51,64 @@ export default function Dashboard() {
   const [showHotspots, setShowHotspots] = useState(true);
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
-  const [focus, setFocus] = useState<LatLng | null>(null);
+  const [focus, setFocus] = useState<FocusTarget | null>(null);
+  const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
   const [toast, setToast] = useState<Toast | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
   const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
+  // Ids that arrived over the live stream; drives the feed's "new" animation.
+  const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(new Set());
+
+  const markLive = useCallback((alertId: string) => {
+    setLiveIds((ids) => new Set(ids).add(alertId));
+    window.setTimeout(() => {
+      setLiveIds((ids) => {
+        const next = new Set(ids);
+        next.delete(alertId);
+        return next;
+      });
+    }, 2000);
+  }, []);
 
   // Session comes from localStorage, so it must be read client-side only.
   useEffect(() => {
     setSession(getSession());
   }, []);
 
+  // The teaching hint shows until dismissed once — then never again.
+  const [showHint, setShowHint] = useState(false);
+
+  useEffect(() => {
+    setShowHint(window.localStorage.getItem(HINT_KEY) !== "1");
+  }, []);
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    window.localStorage.setItem(HINT_KEY, "1");
+  }, []);
+
   const showToast = useCallback((kind: Toast["kind"], message: string) => {
     setToast({ kind, message });
     window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
+
+  // Open on the user's neighbourhood when they allow it; stay on the default
+  // city otherwise. Alert fetches recenter along with the map.
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const located = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setCenter(located);
+        setFocus({ ...located, zoom: 16 });
+      },
+      () => showToast("info", "Showing central London — location unavailable"),
+      { enableHighAccuracy: false, timeout: 8000 },
+    );
+  }, [showToast]);
 
   const upsertAlert = useCallback((alert: Alert) => {
     setAlerts((current) => {
@@ -90,9 +133,10 @@ export default function Dashboard() {
           setLiveComment(event.comment);
         } else {
           upsertAlert(event.alert);
+          markLive(event.alert.id);
         }
       },
-      [upsertAlert],
+      [upsertAlert, markLive],
     ),
   );
 
@@ -101,7 +145,7 @@ export default function Dashboard() {
 
     async function loadEverything() {
       const [nearby, spots, summary] = await Promise.allSettled([
-        api.fetchNearby(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng, INITIAL_RADIUS_M),
+        api.fetchNearby(center.lat, center.lng, INITIAL_RADIUS_M),
         api.fetchHotspots(),
         api.fetchStats(),
       ]);
@@ -128,12 +172,16 @@ export default function Dashboard() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [center]);
 
-  const handleMapClick = useCallback((point: LatLng) => {
-    setPendingPoint(point);
-    setPanelMode("report");
-  }, []);
+  const handleMapClick = useCallback(
+    (point: LatLng) => {
+      setPendingPoint(point);
+      setPanelMode("report");
+      dismissHint(); // the hint has done its job
+    },
+    [dismissHint],
+  );
 
   const closePanel = useCallback(() => {
     setPanelMode(null);
@@ -201,9 +249,11 @@ export default function Dashboard() {
           <label className="hotspot-toggle">
             <input
               type="checkbox"
+              className="switch__input"
               checked={showHotspots}
               onChange={(event) => setShowHotspots(event.target.checked)}
             />
+            <span className="switch" aria-hidden />
             Hotspots
           </label>
           {session ? (
@@ -223,13 +273,13 @@ export default function Dashboard() {
 
       <div className="dashboard__body">
         <aside id="sidebar" className={`sidebar${sidebarOpen ? "" : " sidebar--closed"}`}>
-          <p className="sidebar__hint">Click anywhere on the map to report an alert.</p>
           <StatsPanel stats={stats} loading={!statsLoaded} />
           <AlertFeed
             alerts={alerts}
             loading={!alertsLoaded}
             connected={connected}
             selectedId={detailAlertId}
+            newIds={liveIds}
             onSelect={openDetail}
           />
         </aside>
@@ -245,6 +295,19 @@ export default function Dashboard() {
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
           />
+          {showHint && (
+            <div className="map-hint" role="note">
+              Click anywhere on the map to report an alert.
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={dismissHint}
+                aria-label="Dismiss hint"
+              >
+                ×
+              </button>
+            </div>
+          )}
           {detailAlert && (
             <AlertDetailPanel
               alert={detailAlert}
