@@ -1,6 +1,8 @@
 package com.communityalerts.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.amqp.rabbit.config.ContainerCustomizer;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.FanoutExchange;
@@ -59,6 +61,16 @@ public class RabbitConfig {
     @Bean
     public Binding alertScoredBinding(Queue alertScoredQueue, TopicExchange alertsExchange) {
         return BindingBuilder.bind(alertScoredQueue).to(alertsExchange).with(ROUTING_KEY_SCORED);
+    }
+
+    /**
+     * A broker outage (or bad credentials) must degrade the API — not kill
+     * it. Listener containers keep retrying in the background instead of
+     * failing application startup; reads and reporting stay available.
+     */
+    @Bean
+    public ContainerCustomizer<SimpleMessageListenerContainer> resilientListenerContainers() {
+        return container -> container.setPossibleAuthenticationFailureFatal(false);
     }
 
     @Bean
