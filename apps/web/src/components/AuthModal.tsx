@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import ModalOverlay from "./ModalOverlay";
 import { api, ApiError } from "@/lib/api";
 import { storeSession, type AuthSession } from "@/lib/auth";
 
@@ -50,7 +51,7 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
   }
 
   return (
-    <div className="panel-overlay" role="dialog" aria-label="Sign in or create an account">
+    <ModalOverlay label="Sign in or create an account" onClose={onClose}>
       <form className="panel" onSubmit={handleSubmit}>
         <div className="panel__header">
           <h2>{mode === "signin" ? "Sign in" : "Create an account"}</h2>
@@ -87,6 +88,7 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
+            autoFocus
             required
           />
         </label>
@@ -134,6 +136,6 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
           Reporting stays anonymous — an account is only needed to join alert discussions.
         </p>
       </form>
-    </div>
+    </ModalOverlay>
   );
 }

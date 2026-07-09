@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import ModalOverlay from "./ModalOverlay";
 import SeverityBadge from "./SeverityBadge";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
@@ -60,7 +61,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
   }
 
   return (
-    <div className="panel-overlay" role="dialog" aria-label="Report an alert">
+    <ModalOverlay label="Report an alert" onClose={onClose}>
       <form className="panel" onSubmit={handleSubmit}>
         <div className="panel__header">
           <h2>Report an alert</h2>
@@ -93,6 +94,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Describe what you saw (at least 10 characters)…"
+            autoFocus
             rows={4}
             minLength={MIN_DESCRIPTION_LENGTH}
             maxLength={2000}
@@ -127,6 +129,6 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
           Create a watch zone here instead
         </button>
       </form>
-    </div>
+    </ModalOverlay>
   );
 }

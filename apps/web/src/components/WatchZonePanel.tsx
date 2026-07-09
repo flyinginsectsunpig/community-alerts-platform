@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import ModalOverlay from "./ModalOverlay";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import type { AlertCategory, LatLng, WatchZone } from "@/lib/types";
@@ -50,7 +51,7 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
   }
 
   return (
-    <div className="panel-overlay" role="dialog" aria-label="Create a watch zone">
+    <ModalOverlay label="Create a watch zone" onClose={onClose}>
       <form className="panel" onSubmit={handleSubmit}>
         <div className="panel__header">
           <h2>Create a watch zone</h2>
@@ -72,6 +73,7 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
             onChange={(event) => setName(event.target.value)}
             placeholder="e.g. Home, School run"
             maxLength={120}
+            autoFocus
             required
           />
         </label>
@@ -126,6 +128,6 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
           </button>
         </div>
       </form>
-    </div>
+    </ModalOverlay>
   );
 }
