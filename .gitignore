@@ -37,6 +37,9 @@ dist/
 !terraform.tfvars.example
 .terraform.lock.hcl
 
+# Tooling artifacts
+.playwright-mcp/
+
 # IDE / OS
 .idea/
 .vscode/
