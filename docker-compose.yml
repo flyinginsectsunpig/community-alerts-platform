@@ -43,6 +43,8 @@ services:
       RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       RABBITMQ_SSL: ${RABBITMQ_SSL}
       NOTIFICATION_WEBHOOK_URL: ${NOTIFICATION_WEBHOOK_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
     # The API owns the Flyway migrations; start it first on a fresh database.
     depends_on:
       - alerts-api

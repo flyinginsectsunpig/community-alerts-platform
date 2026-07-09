@@ -27,3 +27,7 @@ rabbitmq_vhost    = "<vhost>"
 
 # Optional escalation webhook (Slack-compatible)
 notification_webhook_url = ""
+
+# Optional Resend email delivery
+resend_api_key = ""
+email_from     = "Community Alerts <onboarding@resend.dev>"

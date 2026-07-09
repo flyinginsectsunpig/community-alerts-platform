@@ -7,11 +7,14 @@ namespace AlertProcessor.Notifications;
 
 /// <summary>
 /// Persists notifications for matched watch zones (served to users by the
-/// API) and, for escalations, POSTs to the optional webhook (e.g. Slack).
-/// Inserts are idempotent per (zone, alert, kind) so redeliveries are safe.
+/// API), emails the zone contact via Resend, and, for escalations, POSTs to
+/// the optional webhook (e.g. Slack). Inserts are idempotent per
+/// (zone, alert, kind); emails fire only on a fresh insert so AMQP
+/// redeliveries never double-send.
 /// </summary>
 public sealed class NotificationDispatcher(
     INotificationRepository notificationRepository,
+    IEmailSender emailSender,
     HttpClient httpClient,
     WorkerOptions options,
     ILogger<NotificationDispatcher> logger)
@@ -25,8 +28,8 @@ public sealed class NotificationDispatcher(
         foreach (var match in matches)
         {
             var message =
-                $"New {Humanize(alert.Category)} report {Math.Round(match.DistanceMeters)} m " +
-                $"from your watch zone '{match.Zone.Name}'.";
+                $"New {EmailComposer.Humanize(alert.Category)} report " +
+                $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}'.";
 
             var inserted = await notificationRepository.InsertAsync(
                 match.Zone.Id, alert.AlertId, KindZoneMatch, message, ct);
@@ -37,6 +40,9 @@ public sealed class NotificationDispatcher(
                     "Notified zone {ZoneName} ({Email}) about alert {AlertId} ({Distance} m away)",
                     match.Zone.Name, match.Zone.ContactEmail, alert.AlertId,
                     Math.Round(match.DistanceMeters));
+
+                var (subject, html) = EmailComposer.ZoneMatch(alert, match);
+                await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
             }
         }
     }
@@ -47,12 +53,18 @@ public sealed class NotificationDispatcher(
         foreach (var match in matches)
         {
             var message =
-                $"{alert.Severity} severity {Humanize(alert.Category)} alert " +
+                $"{alert.Severity} severity {EmailComposer.Humanize(alert.Category)} alert " +
                 $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}' " +
                 $"(risk score {alert.RiskScore:0.00}).";
 
-            await notificationRepository.InsertAsync(
+            var inserted = await notificationRepository.InsertAsync(
                 match.Zone.Id, alert.AlertId, KindEscalation, message, ct);
+
+            if (inserted > 0)
+            {
+                var (subject, html) = EmailComposer.Escalation(alert, match);
+                await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
+            }
         }
 
         await PostWebhookAsync(alert, matches.Count, ct);
@@ -70,7 +82,7 @@ public sealed class NotificationDispatcher(
             var payload = new
             {
                 text = $":rotating_light: {alert.Severity} alert {alert.AlertId} " +
-                       $"({Humanize(alert.Category)}, risk {alert.RiskScore:0.00}) " +
+                       $"({EmailComposer.Humanize(alert.Category)}, risk {alert.RiskScore:0.00}) " +
                        $"at {alert.Lat:0.#####},{alert.Lng:0.#####} — {zonesNotified} watch zone(s) notified.",
             };
             using var response = await httpClient.PostAsJsonAsync(options.NotificationWebhookUrl, payload, ct);
@@ -85,7 +97,4 @@ public sealed class NotificationDispatcher(
             logger.LogWarning(ex, "Escalation webhook delivery failed");
         }
     }
-
-    private static string Humanize(string category) =>
-        category.Replace('_', ' ').ToLowerInvariant();
 }

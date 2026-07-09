@@ -15,6 +15,11 @@ public sealed record WorkerOptions
     public required string RabbitVhost { get; init; }
     public required bool RabbitSsl { get; init; }
     public string? NotificationWebhookUrl { get; init; }
+    public string? ResendApiKey { get; init; }
+    public string EmailFrom { get; init; } = DefaultEmailFrom;
+
+    /// <summary>Resend sandbox sender; verified-domain senders go in EMAIL_FROM.</summary>
+    public const string DefaultEmailFrom = "Community Alerts <onboarding@resend.dev>";
 
     public static WorkerOptions FromEnvironment()
     {
@@ -36,6 +41,8 @@ public sealed record WorkerOptions
             RabbitVhost = Require("RABBITMQ_VHOST"),
             RabbitSsl = ReadBool("RABBITMQ_SSL", defaultValue: true),
             NotificationWebhookUrl = Optional("NOTIFICATION_WEBHOOK_URL"),
+            ResendApiKey = Optional("RESEND_API_KEY"),
+            EmailFrom = Optional("EMAIL_FROM") ?? DefaultEmailFrom,
         };
     }
 

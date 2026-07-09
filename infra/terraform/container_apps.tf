@@ -197,6 +197,7 @@ resource "azurerm_container_app" "alert_processor" {
       { name = "rabbitmq-username", value = var.rabbitmq_username },
       { name = "rabbitmq-password", value = var.rabbitmq_password },
       { name = "notification-webhook-url", value = var.notification_webhook_url },
+      { name = "resend-api-key", value = var.resend_api_key },
     ])
     content {
       name  = secret.value.name
@@ -233,6 +234,14 @@ resource "azurerm_container_app" "alert_processor" {
       env {
         name        = "NOTIFICATION_WEBHOOK_URL"
         secret_name = "notification-webhook-url"
+      }
+      env {
+        name        = "RESEND_API_KEY"
+        secret_name = "resend-api-key"
+      }
+      env {
+        name  = "EMAIL_FROM"
+        value = var.email_from
       }
       dynamic "env" {
         for_each = merge(local.redis_env, local.rabbit_env)

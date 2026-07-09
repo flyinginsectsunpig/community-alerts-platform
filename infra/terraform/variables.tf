@@ -107,3 +107,16 @@ variable "notification_webhook_url" {
   sensitive   = true
   default     = ""
 }
+
+variable "resend_api_key" {
+  description = "Optional Resend API key for watch-zone notification emails"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "email_from" {
+  description = "From address for notification emails (verified Resend domain, or the sandbox sender)"
+  type        = string
+  default     = "Community Alerts <onboarding@resend.dev>"
+}
