@@ -31,6 +31,15 @@ export default function AlertDetailPanel({
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Escape closes the panel, matching the modal dialogs elsewhere.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   useEffect(() => {
     let cancelled = false;
     setComments(null);
@@ -121,7 +130,10 @@ export default function AlertDetailPanel({
 
       <div className="detail-panel__thread">
         {comments === null ? (
-          <p className="feed__empty">Loading updates…</p>
+          <div className="comment-skeleton" aria-hidden>
+            <div className="skeleton comment-skeleton__item" />
+            <div className="skeleton comment-skeleton__item" />
+          </div>
         ) : comments.length === 0 ? (
           <p className="feed__empty">
             No updates yet. Saw something — a direction, a description, a vehicle? Add it here.

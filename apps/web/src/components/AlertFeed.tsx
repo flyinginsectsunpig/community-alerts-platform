@@ -6,11 +6,19 @@ import type { Alert } from "@/lib/types";
 
 interface AlertFeedProps {
   alerts: Alert[];
+  loading: boolean;
   connected: boolean;
+  selectedId: string | null;
   onSelect: (alert: Alert) => void;
 }
 
-export default function AlertFeed({ alerts, connected, onSelect }: AlertFeedProps) {
+export default function AlertFeed({
+  alerts,
+  loading,
+  connected,
+  selectedId,
+  onSelect,
+}: AlertFeedProps) {
   return (
     <section className="feed" aria-label="Live alert feed">
       <div className="feed__header">
@@ -21,13 +29,24 @@ export default function AlertFeed({ alerts, connected, onSelect }: AlertFeedProp
         </span>
       </div>
 
-      {alerts.length === 0 ? (
+      {loading && alerts.length === 0 ? (
+        <div className="feed-skeleton" aria-hidden>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton feed-skeleton__item" />
+          ))}
+        </div>
+      ) : alerts.length === 0 ? (
         <p className="feed__empty">No alerts in this area yet. Click the map to report one.</p>
       ) : (
         <ul className="feed__list">
           {alerts.map((alert) => (
             <li key={alert.id}>
-              <button type="button" className="feed-item" onClick={() => onSelect(alert)}>
+              <button
+                type="button"
+                className={`feed-item${alert.id === selectedId ? " feed-item--active" : ""}`}
+                aria-current={alert.id === selectedId || undefined}
+                onClick={() => onSelect(alert)}
+              >
                 <div className="feed-item__top">
                   <strong>{CATEGORY_LABELS[alert.category]}</strong>
                   <SeverityBadge severity={alert.severity} />

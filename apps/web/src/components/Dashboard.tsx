@@ -42,8 +42,10 @@ interface Toast {
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsLoaded, setAlertsLoaded] = useState(false);
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [statsLoaded, setStatsLoaded] = useState(false);
   const [showHotspots, setShowHotspots] = useState(true);
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
@@ -106,12 +108,14 @@ export default function Dashboard() {
       if (nearby.status === "fulfilled") {
         setAlerts(nearby.value);
       }
+      setAlertsLoaded(true);
       if (spots.status === "fulfilled") {
         setHotspots(spots.value.hotspots);
       }
       if (summary.status === "fulfilled") {
         setStats(summary.value);
       }
+      setStatsLoaded(true);
       if (nearby.status === "rejected") {
         setToast({ kind: "error", message: "Could not reach the alerts API" });
       }
@@ -186,7 +190,7 @@ export default function Dashboard() {
               checked={showHotspots}
               onChange={(event) => setShowHotspots(event.target.checked)}
             />
-            Hotspot layer
+            Hotspots
           </label>
           {session ? (
             <div className="user-chip">
@@ -206,8 +210,14 @@ export default function Dashboard() {
       <div className="dashboard__body">
         <aside className="sidebar">
           <p className="sidebar__hint">Click anywhere on the map to report an alert.</p>
-          <StatsPanel stats={stats} />
-          <AlertFeed alerts={alerts} connected={connected} onSelect={openDetail} />
+          <StatsPanel stats={stats} loading={!statsLoaded} />
+          <AlertFeed
+            alerts={alerts}
+            loading={!alertsLoaded}
+            connected={connected}
+            selectedId={detailAlertId}
+            onSelect={openDetail}
+          />
         </aside>
 
         <main className="map-wrap">
@@ -257,7 +267,11 @@ export default function Dashboard() {
         />
       )}
 
-      {toast && <div className={`toast toast--${toast.kind}`}>{toast.message}</div>}
+      {toast && (
+        <div className={`toast toast--${toast.kind}`} role="status">
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

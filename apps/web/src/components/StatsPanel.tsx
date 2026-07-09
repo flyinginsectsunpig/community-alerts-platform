@@ -5,12 +5,26 @@ import type { AlertCategory, Severity, StatsResponse } from "@/lib/types";
 
 const MAX_CATEGORY_ROWS = 6;
 
-export default function StatsPanel({ stats }: { stats: StatsResponse | null }) {
+interface StatsPanelProps {
+  stats: StatsResponse | null;
+  loading: boolean;
+}
+
+export default function StatsPanel({ stats, loading }: StatsPanelProps) {
   if (!stats) {
     return (
-      <section className="stats" aria-label="7-day statistics">
+      <section className="stats" aria-label="7-day statistics" aria-busy={loading}>
         <h2>Last 7 days</h2>
-        <p className="feed__empty">Loading statistics…</p>
+        {loading ? (
+          <div className="stats-skeleton" aria-hidden>
+            <div className="skeleton stats-skeleton__hero" />
+            <div className="skeleton stats-skeleton__row" />
+            <div className="skeleton stats-skeleton__row" />
+            <div className="skeleton stats-skeleton__row stats-skeleton__row--short" />
+          </div>
+        ) : (
+          <p className="feed__empty">Statistics are unavailable right now.</p>
+        )}
       </section>
     );
   }
