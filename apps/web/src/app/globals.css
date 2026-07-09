@@ -611,9 +611,11 @@ h2 {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 9px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--good);
   border-radius: 8px;
   padding: 10px 16px;
   z-index: 1200;
@@ -621,8 +623,181 @@ h2 {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
 }
 
-.toast--error {
-  border-left-color: var(--critical);
+.toast::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--good);
+  flex-shrink: 0;
+}
+
+.toast--error::before {
+  background: var(--critical);
+}
+
+/* ---------- Auth & user chip ---------- */
+
+.topbar__controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.user-chip__name {
+  font-weight: 650;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.auth-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 600;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.auth-tab--active {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* ---------- Alert detail / discussion panel ---------- */
+
+.detail-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(380px, calc(100% - 24px));
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.detail-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.detail-panel__badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.detail-panel__description {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.detail-panel__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.detail-panel__thread-title {
+  margin: 0;
+  font-size: 13px;
+  border-top: 1px solid var(--grid);
+  padding-top: 12px;
+}
+
+.detail-panel__thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.comment__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.comment__meta strong {
+  color: var(--ink-2);
+}
+
+.comment__body {
+  margin: 4px 0 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--grid);
+  padding-top: 12px;
+}
+
+.comment-composer textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--grid);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.comment-composer textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.map-popup__actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* ---------- Leaflet dark chrome ---------- */

@@ -32,6 +32,7 @@ interface AlertMapProps {
   focus: LatLng | null;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
+  onOpenDetail: (alert: Alert) => void;
 }
 
 function ClickCapture({ onMapClick }: { onMapClick: (point: LatLng) => void }) {
@@ -46,9 +47,16 @@ function ClickCapture({ onMapClick }: { onMapClick: (point: LatLng) => void }) {
 function FlyTo({ focus }: { focus: LatLng | null }) {
   const map = useMap();
   useEffect(() => {
-    if (focus) {
-      map.flyTo([focus.lat, focus.lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
+    if (!focus) {
+      return;
     }
+    // A non-finite coordinate must never crash the map (and with it the whole
+    // dashboard, since react-leaflet throws from inside render).
+    if (!Number.isFinite(focus.lat) || !Number.isFinite(focus.lng)) {
+      console.warn("FlyTo ignoring non-finite focus", focus);
+      return;
+    }
+    map.flyTo([focus.lat, focus.lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
   }, [focus, map]);
   return null;
 }
@@ -61,6 +69,7 @@ export default function AlertMap({
   focus,
   onMapClick,
   onConfirm,
+  onOpenDetail,
 }: AlertMapProps) {
   return (
     <MapContainer
@@ -125,9 +134,18 @@ export default function AlertMap({
                   {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
                 </span>
               </div>
-              <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
-                I saw this too
-              </button>
+              <div className="map-popup__actions">
+                <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
+                  I saw this too
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => onOpenDetail(alert)}
+                >
+                  Updates ({alert.commentCount})
+                </button>
+              </div>
             </div>
           </Popup>
         </CircleMarker>

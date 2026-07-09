@@ -27,6 +27,7 @@ export interface Alert {
   riskScore: number | null;
   status: AlertStatus;
   confirmationCount: number;
+  commentCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -98,10 +99,37 @@ export interface WatchZone {
   createdAt: string;
 }
 
-export interface LiveEvent {
-  type: "alert.created" | "alert.updated";
-  alert: Alert;
+export interface AlertComment {
+  id: number;
+  alertId: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
 }
+
+export interface SignupInput {
+  email: string;
+  displayName: string;
+  password: string;
+}
+
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  userId: string;
+  displayName: string;
+  email: string;
+  expiresAt: string;
+}
+
+export type LiveEvent =
+  | { type: "alert.created" | "alert.updated"; alert: Alert }
+  | { type: "comment.created"; alertId: string; commentCount: number; comment: AlertComment };
 
 export interface LatLng {
   lat: number;

@@ -3,13 +3,24 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 
+import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
+import AuthModal from "./AuthModal";
 import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
-import type { Alert, Hotspot, LatLng, LiveEvent, StatsResponse, WatchZone } from "@/lib/types";
+import { clearSession, getSession, type AuthSession } from "@/lib/auth";
+import type {
+  Alert,
+  AlertComment,
+  Hotspot,
+  LatLng,
+  LiveEvent,
+  StatsResponse,
+  WatchZone,
+} from "@/lib/types";
 
 // Leaflet touches `window`, so the map only ever renders client-side.
 const AlertMap = dynamic(() => import("./AlertMap"), {
@@ -38,6 +49,15 @@ export default function Dashboard() {
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [focus, setFocus] = useState<LatLng | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
+  const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
+
+  // Session comes from localStorage, so it must be read client-side only.
+  useEffect(() => {
+    setSession(getSession());
+  }, []);
 
   const showToast = useCallback((kind: Toast["kind"], message: string) => {
     setToast({ kind, message });
@@ -54,7 +74,23 @@ export default function Dashboard() {
   }, []);
 
   const connected = useLiveAlerts(
-    useCallback((event: LiveEvent) => upsertAlert(event.alert), [upsertAlert]),
+    useCallback(
+      (event: LiveEvent) => {
+        if (event.type === "comment.created") {
+          setAlerts((current) =>
+            current.map((alert) =>
+              alert.id === event.alertId
+                ? { ...alert, commentCount: event.commentCount }
+                : alert,
+            ),
+          );
+          setLiveComment(event.comment);
+        } else {
+          upsertAlert(event.alert);
+        }
+      },
+      [upsertAlert],
+    ),
   );
 
   useEffect(() => {
@@ -119,6 +155,21 @@ export default function Dashboard() {
     }
   }
 
+  function handleSignOut() {
+    clearSession();
+    setSession(null);
+    showToast("info", "Signed out");
+  }
+
+  const openDetail = useCallback((alert: Alert) => {
+    setDetailAlertId(alert.id);
+    setFocus({ lat: alert.lat, lng: alert.lng });
+  }, []);
+
+  const detailAlert = detailAlertId
+    ? alerts.find((alert) => alert.id === detailAlertId) ?? null
+    : null;
+
   return (
     <div className="dashboard">
       <header className="topbar">
@@ -128,25 +179,35 @@ export default function Dashboard() {
           </span>
           <h1>Community Alerts</h1>
         </div>
-        <label className="hotspot-toggle">
-          <input
-            type="checkbox"
-            checked={showHotspots}
-            onChange={(event) => setShowHotspots(event.target.checked)}
-          />
-          Hotspot layer
-        </label>
+        <div className="topbar__controls">
+          <label className="hotspot-toggle">
+            <input
+              type="checkbox"
+              checked={showHotspots}
+              onChange={(event) => setShowHotspots(event.target.checked)}
+            />
+            Hotspot layer
+          </label>
+          {session ? (
+            <div className="user-chip">
+              <span className="user-chip__name">{session.displayName}</span>
+              <button type="button" className="link-button" onClick={handleSignOut}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn--small" onClick={() => setShowAuthModal(true)}>
+              Sign in
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="dashboard__body">
         <aside className="sidebar">
           <p className="sidebar__hint">Click anywhere on the map to report an alert.</p>
           <StatsPanel stats={stats} />
-          <AlertFeed
-            alerts={alerts}
-            connected={connected}
-            onSelect={(alert) => setFocus({ lat: alert.lat, lng: alert.lng })}
-          />
+          <AlertFeed alerts={alerts} connected={connected} onSelect={openDetail} />
         </aside>
 
         <main className="map-wrap">
@@ -158,7 +219,18 @@ export default function Dashboard() {
             focus={focus}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
+            onOpenDetail={openDetail}
           />
+          {detailAlert && (
+            <AlertDetailPanel
+              alert={detailAlert}
+              session={session}
+              liveComment={liveComment}
+              onClose={() => setDetailAlertId(null)}
+              onConfirm={handleConfirm}
+              onRequestAuth={() => setShowAuthModal(true)}
+            />
+          )}
         </main>
       </div>
 
@@ -172,6 +244,17 @@ export default function Dashboard() {
       )}
       {panelMode === "zone" && pendingPoint && (
         <WatchZonePanel point={pendingPoint} onClose={closePanel} onCreated={handleZoneCreated} />
+      )}
+
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onAuthed={(authed) => {
+            setSession(authed);
+            setShowAuthModal(false);
+            showToast("info", `Welcome, ${authed.displayName}`);
+          }}
+        />
       )}
 
       {toast && <div className={`toast toast--${toast.kind}`}>{toast.message}</div>}

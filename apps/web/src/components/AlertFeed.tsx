@@ -39,6 +39,9 @@ export default function AlertFeed({ alerts, connected, onSelect }: AlertFeedProp
                   <span>
                     {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
                   </span>
+                  <span>
+                    {alert.commentCount} update{alert.commentCount === 1 ? "" : "s"}
+                  </span>
                 </div>
               </button>
             </li>

@@ -1,11 +1,16 @@
+import { getSession } from "./auth";
 import { getFingerprint } from "./fingerprint";
 import type {
   Alert,
   AlertCategory,
+  AlertComment,
+  AuthResponse,
   CreateAlertInput,
   CreateWatchZoneInput,
   HotspotsResponse,
+  LoginInput,
   SeverityPreview,
+  SignupInput,
   StatsResponse,
   WatchZone,
 } from "./types";
@@ -25,11 +30,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const session = getSession();
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       "X-Client-Fingerprint": getFingerprint(),
+      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
       ...init.headers,
     },
   });
@@ -88,6 +95,31 @@ export const api = {
     return request<WatchZone>("/api/v1/watch-zones", {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  },
+
+  signup(input: SignupInput): Promise<AuthResponse> {
+    return request<AuthResponse>("/api/v1/auth/signup", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  login(input: LoginInput): Promise<AuthResponse> {
+    return request<AuthResponse>("/api/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  fetchComments(alertId: string): Promise<AlertComment[]> {
+    return request<AlertComment[]>(`/api/v1/alerts/${alertId}/comments`);
+  },
+
+  addComment(alertId: string, body: string): Promise<AlertComment> {
+    return request<AlertComment>(`/api/v1/alerts/${alertId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
     });
   },
 };
