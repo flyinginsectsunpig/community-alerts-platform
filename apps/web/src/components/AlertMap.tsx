@@ -35,6 +35,18 @@ interface AlertMapProps {
   onOpenDetail: (alert: Alert) => void;
 }
 
+// Leaflet only watches window resizes; the sidebar collapse resizes the
+// container, so tiles must be revalidated by hand.
+function MapResize() {
+  const map = useMap();
+  useEffect(() => {
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(map.getContainer());
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 function ClickCapture({ onMapClick }: { onMapClick: (point: LatLng) => void }) {
   useMapEvents({
     click(event) {
@@ -82,6 +94,7 @@ export default function AlertMap({
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
+      <MapResize />
       <ClickCapture onMapClick={onMapClick} />
       <FlyTo focus={focus} />
 

@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [focus, setFocus] = useState<LatLng | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
@@ -178,6 +179,19 @@ export default function Dashboard() {
     <div className="dashboard">
       <header className="topbar">
         <div className="topbar__brand">
+          <button
+            type="button"
+            className="btn-icon panel-toggle"
+            aria-expanded={sidebarOpen}
+            aria-controls="sidebar"
+            aria-label={sidebarOpen ? "Hide panel" : "Show panel"}
+            onClick={() => setSidebarOpen((open) => !open)}
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <rect x="1.5" y="2.5" width="13" height="11" rx="1.5" stroke="currentColor" />
+              <line x1="6" y1="2.5" x2="6" y2="13.5" stroke="currentColor" />
+            </svg>
+          </button>
           <span className="topbar__logo" aria-hidden>
             ⚠
           </span>
@@ -208,7 +222,7 @@ export default function Dashboard() {
       </header>
 
       <div className="dashboard__body">
-        <aside className="sidebar">
+        <aside id="sidebar" className={`sidebar${sidebarOpen ? "" : " sidebar--closed"}`}>
           <p className="sidebar__hint">Click anywhere on the map to report an alert.</p>
           <StatsPanel stats={stats} loading={!statsLoaded} />
           <AlertFeed

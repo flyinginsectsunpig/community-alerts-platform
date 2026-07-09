@@ -148,6 +148,24 @@ input[type="range"] {
   overflow-y: auto;
   background: var(--page);
   border-right: 1px solid var(--border);
+  transition: width 200ms ease, padding 200ms ease;
+}
+
+.sidebar > * {
+  min-width: 336px; /* content keeps its width while the container clips */
+}
+
+.sidebar--closed {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-right: none;
+  overflow: hidden;
+}
+
+.panel-toggle {
+  display: inline-grid;
+  place-items: center;
 }
 
 .sidebar__hint {
@@ -185,6 +203,15 @@ input[type="range"] {
     max-height: 45vh;
     border-right: none;
     border-top: 1px solid var(--border);
+    transition: max-height 200ms ease, padding 200ms ease;
+  }
+  .sidebar > * {
+    min-width: 0;
+  }
+  .sidebar--closed {
+    max-height: 0;
+    padding: 0;
+    border-top: none;
   }
 }
 
