@@ -991,6 +991,49 @@ input[type="range"] {
   }
 }
 
+/* ---------- Watch-zone editor (docked left, clear of the zoom control) ---------- */
+
+.zone-panel {
+  position: absolute;
+  top: 84px; /* below Leaflet's top-left zoom control */
+  left: 12px;
+  z-index: 1000;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 96px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: zone-in var(--speed) var(--ease-out);
+}
+
+.zone-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes zone-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+.zone-handle {
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+}
+
+.zone-handle:active {
+  cursor: grabbing;
+}
+
 .comment-skeleton {
   display: flex;
   flex-direction: column;

@@ -35,8 +35,8 @@ export default function AlertDetailPanel({
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      // A modal dialog stacked above the panel owns Escape while open.
-      if (document.querySelector(".panel-overlay")) return;
+      // A modal dialog or the zone editor stacked above owns Escape while open.
+      if (document.querySelector(".panel-overlay, .zone-panel")) return;
       onClose();
     }
     window.addEventListener("keydown", onKeyDown);

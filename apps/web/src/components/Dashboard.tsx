@@ -21,6 +21,7 @@ import type {
   LiveEvent,
   StatsResponse,
   WatchZone,
+  ZoneDraft,
 } from "@/lib/types";
 
 // Leaflet touches `window`, so the map only ever renders client-side.
@@ -35,7 +36,7 @@ const REFRESH_INTERVAL_MS = 60_000;
 const TOAST_DURATION_MS = 4_000;
 const HINT_KEY = "communityalerts.hintDismissed";
 
-type PanelMode = "report" | "zone" | null;
+type PanelMode = "report" | null;
 
 interface Toast {
   kind: "info" | "error";
@@ -51,6 +52,7 @@ export default function Dashboard() {
   const [showHotspots, setShowHotspots] = useState(true);
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
+  const [zoneDraft, setZoneDraft] = useState<ZoneDraft | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -174,19 +176,43 @@ export default function Dashboard() {
     };
   }, [center]);
 
+  const zoneActive = zoneDraft !== null;
+
   const handleMapClick = useCallback(
     (point: LatLng) => {
+      dismissHint(); // the hint has done its job
+      if (zoneActive) {
+        // While shaping a zone, map clicks reposition it instead of
+        // opening the report form.
+        setZoneDraft((draft) => (draft ? { ...draft, center: point } : draft));
+        return;
+      }
       setPendingPoint(point);
       setPanelMode("report");
-      dismissHint(); // the hint has done its job
     },
-    [dismissHint],
+    [dismissHint, zoneActive],
   );
 
   const closePanel = useCallback(() => {
     setPanelMode(null);
     setPendingPoint(null);
   }, []);
+
+  const closeZone = useCallback(() => setZoneDraft(null), []);
+
+  const handleZoneRadius = useCallback((radiusM: number) => {
+    setZoneDraft((draft) => (draft ? { ...draft, radiusM } : draft));
+  }, []);
+
+  const handleZoneMove = useCallback((center: LatLng) => {
+    setZoneDraft((draft) => (draft ? { ...draft, center } : draft));
+  }, []);
+
+  function handleSwitchToZone() {
+    if (!pendingPoint) return;
+    setZoneDraft({ center: pendingPoint, radiusM: 1000 });
+    closePanel();
+  }
 
   function handleAlertCreated(alert: Alert) {
     upsertAlert(alert);
@@ -195,7 +221,7 @@ export default function Dashboard() {
   }
 
   function handleZoneCreated(zone: WatchZone) {
-    closePanel();
+    closeZone();
     showToast("info", `Watch zone “${zone.name}” created — notifications will collect there`);
   }
 
@@ -291,10 +317,20 @@ export default function Dashboard() {
             showHotspots={showHotspots}
             pendingPoint={pendingPoint}
             focus={focus}
+            zoneDraft={zoneDraft}
+            onZoneMove={handleZoneMove}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
           />
+          {zoneDraft && (
+            <WatchZonePanel
+              draft={zoneDraft}
+              onRadiusChange={handleZoneRadius}
+              onClose={closeZone}
+              onCreated={handleZoneCreated}
+            />
+          )}
           {showHint && (
             <div className="map-hint" role="note">
               Click anywhere on the map to report an alert.
@@ -326,11 +362,8 @@ export default function Dashboard() {
           point={pendingPoint}
           onClose={closePanel}
           onCreated={handleAlertCreated}
-          onSwitchToZone={() => setPanelMode("zone")}
+          onSwitchToZone={handleSwitchToZone}
         />
-      )}
-      {panelMode === "zone" && pendingPoint && (
-        <WatchZonePanel point={pendingPoint} onClose={closePanel} onCreated={handleZoneCreated} />
       )}
 
       {showAuthModal && (

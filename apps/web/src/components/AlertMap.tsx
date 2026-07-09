@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import L from "leaflet";
 import {
   Circle,
   CircleMarker,
   MapContainer,
+  Marker,
   Popup,
   TileLayer,
   Tooltip,
@@ -15,7 +17,7 @@ import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
-import type { Alert, Hotspot, LatLng } from "@/lib/types";
+import type { Alert, Hotspot, LatLng, ZoneDraft } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -27,12 +29,25 @@ export type FocusTarget = LatLng & { zoom?: number };
 // color so density never impersonates severity.
 const HOTSPOT_COLOR = "#9085e9";
 
+// Zone drafts wear the accent blue: an action in progress, not data.
+const ZONE_COLOR = "#3987e5";
+
+// Styled via .zone-handle in globals.css; a DivIcon avoids Leaflet's default
+// marker sprite (whose assets don't survive bundling).
+const ZONE_HANDLE_ICON = L.divIcon({
+  className: "zone-handle",
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
+
 interface AlertMapProps {
   alerts: Alert[];
   hotspots: Hotspot[];
   showHotspots: boolean;
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
+  zoneDraft: ZoneDraft | null;
+  onZoneMove: (center: LatLng) => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
@@ -84,6 +99,8 @@ export default function AlertMap({
   showHotspots,
   pendingPoint,
   focus,
+  zoneDraft,
+  onZoneMove,
   onMapClick,
   onConfirm,
   onOpenDetail,
@@ -184,6 +201,34 @@ export default function AlertMap({
             fillOpacity: 0.15,
           }}
         />
+      )}
+
+      {zoneDraft && (
+        <>
+          <Circle
+            center={[zoneDraft.center.lat, zoneDraft.center.lng]}
+            radius={zoneDraft.radiusM}
+            pathOptions={{
+              color: ZONE_COLOR,
+              weight: 2,
+              dashArray: "6 6",
+              fillColor: ZONE_COLOR,
+              fillOpacity: 0.08,
+            }}
+          />
+          <Marker
+            position={[zoneDraft.center.lat, zoneDraft.center.lng]}
+            icon={ZONE_HANDLE_ICON}
+            draggable
+            eventHandlers={{
+              drag: (event) => onZoneMove((event.target as L.Marker).getLatLng()),
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -10]}>
+              Drag to move the zone
+            </Tooltip>
+          </Marker>
+        </>
       )}
     </MapContainer>
   );

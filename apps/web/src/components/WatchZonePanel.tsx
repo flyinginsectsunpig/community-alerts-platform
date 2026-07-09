@@ -1,26 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import ModalOverlay from "./ModalOverlay";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
-import type { AlertCategory, LatLng, WatchZone } from "@/lib/types";
+import type { AlertCategory, WatchZone, ZoneDraft } from "@/lib/types";
 import { ALERT_CATEGORIES } from "@/lib/types";
 
 interface WatchZonePanelProps {
-  point: LatLng;
+  /** Live draft shown on the map; the panel is docked so both stay visible. */
+  draft: ZoneDraft;
+  onRadiusChange: (radiusM: number) => void;
   onClose: () => void;
   onCreated: (zone: WatchZone) => void;
 }
 
-export default function WatchZonePanel({ point, onClose, onCreated }: WatchZonePanelProps) {
+export default function WatchZonePanel({
+  draft,
+  onRadiusChange,
+  onClose,
+  onCreated,
+}: WatchZonePanelProps) {
   const [name, setName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [radiusM, setRadiusM] = useState(1000);
   const [categories, setCategories] = useState<AlertCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Escape closes the panel, unless a modal dialog is stacked above it.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (document.querySelector(".panel-overlay")) return;
+      onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   function toggleCategory(category: AlertCategory) {
     setCategories((current) =>
@@ -38,9 +54,9 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
       const zone = await api.createWatchZone({
         name: name.trim(),
         contactEmail: contactEmail.trim(),
-        centerLat: point.lat,
-        centerLng: point.lng,
-        radiusM,
+        centerLat: draft.center.lat,
+        centerLng: draft.center.lng,
+        radiusM: draft.radiusM,
         categories,
       });
       onCreated(zone);
@@ -51,8 +67,8 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
   }
 
   return (
-    <ModalOverlay label="Create a watch zone" onClose={onClose}>
-      <form className="panel" onSubmit={handleSubmit}>
+    <aside className="zone-panel" aria-label="Create a watch zone">
+      <form onSubmit={handleSubmit} className="zone-panel__form">
         <div className="panel__header">
           <h2>Create a watch zone</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
@@ -61,8 +77,8 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
         </div>
 
         <p className="panel__hint">
-          Get notified about alerts within {(radiusM / 1000).toFixed(1)} km of{" "}
-          {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+          Drag the pin or click the map to move the zone. You&apos;ll get notified about alerts
+          inside the circle.
         </p>
 
         <label className="field">
@@ -90,14 +106,14 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
         </label>
 
         <label className="field">
-          <span>Radius — {(radiusM / 1000).toFixed(1)} km</span>
+          <span>Radius — {(draft.radiusM / 1000).toFixed(1)} km</span>
           <input
             type="range"
             min={100}
             max={10000}
             step={100}
-            value={radiusM}
-            onChange={(event) => setRadiusM(Number(event.target.value))}
+            value={draft.radiusM}
+            onChange={(event) => onRadiusChange(Number(event.target.value))}
           />
         </label>
 
@@ -128,6 +144,6 @@ export default function WatchZonePanel({ point, onClose, onCreated }: WatchZoneP
           </button>
         </div>
       </form>
-    </ModalOverlay>
+    </aside>
   );
 }

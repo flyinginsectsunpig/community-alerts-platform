@@ -135,3 +135,9 @@ export interface LatLng {
   lat: number;
   lng: number;
 }
+
+/** In-progress watch zone being shaped on the map before submission. */
+export interface ZoneDraft {
+  center: LatLng;
+  radiusM: number;
+}
