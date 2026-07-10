@@ -45,6 +45,9 @@ export default function StationLayer({
     const gated = map.getZoom() < STATION_MIN_ZOOM;
     onZoomGateChange(gated);
     if (gated) {
+      // Cancel any pending fetch scheduled before the zoom-out, or it would
+      // fire after the gate closes and repopulate markers on a gated map.
+      window.clearTimeout(debounceRef.current);
       setStations([]);
       lastBoundsKeyRef.current = "";
       return;
@@ -81,12 +84,16 @@ export default function StationLayer({
     return () => window.clearTimeout(debounceRef.current);
   }, [refresh]);
 
+  // Mirror the latest stats state so loadStats can guard the fetch itself —
+  // bailing out inside a setState updater can't stop the request below it,
+  // so every popup reopen would refire the same fetch.
+  const statsByIdRef = useRef(statsById);
+  statsByIdRef.current = statsById;
+
   const loadStats = useCallback((stationId: number) => {
-    setStatsById((current) => {
-      const existing = current[stationId];
-      if (existing && existing.status !== "error") return current;
-      return { ...current, [stationId]: { status: "loading" } };
-    });
+    const existing = statsByIdRef.current[stationId];
+    if (existing && existing.status !== "error") return;
+    setStatsById((current) => ({ ...current, [stationId]: { status: "loading" } }));
     api
       .fetchStationStats(stationId)
       .then((stats) =>
