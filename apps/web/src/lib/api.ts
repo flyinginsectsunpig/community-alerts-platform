@@ -9,9 +9,12 @@ import type {
   CreateWatchZoneInput,
   HotspotsResponse,
   LoginInput,
+  MapBounds,
+  PoliceStation,
   SeverityPreview,
   SignupInput,
   StatsResponse,
+  StationStats,
   WatchZone,
 } from "./types";
 
@@ -121,6 +124,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ body }),
     });
+  },
+
+  fetchStations(bounds: MapBounds): Promise<PoliceStation[]> {
+    const params = new URLSearchParams({
+      minLat: String(bounds.minLat),
+      maxLat: String(bounds.maxLat),
+      minLng: String(bounds.minLng),
+      maxLng: String(bounds.maxLng),
+    });
+    return request<PoliceStation[]>(`/api/v1/stations?${params}`);
+  },
+
+  fetchStationStats(id: number): Promise<StationStats> {
+    return request<StationStats>(`/api/v1/stations/${id}/stats`);
   },
 };
 

@@ -141,3 +141,49 @@ export interface ZoneDraft {
   center: LatLng;
   radiusM: number;
 }
+
+export interface PoliceStation {
+  id: number;
+  name: string;
+  district: string;
+  province: string;
+  lat: number;
+  lng: number;
+}
+
+export interface StationTopCategory {
+  category: string;
+  count: number;
+  prevYearCount: number | null;
+}
+
+export interface StationLatestQuarter {
+  label: string;
+  totalSerious: number;
+  totalSeriousPrevYear: number | null;
+  topCategories: StationTopCategory[];
+}
+
+/** One 3-month window ("Jan–Mar") with totals keyed by year ("2022".."2026"). */
+export interface StationCategoryPeriod {
+  months: string;
+  totals: Record<string, number>;
+}
+
+export interface StationCategoryStats {
+  category: string;
+  periods: StationCategoryPeriod[];
+}
+
+export interface StationStats {
+  station: PoliceStation;
+  latestQuarter: StationLatestQuarter | null;
+  categories: StationCategoryStats[];
+}
+
+export interface MapBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
