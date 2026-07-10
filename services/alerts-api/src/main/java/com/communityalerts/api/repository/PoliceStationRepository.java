@@ -40,6 +40,7 @@ public interface PoliceStationRepository extends JpaRepository<PoliceStation, Lo
             FROM station_crime_stats s
             WHERE s.station_id = :stationId
             GROUP BY 1, 2, 3
+            ORDER BY 1, 2, 3
             """, nativeQuery = true)
     List<QuarterTotalRow> quarterTotals(@Param("stationId") long stationId);
 }

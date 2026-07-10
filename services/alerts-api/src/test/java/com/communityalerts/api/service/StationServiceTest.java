@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -69,6 +68,14 @@ class StationServiceTest {
         assertThatThrownBy(() -> stationService.findInBounds(10, 5, 0, 1))
                 .isInstanceOf(BadRequestException.class);
         assertThatThrownBy(() -> stationService.findInBounds(-91, 5, 0, 1))
+                .isInstanceOf(BadRequestException.class);
+        verify(repository, never()).findInBounds(anyDouble(), anyDouble(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    @DisplayName("non-finite bounds are rejected before touching the database")
+    void nanBoundsRejected() {
+        assertThatThrownBy(() -> stationService.findInBounds(Double.NaN, 5, 0, 1))
                 .isInstanceOf(BadRequestException.class);
         verify(repository, never()).findInBounds(anyDouble(), anyDouble(), anyDouble(), anyDouble());
     }

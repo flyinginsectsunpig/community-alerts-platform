@@ -57,7 +57,9 @@ public class StationService {
     @Transactional(readOnly = true)
     public List<StationResponse> findInBounds(double minLat, double maxLat,
                                               double minLng, double maxLng) {
-        if (minLat >= maxLat || minLng >= maxLng
+        if (!Double.isFinite(minLat) || !Double.isFinite(maxLat)
+                || !Double.isFinite(minLng) || !Double.isFinite(maxLng)
+                || minLat >= maxLat || minLng >= maxLng
                 || minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180) {
             throw new BadRequestException("Invalid bounding box");
         }
