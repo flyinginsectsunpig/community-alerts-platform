@@ -7,6 +7,7 @@ import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
@@ -19,6 +20,7 @@ import type {
   Hotspot,
   LatLng,
   LiveEvent,
+  StationStats,
   StatsResponse,
   WatchZone,
   ZoneDraft,
@@ -50,6 +52,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [showHotspots, setShowHotspots] = useState(true);
+  const [showStations, setShowStations] = useState(false);
+  const [stationsGated, setStationsGated] = useState(false);
+  const [stationStats, setStationStats] = useState<StationStats | null>(null);
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [zoneDraft, setZoneDraft] = useState<ZoneDraft | null>(null);
@@ -241,8 +246,19 @@ export default function Dashboard() {
   }
 
   const openDetail = useCallback((alert: Alert) => {
+    setStationStats(null);
     setDetailAlertId(alert.id);
     setFocus({ lat: alert.lat, lng: alert.lng });
+  }, []);
+
+  const handleStationsError = useCallback(
+    () => showToast("error", "Could not load police stations"),
+    [showToast],
+  );
+
+  const openStationStats = useCallback((stats: StationStats) => {
+    setDetailAlertId(null);
+    setStationStats(stats);
   }, []);
 
   const detailAlert = detailAlertId
@@ -282,6 +298,16 @@ export default function Dashboard() {
             <span className="switch" aria-hidden />
             Hotspots
           </label>
+          <label className="hotspot-toggle">
+            <input
+              type="checkbox"
+              className="switch__input"
+              checked={showStations}
+              onChange={(event) => setShowStations(event.target.checked)}
+            />
+            <span className="switch" aria-hidden />
+            Stations
+          </label>
           {session ? (
             <div className="user-chip">
               <span className="user-chip__name">{session.displayName}</span>
@@ -315,6 +341,10 @@ export default function Dashboard() {
             alerts={alerts}
             hotspots={hotspots}
             showHotspots={showHotspots}
+            showStations={showStations}
+            onStationZoomGate={setStationsGated}
+            onStationsError={handleStationsError}
+            onOpenStationStats={openStationStats}
             pendingPoint={pendingPoint}
             focus={focus}
             zoneDraft={zoneDraft}
@@ -343,6 +373,14 @@ export default function Dashboard() {
                 ×
               </button>
             </div>
+          )}
+          {showStations && stationsGated && (
+            <div className="map-hint" role="note">
+              Zoom in to see police stations.
+            </div>
+          )}
+          {stationStats && (
+            <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
           )}
           {detailAlert && (
             <AlertDetailPanel

@@ -16,8 +16,9 @@ import {
 import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
+import StationLayer from "./StationLayer";
 import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
-import type { Alert, Hotspot, LatLng, ZoneDraft } from "@/lib/types";
+import type { Alert, Hotspot, LatLng, StationStats, ZoneDraft } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -44,6 +45,10 @@ interface AlertMapProps {
   alerts: Alert[];
   hotspots: Hotspot[];
   showHotspots: boolean;
+  showStations: boolean;
+  onStationZoomGate: (gated: boolean) => void;
+  onStationsError: () => void;
+  onOpenStationStats: (stats: StationStats) => void;
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
@@ -97,6 +102,10 @@ export default function AlertMap({
   alerts,
   hotspots,
   showHotspots,
+  showStations,
+  onStationZoomGate,
+  onStationsError,
+  onOpenStationStats,
   pendingPoint,
   focus,
   zoneDraft,
@@ -119,6 +128,14 @@ export default function AlertMap({
       <MapResize />
       <ClickCapture onMapClick={onMapClick} />
       <FlyTo focus={focus} />
+
+      {showStations && (
+        <StationLayer
+          onZoomGateChange={onStationZoomGate}
+          onFetchError={onStationsError}
+          onOpenStats={onOpenStationStats}
+        />
+      )}
 
       {showHotspots &&
         hotspots.map((hotspot, index) => (

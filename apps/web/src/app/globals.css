@@ -1223,3 +1223,47 @@ input[type="range"] {
 .leaflet-bar a:hover {
   background: var(--surface-2);
 }
+
+/* Police station markers: official reference data in a neutral steel tone —
+   deliberately distinct from severity colors and the hotspot violet. */
+.station-marker {
+  color: #8fa3b8;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+.station-popup__categories {
+  margin: 6px 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+.station-stats-panel {
+  overflow-y: auto;
+}
+
+.station-stats-table-wrap {
+  overflow-x: auto;
+}
+
+.station-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.station-stats-table th,
+.station-stats-table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.station-stats-table th:nth-child(n + 3),
+.station-stats-table td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.station-stats-source {
+  font-size: 11px;
+  opacity: 0.7;
+}
