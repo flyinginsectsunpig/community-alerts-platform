@@ -1,0 +1,70 @@
+stations imported: 1106
+stat rows upserted: 729960
+stations skipped (no coordinates): 67
+  - Bandelierkop
+  - Bhityi
+  - Bholo
+  - Bholothwa
+  - Bohlokong
+  - Cacadu
+  - Chatty
+  - Cosmo City
+  - Daggakraal
+  - Doornkop
+  - Driekop
+  - Dutywa
+  - Dwarsberg
+  - Esikhaleni
+  - James Calata
+  - Kamhlushwa
+  - Kariega
+  - Khowa
+  - Khubusidrift
+  - Khwenxurha
+  - Komani
+  - Koopmansfontein
+  - KwaBhaca
+  - KwaMaqoma
+  - Kwanojoli
+  - Letlhabile
+  - MaXesibeni
+  - Mabeskraal
+  - Majola
+  - Makhanda
+  - Makhaza
+  - Maloti
+  - Mareetsane
+  - Matlelerekeng
+  - Mbizana
+  - Moeka Vuma
+  - Mohlakeng
+  - Mokwakwaila
+  - Moletlane
+  - Mothotlung
+  - Muswodi
+  - Muyexe
+  - Ngcobo
+  - Ngqamakhwe
+  - Ngqayi
+  - Nqanqarhu
+  - Nqweba
+  - Ntabozuko
+  - Nxuba
+  - Phaudi
+  - Phola
+  - Pholile
+  - Protea
+  - Qhasa
+  - Qonce
+  - Qumrha
+  - Rakgoadi
+  - Riemvasmaak
+  - Samora Machel
+  - Scenery Park
+  - Siyathemba
+  - Sonskyn
+  - Sunrise View
+  - Thina Falls
+  - Tlokoeng
+  - Vhulaudzi
+  - Weza
