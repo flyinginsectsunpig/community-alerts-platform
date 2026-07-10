@@ -90,3 +90,9 @@ def test_parse_workbook_filters_merges_and_expands_months(tmp_path):
     assert all(row.category == "Murder" for row in data.stats)  # "murder" merged into first-seen casing
     assert len(data.stats) == 5  # 3 months + 2 non-empty months on the variant row
     assert StatRow("Testville", "Murder", dt.date(2026, 2, 1), 2) in data.stats
+
+
+def test_chunked_splits_preserving_order():
+    from import_saps import chunked
+    assert chunked([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+    assert chunked([], 2) == []
