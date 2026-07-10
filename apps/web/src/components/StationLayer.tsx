@@ -40,8 +40,13 @@ export default function StationLayer({
   const [statsById, setStatsById] = useState<Record<number, StatsState>>({});
   const debounceRef = useRef<number | undefined>(undefined);
   const lastBoundsKeyRef = useRef("");
+  // Invalidates in-flight fetch responses: bumped whenever the zoom gate
+  // flips, a newer viewport supersedes the pending one, or the layer
+  // unmounts, so a late-resolving fetch can't repopulate stale markers.
+  const fetchEpochRef = useRef(0);
 
   const refresh = useCallback(() => {
+    const epoch = ++fetchEpochRef.current;
     const gated = map.getZoom() < STATION_MIN_ZOOM;
     onZoomGateChange(gated);
     if (gated) {
@@ -69,9 +74,11 @@ export default function StationLayer({
     debounceRef.current = window.setTimeout(async () => {
       try {
         const result = await api.fetchStations(bounds);
+        if (epoch !== fetchEpochRef.current) return;
         lastBoundsKeyRef.current = key;
         setStations(result);
       } catch {
+        if (epoch !== fetchEpochRef.current) return;
         onFetchError();
       }
     }, FETCH_DEBOUNCE_MS);
@@ -81,7 +88,10 @@ export default function StationLayer({
 
   useEffect(() => {
     refresh();
-    return () => window.clearTimeout(debounceRef.current);
+    return () => {
+      window.clearTimeout(debounceRef.current);
+      fetchEpochRef.current += 1;
+    };
   }, [refresh]);
 
   // Mirror the latest stats state so loadStats can guard the fetch itself —
