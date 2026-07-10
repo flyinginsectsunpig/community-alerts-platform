@@ -68,10 +68,24 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest -q
 
+  saps-import:
+    name: SAPS importer (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/saps-import
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pytest
+      - run: pytest -q
+
   docker-images:
     name: Build container images
     runs-on: ubuntu-latest
-    needs: [web, alerts-api, alert-processor, ml-service]
+    needs: [web, alerts-api, alert-processor, ml-service, saps-import]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4

@@ -13,6 +13,7 @@ event-driven polyglot monorepo:
 | `services/alerts-api` | Java 21, Spring Boot 3, Maven | Public REST API, SSE feed, auth, rate limiting, **owns the DB schema (Flyway)** |
 | `services/alert-processor` | C# / .NET 8 headless worker | Watch-zone matching, escalations, webhook/email delivery, stats |
 | `services/ml-service` | Python 3.12, FastAPI, scikit-learn | Severity scoring (TF-IDF + LR + keyword overrides), DBSCAN hotspots |
+| `tools/saps-import` | Python CLI | Quarterly SAPS crime-stats import (stations + stats into Postgres) |
 | `infra/terraform` | Terraform, azurerm | Azure Container Apps deployment |
 | `echoes/` | Markdown only | **Unrelated** UE5 game design docs that share this repo — ignore for platform work |
 | `docs/superpowers/` | Markdown | Implementation plans and specs |
@@ -41,6 +42,10 @@ dotnet test services/alert-processor/tests/AlertProcessor.Tests
 # Python ML service (venv at services/ml-service/.venv, or pip install both requirements files)
 cd services/ml-service && pytest
 #   single test: pytest tests/test_severity.py::<test_name>
+
+# SAPS importer (writes to the LIVE Neon DB — confirm with the user first)
+cd tools/saps-import && .venv/Scripts/python -m pytest tests -q     # tests
+DATABASE_URL=... .venv/Scripts/python import_saps.py --xlsx <file>  # import
 ```
 
 CI (`.github/workflows/ci.yml`) runs all four suites on every push/PR and builds

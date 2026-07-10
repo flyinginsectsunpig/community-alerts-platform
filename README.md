@@ -84,6 +84,9 @@ within milliseconds and re-color when scoring lands.
   fingerprint on all write endpoints (fails open if Redis is down).
 - **7-day trends** — the worker maintains a stats snapshot in Redis; the API
   falls back to SQL aggregates when the cache is cold.
+- **Police stations layer** — official SAPS stations (toggleable, zoom-gated)
+  with each station's quarterly crime statistics in a popup and full 5-year
+  breakdown panel; refreshed per quarter via `tools/saps-import`.
 
 ### Messaging topology (LavinMQ)
 
@@ -141,9 +144,20 @@ cd apps/web && npm install && npm run dev
 | Worker (xUnit) | `dotnet test services/alert-processor/tests/AlertProcessor.Tests` |
 | ML (pytest) | `cd services/ml-service && pip install -r requirements.txt -r requirements-dev.txt && pytest` |
 | Web (types + build) | `cd apps/web && npm run typecheck && npm run build` |
+| SAPS importer (pytest) | `cd tools/saps-import && pip install -r requirements.txt pytest && pytest` |
 
 CI (`.github/workflows/ci.yml`) runs all four suites per push/PR and builds
 the container images on `main`.
+
+## Refreshing SAPS station stats
+
+Each quarter SAPS publishes a new `*_WEB.xlsx`. To refresh:
+
+    cd tools/saps-import
+    DATABASE_URL=<neon-url> python import_saps.py --xlsx <path-to-xlsx>
+
+The import is idempotent. Stations without coordinates are listed in the
+summary; add them to `data/overrides.csv` (workbook_name,lat,lng) and rerun.
 
 ## Deploying to Azure
 
