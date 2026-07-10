@@ -48,7 +48,7 @@ cd tools/saps-import && .venv/Scripts/python -m pytest tests -q     # tests
 DATABASE_URL=... .venv/Scripts/python import_saps.py --xlsx <file>  # import
 ```
 
-CI (`.github/workflows/ci.yml`) runs all four suites on every push/PR and builds
+CI (`.github/workflows/ci.yml`) runs all five suites on every push/PR and builds
 the four container images on `main`.
 
 `.claude/launch.json` defines `web` (npm, :3000, autoPort), `alerts-api` and

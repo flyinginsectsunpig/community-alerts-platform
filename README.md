@@ -146,7 +146,7 @@ cd apps/web && npm install && npm run dev
 | Web (types + build) | `cd apps/web && npm run typecheck && npm run build` |
 | SAPS importer (pytest) | `cd tools/saps-import && pip install -r requirements.txt pytest && pytest` |
 
-CI (`.github/workflows/ci.yml`) runs all four suites per push/PR and builds
+CI (`.github/workflows/ci.yml`) runs all five suites per push/PR and builds
 the container images on `main`.
 
 ## Refreshing SAPS station stats
