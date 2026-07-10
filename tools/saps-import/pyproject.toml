@@ -1,0 +1,9 @@
+[project]
+name = "community-alerts-saps-import"
+version = "1.0.0"
+description = "SAPS station roster import tooling for the Community Alerts Platform"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
