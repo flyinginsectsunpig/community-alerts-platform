@@ -18,12 +18,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -178,5 +180,44 @@ class StationServiceTest {
 
         assertThat(response.latestQuarter()).isNull();
         assertThat(response.categories()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("aggregate casing drift across imports still merges and stays excluded")
+    void statsMergesAggregateCasingAcrossYears() {
+        when(redis.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get(anyString())).thenReturn(null);
+        when(repository.findById(1L)).thenReturn(Optional.of(station(1, "Acornhoek")));
+        when(repository.quarterTotals(1L)).thenReturn(List.of(
+                row("17 Community reported serious Crime", 2026, 1, 120),
+                row("17 community reported serious crime", 2025, 1, 150),
+                row("Murder", 2026, 1, 8)));
+
+        StationStatsResponse response = stationService.stats(1L);
+
+        assertThat(response.latestQuarter().totalSerious()).isEqualTo(120);
+        assertThat(response.latestQuarter().totalSeriousPrevYear()).isEqualTo(150);
+        assertThat(response.latestQuarter().topCategories())
+                .extracting(StationStatsResponse.TopCategory::category)
+                .containsExactly("Murder");
+        assertThat(response.categories())
+                .extracting(StationStatsResponse.CategoryStats::category)
+                .containsExactly("Murder");
+    }
+
+    @Test
+    @DisplayName("stats cache hit round-trips the nested response without touching the database")
+    void statsCacheHit() throws Exception {
+        StationStatsResponse cached = new StationStatsResponse(
+                new StationResponse(1, "Acornhoek", "Ehlanzeni District", "Mpumalanga", -24.6, 31.1),
+                new StationStatsResponse.LatestQuarter("Jan–Mar 2026", 120, null,
+                        List.of(new StationStatsResponse.TopCategory("Murder", 8, null))),
+                List.of(new StationStatsResponse.CategoryStats("Murder",
+                        List.of(new StationStatsResponse.Period("Jan–Mar", Map.of("2026", 8L))))));
+        when(redis.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("stations:stats:1")).thenReturn(objectMapper.writeValueAsString(cached));
+
+        assertThat(stationService.stats(1L)).isEqualTo(cached);
+        verify(repository, never()).findById(anyLong());
     }
 }

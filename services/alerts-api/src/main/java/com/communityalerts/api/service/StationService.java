@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -102,17 +103,19 @@ public class StationService {
         final int year = latestYear;
         final int qtr = latestQtr;
 
-        // category -> quarter -> year -> total; TreeMaps keep quarters and years ordered.
+        // Category display casing can drift between quarterly imports; merge
+        // case-insensitively, first-seen spelling wins (same rule as the importer).
+        Map<String, String> canonicalNames = new HashMap<>();
         Map<String, Map<Integer, Map<Integer, Long>>> byCategory = new TreeMap<>();
         for (QuarterTotalRow row : rows) {
-            byCategory.computeIfAbsent(row.getCategory(), c -> new TreeMap<>())
+            String canonical = canonicalNames.computeIfAbsent(
+                    row.getCategory().toLowerCase(Locale.ROOT), k -> row.getCategory());
+            byCategory.computeIfAbsent(canonical, c -> new TreeMap<>())
                     .computeIfAbsent(row.getQtr(), q -> new TreeMap<>())
                     .merge(row.getYr(), row.getTotal(), Long::sum);
         }
 
-        String aggregateKey = byCategory.keySet().stream()
-                .filter(c -> c.toLowerCase(Locale.ROOT).equals(AGGREGATE_CATEGORY))
-                .findFirst().orElse(null);
+        String aggregateKey = canonicalNames.get(AGGREGATE_CATEGORY);
         long totalSerious = 0;
         Long totalSeriousPrevYear = null;
         if (aggregateKey != null) {
@@ -128,7 +131,8 @@ public class StationService {
                     return new StationStatsResponse.TopCategory(
                             e.getKey(), years.getOrDefault(year, 0L), years.get(year - 1));
                 })
-                .sorted(Comparator.comparingLong(StationStatsResponse.TopCategory::count).reversed())
+                .sorted(Comparator.comparingLong(StationStatsResponse.TopCategory::count).reversed()
+                        .thenComparing(StationStatsResponse.TopCategory::category))
                 .limit(TOP_CATEGORY_LIMIT)
                 .toList();
 
