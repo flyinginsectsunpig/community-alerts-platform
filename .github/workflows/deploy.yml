@@ -1,0 +1,103 @@
+name: Deploy to Azure
+
+# Builds the four service images, pushes them to ACR, and rolls the Azure
+# Container Apps to the new tag (the commit SHA). Runs automatically after the
+# CI workflow succeeds on main, and can also be triggered manually.
+#
+# ---------------------------------------------------------------------------
+# Required GitHub config  (Settings -> Secrets and variables -> Actions)
+# ---------------------------------------------------------------------------
+# Secrets:
+#   AZURE_CLIENT_ID        app registration (service principal) client ID
+#   AZURE_TENANT_ID        Azure AD tenant ID
+#   AZURE_SUBSCRIPTION_ID  target subscription ID
+# Variables:
+#   ACR_NAME        Container Registry name (e.g. calertsd722b3bd) -> login
+#                   server is <ACR_NAME>.azurecr.io
+#   RESOURCE_GROUP  resource group holding the Container Apps
+#                   (e.g. rg-community-alerts)
+#   WEB_API_URL     public URL of the alerts API. Baked into the web image at
+#                   BUILD time as NEXT_PUBLIC_API_URL (the browser's API URL),
+#                   e.g. https://alerts-api.<env-domain>
+#
+# The service principal needs, on the target scope:
+#   - AcrPush   on the registry
+#   - Contributor (or "Container Apps Contributor") on the resource group
+# Configure OIDC by adding a federated credential to the app registration:
+#   subject: repo:flyinginsectsunpig/community-alerts-platform:ref:refs/heads/main
+#
+# NOTE: app names (web, alerts-api, ml-service, alert-processor) and the bare
+# image repo paths match the live manual deployment, NOT the Terraform in
+# infra/terraform (which uses different, unapplied names). Verify with:
+#   az containerapp list -g <RESOURCE_GROUP> --query "[].name" -o tsv
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # required for OIDC azure/login
+  contents: read
+
+jobs:
+  deploy:
+    name: Build, push, and roll Container Apps
+    runs-on: ubuntu-latest
+    # Deploy only when CI passed. workflow_dispatch has no workflow_run
+    # payload, so let manual runs through explicitly.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      REGISTRY: ${{ vars.ACR_NAME }}.azurecr.io
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Build the exact commit CI validated (falls back to the ref for
+          # manual runs).
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name "${{ vars.ACR_NAME }}"
+
+      - name: Build and push images
+        run: |
+          set -euo pipefail
+          docker build -t "$REGISTRY/alerts-api:$IMAGE_TAG"      services/alerts-api
+          docker build -t "$REGISTRY/ml-service:$IMAGE_TAG"      services/ml-service
+          docker build -t "$REGISTRY/alert-processor:$IMAGE_TAG" services/alert-processor
+          # Web bakes NEXT_PUBLIC_API_URL at build time (browser-facing API URL).
+          docker build \
+            --build-arg NEXT_PUBLIC_API_URL="${{ vars.WEB_API_URL }}" \
+            -t "$REGISTRY/web:$IMAGE_TAG" apps/web
+
+          docker push "$REGISTRY/alerts-api:$IMAGE_TAG"
+          docker push "$REGISTRY/ml-service:$IMAGE_TAG"
+          docker push "$REGISTRY/alert-processor:$IMAGE_TAG"
+          docker push "$REGISTRY/web:$IMAGE_TAG"
+
+      - name: Roll Container Apps to the new image
+        run: |
+          set -euo pipefail
+          RG="${{ vars.RESOURCE_GROUP }}"
+          # alerts-api first: it owns the schema and runs Flyway on startup,
+          # so migrations land before the worker/ml pick up the new revision.
+          az containerapp update -n alerts-api      -g "$RG" --image "$REGISTRY/alerts-api:$IMAGE_TAG"
+          az containerapp update -n ml-service      -g "$RG" --image "$REGISTRY/ml-service:$IMAGE_TAG"
+          az containerapp update -n alert-processor -g "$RG" --image "$REGISTRY/alert-processor:$IMAGE_TAG"
+          az containerapp update -n web             -g "$RG" --image "$REGISTRY/web:$IMAGE_TAG"
