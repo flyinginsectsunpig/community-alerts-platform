@@ -40,6 +40,11 @@ dist/
 # Tooling artifacts
 .playwright-mcp/
 
+# Claude Code / AI tooling — keep out of the public repo
+.claude/
+CLAUDE.md
+docs/superpowers/
+
 # IDE / OS
 .idea/
 .vscode/
