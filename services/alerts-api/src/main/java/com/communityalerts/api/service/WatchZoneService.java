@@ -60,6 +60,33 @@ public class WatchZoneService {
                         .collect(Collectors.joining(",")));
     }
 
+    @Transactional
+    public WatchZoneResponse update(UUID id, CreateWatchZoneRequest request, ZoneOwner owner) {
+        WatchZone zone = findOwned(id, owner);
+        applyRequest(zone, request);
+        return WatchZoneResponse.from(watchZoneRepository.save(zone));
+    }
+
+    @Transactional
+    public void delete(UUID id, ZoneOwner owner) {
+        watchZoneRepository.delete(findOwned(id, owner));
+    }
+
+    private WatchZone findOwned(UUID id, ZoneOwner owner) {
+        WatchZone zone = watchZoneRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Watch zone %s not found".formatted(id)));
+        boolean owned = owner.isAuthenticated()
+                ? owner.userId().equals(zone.getUserId())
+                : zone.getUserId() == null
+                        && zone.getOwnerFingerprint() != null
+                        && zone.getOwnerFingerprint().equals(owner.fingerprint());
+        if (!owned) {
+            // 404 rather than 403: don't reveal that the zone exists.
+            throw new NotFoundException("Watch zone %s not found".formatted(id));
+        }
+        return zone;
+    }
+
     @Transactional(readOnly = true)
     public List<NotificationResponse> notifications(UUID zoneId) {
         if (!watchZoneRepository.existsById(zoneId)) {
