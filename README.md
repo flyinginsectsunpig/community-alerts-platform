@@ -78,8 +78,11 @@ within milliseconds and re-color when scoring lands.
   publicly readable, posting requires sign-in, and new comments stream live
   to every open dashboard. Hybrid model: reporting stays anonymous.
 - **Watch zones** — draw a radius, pick categories, get durable notifications;
-  CRITICAL (or high-risk HIGH) alerts escalate to 2x every zone's radius and
-  optionally POST to a Slack-compatible webhook.
+  zones belong to your device fingerprint (or your account when signed in,
+  with a claim prompt to adopt device zones), and a "My zones" panel lists,
+  edits — geometry included — and deletes them and shows each zone's
+  notification history. CRITICAL (or high-risk HIGH) alerts escalate to 2x
+  every zone's radius and optionally POST to a Slack-compatible webhook.
 - **Abuse control** — Redis fixed-window rate limiting per anonymous client
   fingerprint on all write endpoints (fails open if Redis is down).
 - **7-day trends** — the worker maintains a stats snapshot in Redis; the API
