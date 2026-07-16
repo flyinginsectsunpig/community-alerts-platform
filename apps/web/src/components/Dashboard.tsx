@@ -198,10 +198,16 @@ export default function Dashboard() {
         setZoneDraft((draft) => (draft ? { ...draft, center: point } : draft));
         return;
       }
+      if (!session) {
+        // Pings are visible to everyone, so reporting needs an account.
+        showToast("info", "Sign in to report an alert");
+        setShowAuthModal(true);
+        return;
+      }
       setPendingPoint(point);
       setPanelMode("report");
     },
-    [dismissHint, zoneActive],
+    [dismissHint, zoneActive, session, showToast],
   );
 
   const closePanel = useCallback(() => {
@@ -317,6 +323,11 @@ export default function Dashboard() {
   }
 
   async function handleConfirm(alertId: string) {
+    if (!session) {
+      showToast("info", "Sign in to confirm alerts");
+      setShowAuthModal(true);
+      return;
+    }
     try {
       upsertAlert(await api.confirmAlert(alertId));
       showToast("info", "Thanks — confirmation recorded");

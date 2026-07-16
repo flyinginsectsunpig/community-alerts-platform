@@ -23,6 +23,8 @@ export interface Alert {
   description: string;
   lat: number;
   lng: number;
+  /** Null on alerts reported before accounts were required. */
+  reportedByUserId: string | null;
   severity: Severity;
   riskScore: number | null;
   status: AlertStatus;
