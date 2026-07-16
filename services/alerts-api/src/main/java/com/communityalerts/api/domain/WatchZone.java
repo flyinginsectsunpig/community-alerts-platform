@@ -39,6 +39,10 @@ public class WatchZone {
     @Column(name = "user_id")
     private UUID userId;
 
+    /** Set when the zone was created anonymously; null once claimed or when created signed-in. */
+    @Column(name = "owner_fingerprint", length = 64)
+    private String ownerFingerprint;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -72,6 +76,9 @@ public class WatchZone {
 
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
+
+    public String getOwnerFingerprint() { return ownerFingerprint; }
+    public void setOwnerFingerprint(String ownerFingerprint) { this.ownerFingerprint = ownerFingerprint; }
 
     public Instant getCreatedAt() { return createdAt; }
 }

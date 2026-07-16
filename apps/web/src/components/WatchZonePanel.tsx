@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS } from "@/lib/format";
 import type { AlertCategory, WatchZone, ZoneDraft } from "@/lib/types";
 import { ALERT_CATEGORIES } from "@/lib/types";
@@ -10,20 +11,29 @@ import { ALERT_CATEGORIES } from "@/lib/types";
 interface WatchZonePanelProps {
   /** Live draft shown on the map; the panel is docked so both stay visible. */
   draft: ZoneDraft;
+  /** When set, the panel edits this zone instead of creating a new one. */
+  editing?: WatchZone | null;
+  session?: AuthSession | null;
   onRadiusChange: (radiusM: number) => void;
   onClose: () => void;
   onCreated: (zone: WatchZone) => void;
+  onUpdated?: (zone: WatchZone) => void;
 }
 
 export default function WatchZonePanel({
   draft,
+  editing = null,
+  session = null,
   onRadiusChange,
   onClose,
   onCreated,
+  onUpdated,
 }: WatchZonePanelProps) {
-  const [name, setName] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [categories, setCategories] = useState<AlertCategory[]>([]);
+  const [name, setName] = useState(editing?.name ?? "");
+  const [contactEmail, setContactEmail] = useState(
+    editing?.contactEmail ?? session?.email ?? "",
+  );
+  const [categories, setCategories] = useState<AlertCategory[]>(editing?.categories ?? []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,27 +60,35 @@ export default function WatchZonePanel({
     event.preventDefault();
     setError(null);
     setSubmitting(true);
+    const payload = {
+      name: name.trim(),
+      contactEmail: contactEmail.trim(),
+      centerLat: draft.center.lat,
+      centerLng: draft.center.lng,
+      radiusM: draft.radiusM,
+      categories,
+    };
     try {
-      const zone = await api.createWatchZone({
-        name: name.trim(),
-        contactEmail: contactEmail.trim(),
-        centerLat: draft.center.lat,
-        centerLng: draft.center.lng,
-        radiusM: draft.radiusM,
-        categories,
-      });
-      onCreated(zone);
+      if (editing && onUpdated) {
+        onUpdated(await api.updateWatchZone(editing.id, payload));
+      } else {
+        onCreated(await api.createWatchZone(payload));
+      }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not create the watch zone — try again");
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : `Could not ${editing ? "update" : "create"} the watch zone — try again`,
+      );
       setSubmitting(false);
     }
   }
 
   return (
-    <aside className="zone-panel" aria-label="Create a watch zone">
+    <aside className="zone-panel" aria-label={editing ? "Edit watch zone" : "Create a watch zone"}>
       <form onSubmit={handleSubmit} className="zone-panel__form">
         <div className="panel__header">
-          <h2>Create a watch zone</h2>
+          <h2>{editing ? `Edit “${editing.name}”` : "Create a watch zone"}</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
             ×
           </button>
@@ -137,7 +155,7 @@ export default function WatchZonePanel({
 
         <div className="panel__actions">
           <button type="submit" className="btn btn--primary" disabled={submitting}>
-            {submitting ? "Creating…" : "Create watch zone"}
+            {submitting ? "Saving…" : editing ? "Save changes" : "Create watch zone"}
           </button>
           <button type="button" className="btn" onClick={onClose}>
             Cancel
