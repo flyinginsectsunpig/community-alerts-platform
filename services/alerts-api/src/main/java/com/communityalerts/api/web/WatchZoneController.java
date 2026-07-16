@@ -41,7 +41,8 @@ public class WatchZoneController {
     }
 
     @GetMapping("/{id}/notifications")
-    public List<NotificationResponse> notifications(@PathVariable UUID id) {
-        return watchZoneService.notifications(id);
+    public List<NotificationResponse> notifications(@PathVariable UUID id,
+                                                    HttpServletRequest httpRequest) {
+        return watchZoneService.notifications(id, ZoneOwner.resolve(httpRequest));
     }
 }

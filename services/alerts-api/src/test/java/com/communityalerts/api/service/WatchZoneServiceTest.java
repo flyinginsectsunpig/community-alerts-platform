@@ -177,4 +177,53 @@ class WatchZoneServiceTest {
 
         verify(watchZoneRepository).delete(zone);
     }
+
+    @Test
+    @DisplayName("claim adopts unclaimed fingerprint zones into the account and clears the fingerprint")
+    void claimAdoptsZones() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull("fp-123"))
+                .thenReturn(List.of(zone));
+        when(watchZoneRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+        UUID userId = UUID.randomUUID();
+
+        List<WatchZoneResponse> adopted = watchZoneService.claim(userId, "fp-123");
+
+        assertThat(adopted).hasSize(1);
+        assertThat(zone.getUserId()).isEqualTo(userId);
+        assertThat(zone.getOwnerFingerprint()).isNull();
+    }
+
+    @Test
+    @DisplayName("claim with nothing to adopt returns an empty list")
+    void claimNothingReturnsEmpty() {
+        when(watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull("fp-123"))
+                .thenReturn(List.of());
+        when(watchZoneRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(watchZoneService.claim(UUID.randomUUID(), "fp-123")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("notification history is only visible to the zone owner")
+    void notificationsGuarded() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> watchZoneService.notifications(
+                        zone.getId(), new ZoneOwner(null, "fp-other")))
+                .isInstanceOf(com.communityalerts.api.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("the zone owner can read notification history")
+    void notificationsForOwner() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+        when(notificationRepository.findTop100ByWatchZoneIdOrderByCreatedAtDesc(zone.getId()))
+                .thenReturn(List.of());
+
+        assertThat(watchZoneService.notifications(zone.getId(), new ZoneOwner(null, "fp-123")))
+                .isEmpty();
+    }
 }
