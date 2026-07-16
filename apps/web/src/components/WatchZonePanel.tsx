@@ -88,7 +88,7 @@ export default function WatchZonePanel({
     <aside className="zone-panel" aria-label={editing ? "Edit watch zone" : "Create a watch zone"}>
       <form onSubmit={handleSubmit} className="zone-panel__form">
         <div className="panel__header">
-          <h2>{editing ? `Edit "${editing.name}"` : "Create a watch zone"}</h2>
+          <h2>{editing ? `Edit “${editing.name}”` : "Create a watch zone"}</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
             ×
           </button>
