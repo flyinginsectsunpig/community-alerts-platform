@@ -11,6 +11,26 @@ public sealed record WatchZone(
 
 public sealed record ZoneMatch(WatchZone Zone, double DistanceMeters);
 
+/// <summary>
+/// An alert flipped to EXPIRED by the sweep. Serialized (camelCase) into the
+/// <c>alerts.live</c> pub/sub payload; must mirror the Java API's
+/// AlertResponse record. Keep the fields in sync.
+/// </summary>
+public sealed record ExpiredAlert(
+    Guid Id,
+    string Category,
+    string Description,
+    double Lat,
+    double Lng,
+    string Severity,
+    double? RiskScore,
+    string Status,
+    int ConfirmationCount,
+    int CommentCount,
+    Guid? ReportedByUserId,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
 public sealed record CountRow(string Key, long Count);
 
 public sealed record DayCount(string Day, long Count);

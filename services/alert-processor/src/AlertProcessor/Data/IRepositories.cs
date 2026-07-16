@@ -13,6 +13,12 @@ public interface INotificationRepository
     Task<int> InsertAsync(Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct);
 }
 
+public interface IAlertExpiryRepository
+{
+    /// <summary>Flips overdue ACTIVE/VERIFIED alerts to EXPIRED and returns them.</summary>
+    Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct);
+}
+
 public interface IStatsRepository
 {
     Task<IReadOnlyList<CountRow>> GetCategoryCountsAsync(DateTimeOffset since, CancellationToken ct);
