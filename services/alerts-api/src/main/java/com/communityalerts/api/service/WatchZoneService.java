@@ -88,10 +88,24 @@ public class WatchZoneService {
     }
 
     @Transactional(readOnly = true)
-    public List<NotificationResponse> notifications(UUID zoneId) {
-        if (!watchZoneRepository.existsById(zoneId)) {
-            throw new NotFoundException("Watch zone %s not found".formatted(zoneId));
-        }
+    public List<WatchZoneResponse> claimable(String fingerprint) {
+        return watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull(fingerprint)
+                .stream().map(WatchZoneResponse::from).toList();
+    }
+
+    @Transactional
+    public List<WatchZoneResponse> claim(UUID userId, String fingerprint) {
+        List<WatchZone> zones = watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull(fingerprint);
+        zones.forEach(zone -> {
+            zone.setUserId(userId);
+            zone.setOwnerFingerprint(null);
+        });
+        return watchZoneRepository.saveAll(zones).stream().map(WatchZoneResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<NotificationResponse> notifications(UUID zoneId, ZoneOwner owner) {
+        findOwned(zoneId, owner);
         return notificationRepository.findTop100ByWatchZoneIdOrderByCreatedAtDesc(zoneId)
                 .stream()
                 .map(NotificationResponse::from)
