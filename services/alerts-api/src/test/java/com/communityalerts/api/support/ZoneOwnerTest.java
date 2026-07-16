@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ZoneOwnerTest {
 
@@ -38,5 +39,14 @@ class ZoneOwnerTest {
         assertThat(owner.userId()).isNull();
         assertThat(owner.fingerprint()).isEqualTo("fp-123");
         assertThat(owner.isAuthenticated()).isFalse();
+    }
+
+    @Test
+    @DisplayName("constructing with both or neither owner marker is rejected")
+    void invariantEnforced() {
+        assertThatThrownBy(() -> new ZoneOwner(null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ZoneOwner(UUID.randomUUID(), "fp-123"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

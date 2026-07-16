@@ -12,6 +12,12 @@ import java.util.UUID;
  */
 public record ZoneOwner(UUID userId, String fingerprint) {
 
+    public ZoneOwner {
+        if ((userId == null) == (fingerprint == null)) {
+            throw new IllegalArgumentException("Exactly one of userId and fingerprint must be set");
+        }
+    }
+
     public static ZoneOwner resolve(HttpServletRequest request) {
         return AuthContext.optional(request)
                 .map(user -> new ZoneOwner(user.id(), null))
