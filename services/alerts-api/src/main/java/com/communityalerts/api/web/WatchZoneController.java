@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.communityalerts.api.dto.NotificationResponse;
 import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.service.WatchZoneService;
-import com.communityalerts.api.support.ClientFingerprint;
 import com.communityalerts.api.support.ZoneOwner;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -64,13 +63,13 @@ public class WatchZoneController {
     @GetMapping("/claimable")
     public List<WatchZoneResponse> claimable(HttpServletRequest httpRequest) {
         AuthContext.require(httpRequest);
-        return watchZoneService.claimable(ClientFingerprint.of(httpRequest));
+        return watchZoneService.claimable(ZoneOwner.requireClientFingerprint(httpRequest));
     }
 
     @PostMapping("/claim")
     public List<WatchZoneResponse> claim(HttpServletRequest httpRequest) {
         AuthUser user = AuthContext.require(httpRequest);
-        return watchZoneService.claim(user.id(), ClientFingerprint.of(httpRequest));
+        return watchZoneService.claim(user.id(), ZoneOwner.requireClientFingerprint(httpRequest));
     }
 
     @GetMapping("/{id}/notifications")
