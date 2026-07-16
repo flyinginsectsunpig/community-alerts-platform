@@ -3,7 +3,7 @@ namespace AlertProcessor.Domain;
 public sealed record WatchZone(
     Guid Id,
     string Name,
-    string ContactEmail,
+    string? ContactEmail,
     double CenterLat,
     double CenterLng,
     int RadiusM,
