@@ -8,6 +8,7 @@ import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.repository.NotificationRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
+import com.communityalerts.api.support.ZoneOwner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,10 +29,24 @@ public class WatchZoneService {
     }
 
     @Transactional
-    public WatchZoneResponse create(CreateWatchZoneRequest request, UUID ownerUserId) {
+    public WatchZoneResponse create(CreateWatchZoneRequest request, ZoneOwner owner) {
         WatchZone zone = new WatchZone();
         zone.setId(UUID.randomUUID());
-        zone.setUserId(ownerUserId);
+        zone.setUserId(owner.userId());
+        zone.setOwnerFingerprint(owner.fingerprint());
+        applyRequest(zone, request);
+        return WatchZoneResponse.from(watchZoneRepository.save(zone));
+    }
+
+    @Transactional(readOnly = true)
+    public List<WatchZoneResponse> listForOwner(ZoneOwner owner) {
+        List<WatchZone> zones = owner.isAuthenticated()
+                ? watchZoneRepository.findByUserIdOrderByCreatedAtDesc(owner.userId())
+                : watchZoneRepository.findByOwnerFingerprintOrderByCreatedAtDesc(owner.fingerprint());
+        return zones.stream().map(WatchZoneResponse::from).toList();
+    }
+
+    private static void applyRequest(WatchZone zone, CreateWatchZoneRequest request) {
         zone.setName(request.name().trim());
         zone.setContactEmail(request.contactEmail().trim().toLowerCase());
         zone.setCenterLat(request.centerLat());
@@ -43,7 +58,6 @@ public class WatchZoneService {
                         .distinct()
                         .map(AlertCategory::name)
                         .collect(Collectors.joining(",")));
-        return WatchZoneResponse.from(watchZoneRepository.save(zone));
     }
 
     @Transactional(readOnly = true)

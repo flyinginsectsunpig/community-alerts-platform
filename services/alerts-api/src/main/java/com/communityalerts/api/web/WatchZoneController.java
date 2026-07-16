@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import com.communityalerts.api.dto.NotificationResponse;
 import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.service.WatchZoneService;
+import com.communityalerts.api.support.ZoneOwner;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +34,7 @@ public class WatchZoneController {
     @PostMapping
     public ResponseEntity<WatchZoneResponse> create(@Valid @RequestBody CreateWatchZoneRequest request,
                                                     HttpServletRequest httpRequest) {
-        WatchZoneResponse created = watchZoneService.create(
-                request, AuthContext.optional(httpRequest).map(AuthUser::id).orElse(null));
+        WatchZoneResponse created = watchZoneService.create(request, ZoneOwner.resolve(httpRequest));
         return ResponseEntity
                 .created(URI.create("/api/v1/watch-zones/" + created.id()))
                 .body(created);
