@@ -252,7 +252,7 @@ export default function Dashboard() {
   function handleZoneCreated(zone: WatchZone) {
     closeZone();
     setZones((current) => (current ? [zone, ...current] : current));
-    showToast("info", `Watch zone "${zone.name}" created — manage it under "My zones"`);
+    showToast("info", `Watch zone “${zone.name}” created — manage it under “My zones”`);
   }
 
   function handleZoneUpdated(zone: WatchZone) {
@@ -260,7 +260,7 @@ export default function Dashboard() {
     setZones((current) =>
       current ? current.map((z) => (z.id === zone.id ? zone : z)) : current,
     );
-    showToast("info", `Watch zone "${zone.name}" updated`);
+    showToast("info", `Watch zone “${zone.name}” updated`);
   }
 
   function startEditZone(zone: WatchZone) {
@@ -271,13 +271,13 @@ export default function Dashboard() {
   }
 
   async function handleDeleteZone(zone: WatchZone) {
-    if (!window.confirm(`Delete watch zone "${zone.name}"? Its notification history goes with it.`)) {
+    if (!window.confirm(`Delete watch zone “${zone.name}”? Its notification history goes with it.`)) {
       return;
     }
     setZones((current) => (current ? current.filter((z) => z.id !== zone.id) : current));
     try {
       await api.deleteWatchZone(zone.id);
-      showToast("info", `Watch zone "${zone.name}" deleted`);
+      showToast("info", `Watch zone “${zone.name}” deleted`);
     } catch (e) {
       // Resync from the server rather than restoring a possibly stale snapshot.
       void loadZones();
