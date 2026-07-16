@@ -18,7 +18,7 @@ interface MyZonesPanelProps {
 export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus }: MyZonesPanelProps) {
   const [openZoneId, setOpenZoneId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Record<string, ZoneNotification[]>>({});
-  const [notifError, setNotifError] = useState<string | null>(null);
+  const [notifErrors, setNotifErrors] = useState<Record<string, string>>({});
 
   // Escape closes the panel, unless a modal dialog is stacked above it.
   useEffect(() => {
@@ -37,13 +37,20 @@ export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus
       return;
     }
     setOpenZoneId(zoneId);
-    setNotifError(null);
     if (!notifications[zoneId]) {
+      setNotifErrors((current) => {
+        const next = { ...current };
+        delete next[zoneId];
+        return next;
+      });
       try {
         const items = await api.fetchZoneNotifications(zoneId);
         setNotifications((current) => ({ ...current, [zoneId]: items }));
       } catch (e) {
-        setNotifError(e instanceof ApiError ? e.message : "Could not load notifications");
+        setNotifErrors((current) => ({
+          ...current,
+          [zoneId]: e instanceof ApiError ? e.message : "Could not load notifications",
+        }));
       }
     }
   }
@@ -92,8 +99,8 @@ export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus
           </div>
           {openZoneId === zone.id && (
             <ul className="zone-notifications">
-              {notifError && <li className="form-error">{notifError}</li>}
-              {!notifError && !notifications[zone.id] && <li>Loading…</li>}
+              {notifErrors[zone.id] && <li className="form-error">{notifErrors[zone.id]}</li>}
+              {!notifErrors[zone.id] && !notifications[zone.id] && <li>Loading…</li>}
               {notifications[zone.id]?.length === 0 && <li>No notifications yet.</li>}
               {notifications[zone.id]?.map((n) => (
                 <li key={n.id}>
