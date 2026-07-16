@@ -64,6 +64,34 @@ class WatchZoneServiceTest {
     }
 
     @Test
+    @DisplayName("create without a contact email stores null")
+    void createWithoutEmailStoresNull() {
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                "Home", null, 51.5074, -0.1278, 1500, List.of());
+        watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
+
+        ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
+        verify(watchZoneRepository).save(captor.capture());
+        assertThat(captor.getValue().getContactEmail()).isNull();
+    }
+
+    @Test
+    @DisplayName("create with a blank contact email stores null")
+    void createWithBlankEmailStoresNull() {
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                "Home", "   ", 51.5074, -0.1278, 1500, List.of());
+        watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
+
+        ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
+        verify(watchZoneRepository).save(captor.capture());
+        assertThat(captor.getValue().getContactEmail()).isNull();
+    }
+
+    @Test
     @DisplayName("anonymous create stores the client fingerprint and no user")
     void anonymousCreateStoresFingerprint() {
         when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
