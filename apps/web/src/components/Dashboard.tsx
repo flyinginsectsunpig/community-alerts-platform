@@ -286,7 +286,10 @@ export default function Dashboard() {
   }
 
   function focusZone(zone: WatchZone) {
-    setFocus({ lat: zone.centerLat, lng: zone.centerLng });
+    // Rough zoom-to-fit: each zoom step halves the visible span. 10 km
+    // radius ≈ zoom 11, 1 km ≈ zoom 14, 100 m ≈ zoom 17.
+    const zoom = Math.round(Math.max(11, Math.min(17, 14 - Math.log2(zone.radiusM / 1000))));
+    setFocus({ lat: zone.centerLat, lng: zone.centerLng, zoom });
   }
 
   async function offerClaim() {
@@ -434,6 +437,7 @@ export default function Dashboard() {
             pendingPoint={pendingPoint}
             focus={focus}
             zoneDraft={zoneDraft}
+            zones={showZonesPanel && !zoneDraft ? zones : null}
             onZoneMove={handleZoneMove}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}

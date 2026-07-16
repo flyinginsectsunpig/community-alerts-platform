@@ -18,7 +18,7 @@ import "leaflet/dist/leaflet.css";
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
-import type { Alert, Hotspot, LatLng, StationStats, ZoneDraft } from "@/lib/types";
+import type { Alert, Hotspot, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -52,6 +52,8 @@ interface AlertMapProps {
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
+  /** Saved zones to display (My Zones panel open); null hides them. */
+  zones: WatchZone[] | null;
   onZoneMove: (center: LatLng) => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
@@ -109,6 +111,7 @@ export default function AlertMap({
   pendingPoint,
   focus,
   zoneDraft,
+  zones,
   onZoneMove,
   onMapClick,
   onConfirm,
@@ -219,6 +222,22 @@ export default function AlertMap({
           }}
         />
       )}
+
+      {zones?.map((zone) => (
+        <Circle
+          key={zone.id}
+          center={[zone.centerLat, zone.centerLng]}
+          radius={zone.radiusM}
+          pathOptions={{
+            color: ZONE_COLOR,
+            weight: 2,
+            fillColor: ZONE_COLOR,
+            fillOpacity: 0.06,
+          }}
+        >
+          <Tooltip sticky>{zone.name}</Tooltip>
+        </Circle>
+      ))}
 
       {zoneDraft && (
         <>
