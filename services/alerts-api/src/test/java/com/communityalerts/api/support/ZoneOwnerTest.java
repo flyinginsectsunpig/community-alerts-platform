@@ -2,6 +2,7 @@ package com.communityalerts.api.support;
 
 import com.communityalerts.api.auth.AuthContext;
 import com.communityalerts.api.auth.AuthUser;
+import com.communityalerts.api.error.BadRequestException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -48,5 +49,24 @@ class ZoneOwnerTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new ZoneOwner(UUID.randomUUID(), "fp-123"))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("anonymous resolution without a fingerprint header is refused")
+    void resolveAnonymousWithoutHeaderRefused() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+
+        assertThatThrownBy(() -> ZoneOwner.resolve(request))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    @DisplayName("a header imitating the ip- fallback is refused as a zone owner")
+    void resolveSpoofedIpFallbackRefused() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader(ClientFingerprint.HEADER, "ip-deadbeef");
+
+        assertThatThrownBy(() -> ZoneOwner.resolve(request))
+                .isInstanceOf(BadRequestException.class);
     }
 }

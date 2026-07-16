@@ -1,6 +1,7 @@
 package com.communityalerts.api.support;
 
 import com.communityalerts.api.auth.AuthContext;
+import com.communityalerts.api.error.BadRequestException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.UUID;
@@ -21,7 +22,19 @@ public record ZoneOwner(UUID userId, String fingerprint) {
     public static ZoneOwner resolve(HttpServletRequest request) {
         return AuthContext.optional(request)
                 .map(user -> new ZoneOwner(user.id(), null))
-                .orElseGet(() -> new ZoneOwner(null, ClientFingerprint.of(request)));
+                .orElseGet(() -> new ZoneOwner(null, requireClientFingerprint(request)));
+    }
+
+    /**
+     * Zone ownership treats the fingerprint as a credential, so the spoofable
+     * {@code ip-} rate-limit fallback (and any header imitating it) is refused.
+     */
+    public static String requireClientFingerprint(HttpServletRequest request) {
+        String fingerprint = ClientFingerprint.of(request);
+        if (fingerprint.startsWith("ip-")) {
+            throw new BadRequestException("A client fingerprint is required to own watch zones");
+        }
+        return fingerprint;
     }
 
     public boolean isAuthenticated() {
