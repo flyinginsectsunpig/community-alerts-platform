@@ -68,6 +68,12 @@ public class AlertController {
         return alertService.get(id);
     }
 
+    /** Reporter-only early close (403 for anyone else). */
+    @PostMapping("/{id}/resolve")
+    public AlertResponse resolve(@PathVariable UUID id, HttpServletRequest httpRequest) {
+        return alertService.resolve(id, AuthContext.require(httpRequest));
+    }
+
     /** Confirming flips alerts to VERIFIED for everyone, so it needs an account too. */
     @PostMapping("/{id}/confirm")
     public AlertResponse confirm(@PathVariable UUID id, HttpServletRequest httpRequest) {

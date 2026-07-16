@@ -19,6 +19,8 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             SELECT * FROM alerts a
             WHERE a.lat BETWEEN :minLat AND :maxLat
               AND a.lng BETWEEN :minLng AND :maxLng
+              AND a.status IN ('ACTIVE', 'VERIFIED')
+              AND a.expires_at > now()
               AND a.created_at >= :since
               AND (:category IS NULL OR a.category = :category)
               AND 6371000 * acos(LEAST(1.0,
