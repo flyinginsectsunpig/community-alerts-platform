@@ -48,7 +48,8 @@ public class WatchZoneService {
 
     private static void applyRequest(WatchZone zone, CreateWatchZoneRequest request) {
         zone.setName(request.name().trim());
-        zone.setContactEmail(request.contactEmail().trim().toLowerCase());
+        String email = request.contactEmail() == null ? "" : request.contactEmail().trim();
+        zone.setContactEmail(email.isEmpty() ? null : email.toLowerCase());
         zone.setCenterLat(request.centerLat());
         zone.setCenterLng(request.centerLng());
         zone.setRadiusM(request.radiusM());
