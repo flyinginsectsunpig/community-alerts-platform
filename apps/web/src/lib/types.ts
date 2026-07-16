@@ -81,7 +81,6 @@ export interface SeverityPreview {
 
 export interface CreateWatchZoneInput {
   name: string;
-  contactEmail: string;
   centerLat: number;
   centerLng: number;
   radiusM: number;
@@ -91,7 +90,7 @@ export interface CreateWatchZoneInput {
 export interface WatchZone {
   id: string;
   name: string;
-  contactEmail: string;
+  contactEmail: string | null;
   centerLat: number;
   centerLng: number;
   radiusM: number;
