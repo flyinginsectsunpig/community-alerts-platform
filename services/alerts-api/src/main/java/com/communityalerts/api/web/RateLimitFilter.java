@@ -20,7 +20,7 @@ import java.time.Instant;
 
 /**
  * Redis fixed-window rate limiter on write endpoints (report, confirm,
- * watch-zone creation) to blunt spam and abuse. Fails open if Redis is
+ * watch-zone create/update/delete/claim) to blunt spam and abuse. Fails open if Redis is
  * unreachable — availability of reporting wins over strict limiting.
  */
 @Component
@@ -39,14 +39,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        if (!"POST".equals(request.getMethod())) {
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        if (("PUT".equals(method) || "DELETE".equals(method))
+                && uri.startsWith("/api/v1/watch-zones/")) {
+            return false;
+        }
+        if (!"POST".equals(method)) {
             return true;
         }
-        String uri = request.getRequestURI();
         boolean limited = uri.equals("/api/v1/alerts")
                 || uri.endsWith("/confirm")
                 || uri.endsWith("/comments")
-                || uri.equals("/api/v1/watch-zones")
+                || uri.startsWith("/api/v1/watch-zones") // create + claim
                 || uri.startsWith("/api/v1/auth/"); // brute-force protection
         return !limited;
     }
