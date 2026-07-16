@@ -15,6 +15,7 @@ interface AlertDetailPanelProps {
   liveComment: AlertComment | null;
   onClose: () => void;
   onConfirm: (alertId: string) => void;
+  onResolve: (alertId: string) => void;
   onRequestAuth: () => void;
 }
 
@@ -24,6 +25,7 @@ export default function AlertDetailPanel({
   liveComment,
   onClose,
   onConfirm,
+  onResolve,
   onRequestAuth,
 }: AlertDetailPanelProps) {
   const [comments, setComments] = useState<AlertComment[] | null>(null);
@@ -125,6 +127,11 @@ export default function AlertDetailPanel({
         <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
           I saw this too
         </button>
+        {session && session.userId === alert.reportedByUserId && (
+          <button type="button" className="btn btn--small" onClick={() => onResolve(alert.id)}>
+            Mark resolved
+          </button>
+        )}
       </div>
 
       <h3 className="detail-panel__thread-title">

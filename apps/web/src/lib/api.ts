@@ -85,6 +85,10 @@ export const api = {
     return request<Alert>(`/api/v1/alerts/${id}/confirm`, { method: "POST" });
   },
 
+  resolveAlert(id: string): Promise<Alert> {
+    return request<Alert>(`/api/v1/alerts/${id}/resolve`, { method: "POST" });
+  },
+
   previewSeverity(text: string): Promise<SeverityPreview> {
     return request<SeverityPreview>("/api/v1/alerts/severity-preview", {
       method: "POST",
