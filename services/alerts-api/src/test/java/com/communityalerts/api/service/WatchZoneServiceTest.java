@@ -226,4 +226,13 @@ class WatchZoneServiceTest {
         assertThat(watchZoneService.notifications(zone.getId(), new ZoneOwner(null, "fp-123")))
                 .isEmpty();
     }
+
+    @Test
+    @DisplayName("claimable lists only unclaimed zones for the fingerprint")
+    void claimableListsUnclaimedZones() {
+        when(watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull("fp-123"))
+                .thenReturn(List.of(zoneOwnedByFingerprint("fp-123")));
+
+        assertThat(watchZoneService.claimable("fp-123")).hasSize(1);
+    }
 }
