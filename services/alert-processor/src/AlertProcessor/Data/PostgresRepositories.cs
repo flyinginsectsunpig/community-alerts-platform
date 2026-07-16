@@ -47,6 +47,28 @@ public sealed class PostgresNotificationRepository(NpgsqlDataSource dataSource) 
     }
 }
 
+public sealed class PostgresAlertExpiryRepository(NpgsqlDataSource dataSource) : IAlertExpiryRepository
+{
+    public async Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct)
+    {
+        const string sql = """
+            UPDATE alerts SET status = 'EXPIRED', updated_at = now()
+            WHERE status IN ('ACTIVE', 'VERIFIED') AND expires_at < now()
+            RETURNING id, category, description, lat, lng, severity,
+                      risk_score AS RiskScore, status,
+                      confirmation_count AS ConfirmationCount,
+                      comment_count AS CommentCount,
+                      reported_by_user_id AS ReportedByUserId,
+                      created_at AS CreatedAt, updated_at AS UpdatedAt
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<ExpiredAlert>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return rows.ToList();
+    }
+}
+
 public sealed class PostgresStatsRepository(NpgsqlDataSource dataSource) : IStatsRepository
 {
     public async Task<IReadOnlyList<CountRow>> GetCategoryCountsAsync(DateTimeOffset since, CancellationToken ct)
