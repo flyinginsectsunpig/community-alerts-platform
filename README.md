@@ -116,7 +116,7 @@ All Redis traffic runs over the native TCP driver with TLS
 
 ## Running locally
 
-Prerequisites: Docker (for the backend services), Node 20+ (for frontend dev).
+Prerequisites: Docker (for the backend services), Node 22 LTS (for frontend dev).
 Copy `.env.example` to `.env` and fill in your Neon / Upstash / CloudAMQP
 credentials — **all configuration is environment-only; nothing secret lives in
 source code.**
