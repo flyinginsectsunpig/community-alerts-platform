@@ -30,9 +30,6 @@ export default function WatchZonePanel({
   onUpdated,
 }: WatchZonePanelProps) {
   const [name, setName] = useState(editing?.name ?? "");
-  const [contactEmail, setContactEmail] = useState(
-    editing?.contactEmail ?? session?.email ?? "",
-  );
   const [categories, setCategories] = useState<AlertCategory[]>(editing?.categories ?? []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +59,6 @@ export default function WatchZonePanel({
     setSubmitting(true);
     const payload = {
       name: name.trim(),
-      contactEmail: contactEmail.trim(),
       centerLat: draft.center.lat,
       centerLng: draft.center.lng,
       radiusM: draft.radiusM,
@@ -108,17 +104,6 @@ export default function WatchZonePanel({
             placeholder="e.g. Home, School run"
             maxLength={120}
             autoFocus
-            required
-          />
-        </label>
-
-        <label className="field">
-          <span>Email for notifications</span>
-          <input
-            type="email"
-            value={contactEmail}
-            onChange={(event) => setContactEmail(event.target.value)}
-            placeholder="you@example.com"
             required
           />
         </label>
