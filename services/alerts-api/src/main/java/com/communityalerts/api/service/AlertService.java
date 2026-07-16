@@ -1,5 +1,6 @@
 package com.communityalerts.api.service;
 
+import com.communityalerts.api.auth.AuthUser;
 import com.communityalerts.api.config.RedisPubSubConfig;
 import com.communityalerts.api.domain.Alert;
 import com.communityalerts.api.domain.AlertCategory;
@@ -63,7 +64,7 @@ public class AlertService {
     }
 
     @Transactional
-    public AlertResponse create(CreateAlertRequest request, String reporterFingerprint) {
+    public AlertResponse create(CreateAlertRequest request, String reporterFingerprint, AuthUser reporter) {
         Alert alert = new Alert();
         alert.setId(UUID.randomUUID());
         alert.setCategory(request.category());
@@ -71,6 +72,7 @@ public class AlertService {
         alert.setLat(request.lat());
         alert.setLng(request.lng());
         alert.setReporterFingerprint(reporterFingerprint);
+        alert.setReportedByUserId(reporter.id());
 
         Alert saved = alertRepository.save(alert);
 
@@ -102,18 +104,21 @@ public class AlertService {
     }
 
     @Transactional
-    public AlertResponse confirm(UUID alertId, String fingerprint) {
+    public AlertResponse confirm(UUID alertId, String fingerprint, AuthUser confirmer) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new NotFoundException("Alert %s not found".formatted(alertId)));
 
-        if (alert.getReporterFingerprint().equals(fingerprint)) {
+        // Account identity is authoritative; the fingerprint check still
+        // covers legacy alerts reported before accounts were required.
+        if (confirmer.id().equals(alert.getReportedByUserId())
+                || alert.getReporterFingerprint().equals(fingerprint)) {
             throw new ConflictException("You cannot confirm your own report");
         }
-        if (confirmationRepository.existsByAlertIdAndFingerprint(alertId, fingerprint)) {
+        if (confirmationRepository.existsByAlertIdAndUserId(alertId, confirmer.id())) {
             throw new ConflictException("You have already confirmed this alert");
         }
         try {
-            confirmationRepository.save(new AlertConfirmation(alertId, fingerprint));
+            confirmationRepository.save(new AlertConfirmation(alertId, fingerprint, confirmer.id()));
         } catch (DataIntegrityViolationException e) {
             // Unique constraint race between the exists-check and the insert.
             throw new ConflictException("You have already confirmed this alert");

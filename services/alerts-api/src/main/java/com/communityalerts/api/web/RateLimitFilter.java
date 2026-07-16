@@ -1,5 +1,6 @@
 package com.communityalerts.api.web;
 
+import com.communityalerts.api.auth.AuthContext;
 import com.communityalerts.api.support.ClientFingerprint;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -61,7 +62,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String window = String.valueOf(Instant.now().getEpochSecond() / 60);
-        String key = "rl:" + ClientFingerprint.of(request) + ":" + window;
+        // Signed-in traffic is limited per account (stable across devices);
+        // anonymous traffic falls back to the client fingerprint.
+        String principal = AuthContext.optional(request)
+                .map(user -> "u-" + user.id())
+                .orElseGet(() -> ClientFingerprint.of(request));
+        String key = "rl:" + principal + ":" + window;
 
         try {
             Long count = redis.opsForValue().increment(key);

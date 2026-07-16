@@ -5,6 +5,7 @@ import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
 import com.communityalerts.api.dto.SeverityPreview;
 import com.communityalerts.api.dto.SeverityPreviewRequest;
+import com.communityalerts.api.auth.AuthContext;
 import com.communityalerts.api.service.AlertService;
 import com.communityalerts.api.service.MlServiceClient;
 import com.communityalerts.api.support.ClientFingerprint;
@@ -41,10 +42,12 @@ public class AlertController {
         this.mlServiceClient = mlServiceClient;
     }
 
+    /** Reporting requires an account: pings are visible to everyone. */
     @PostMapping
     public ResponseEntity<AlertResponse> create(@Valid @RequestBody CreateAlertRequest request,
                                                 HttpServletRequest httpRequest) {
-        AlertResponse created = alertService.create(request, ClientFingerprint.of(httpRequest));
+        AlertResponse created = alertService.create(
+                request, ClientFingerprint.of(httpRequest), AuthContext.require(httpRequest));
         return ResponseEntity
                 .created(URI.create("/api/v1/alerts/" + created.id()))
                 .body(created);
@@ -65,9 +68,11 @@ public class AlertController {
         return alertService.get(id);
     }
 
+    /** Confirming flips alerts to VERIFIED for everyone, so it needs an account too. */
     @PostMapping("/{id}/confirm")
     public AlertResponse confirm(@PathVariable UUID id, HttpServletRequest httpRequest) {
-        return alertService.confirm(id, ClientFingerprint.of(httpRequest));
+        return alertService.confirm(
+                id, ClientFingerprint.of(httpRequest), AuthContext.require(httpRequest));
     }
 
     @PostMapping("/severity-preview")

@@ -46,6 +46,10 @@ public class Alert {
     @Column(name = "reporter_fingerprint", nullable = false, length = 64)
     private String reporterFingerprint;
 
+    /** Null on alerts reported before accounts were required. */
+    @Column(name = "reported_by_user_id")
+    private UUID reportedByUserId;
+
     @Column(name = "confirmation_count", nullable = false)
     private int confirmationCount;
 
@@ -98,6 +102,9 @@ public class Alert {
 
     public String getReporterFingerprint() { return reporterFingerprint; }
     public void setReporterFingerprint(String reporterFingerprint) { this.reporterFingerprint = reporterFingerprint; }
+
+    public UUID getReportedByUserId() { return reportedByUserId; }
+    public void setReportedByUserId(UUID reportedByUserId) { this.reportedByUserId = reportedByUserId; }
 
     public int getConfirmationCount() { return confirmationCount; }
     public void setConfirmationCount(int confirmationCount) { this.confirmationCount = confirmationCount; }

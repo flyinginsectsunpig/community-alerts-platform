@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface AlertConfirmationRepository extends JpaRepository<AlertConfirmation, Long> {
 
-    boolean existsByAlertIdAndFingerprint(UUID alertId, String fingerprint);
+    boolean existsByAlertIdAndUserId(UUID alertId, UUID userId);
 }
