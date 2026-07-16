@@ -1035,6 +1035,24 @@ input[type="range"] {
   cursor: grabbing;
 }
 
+/* Category glyph pins: one neutral disc for every alert — severity lives in
+   the feed badges and detail panel, not on the map. */
+.category-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2f2d28;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.category-pin svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .comment-skeleton {
   display: flex;
   flex-direction: column;

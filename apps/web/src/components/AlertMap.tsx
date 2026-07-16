@@ -17,7 +17,8 @@ import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
-import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { categoryDivIcon } from "@/lib/categoryIcons";
+import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import type { Alert, Hotspot, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
@@ -160,19 +161,10 @@ export default function AlertMap({
         ))}
 
       {alerts.map((alert) => (
-        <CircleMarker
+        <Marker
           key={alert.id}
-          center={[alert.lat, alert.lng]}
-          radius={9}
-          pathOptions={{
-            // Critical pings trade the surface ring for a pulsing halo in
-            // their own color; everything else keeps the 2px separator ring.
-            color: alert.severity === "CRITICAL" ? SEVERITY_COLORS.CRITICAL : "#1a1a19",
-            weight: 2,
-            fillColor: SEVERITY_COLORS[alert.severity],
-            fillOpacity: 0.95,
-            className: alert.severity === "CRITICAL" ? "marker--critical" : undefined,
-          }}
+          position={[alert.lat, alert.lng]}
+          icon={categoryDivIcon(alert.category)}
         >
           <Tooltip>
             {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
@@ -206,7 +198,7 @@ export default function AlertMap({
               </div>
             </div>
           </Popup>
-        </CircleMarker>
+        </Marker>
       ))}
 
       {pendingPoint && (
