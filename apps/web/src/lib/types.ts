@@ -99,6 +99,16 @@ export interface WatchZone {
   createdAt: string;
 }
 
+/** Mirror of the API's NotificationResponse. */
+export interface ZoneNotification {
+  id: number;
+  watchZoneId: string;
+  alertId: string;
+  kind: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface AlertComment {
   id: number;
   alertId: string;
