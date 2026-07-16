@@ -113,4 +113,68 @@ class WatchZoneServiceTest {
 
         assertThat(zones).hasSize(1);
     }
+
+    @Test
+    @DisplayName("update by the owning fingerprint applies all fields")
+    void updateByOwnerApplies() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                " School run ", "new@example.com", 52.0, -1.0, 3000, List.of(AlertCategory.HAZARD));
+        WatchZoneResponse updated = watchZoneService.update(
+                zone.getId(), request, new ZoneOwner(null, "fp-123"));
+
+        assertThat(updated.name()).isEqualTo("School run");
+        assertThat(updated.contactEmail()).isEqualTo("new@example.com");
+        assertThat(updated.radiusM()).isEqualTo(3000);
+        assertThat(updated.centerLat()).isEqualTo(52.0);
+        assertThat(updated.categories()).containsExactly(AlertCategory.HAZARD);
+    }
+
+    @Test
+    @DisplayName("update by a non-owner reads as not found")
+    void updateByNonOwnerNotFound() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> watchZoneService.update(
+                        zone.getId(), validRequest(), new ZoneOwner(null, "fp-other")))
+                .isInstanceOf(com.communityalerts.api.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("a signed-in user cannot manage an anonymous zone without claiming it")
+    void authedUserCannotTouchAnonymousZone() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> watchZoneService.delete(
+                        zone.getId(), new ZoneOwner(UUID.randomUUID(), null)))
+                .isInstanceOf(com.communityalerts.api.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("legacy zones with no owner markers are unmanageable")
+    void legacyZoneUnmanageable() {
+        WatchZone zone = zoneOwnedByUser(null); // neither user nor fingerprint
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> watchZoneService.delete(
+                        zone.getId(), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(com.communityalerts.api.error.NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("delete by the owning user removes the zone")
+    void deleteByOwnerDeletes() {
+        UUID userId = UUID.randomUUID();
+        WatchZone zone = zoneOwnedByUser(userId);
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+
+        watchZoneService.delete(zone.getId(), new ZoneOwner(userId, null));
+
+        verify(watchZoneRepository).delete(zone);
+    }
 }
