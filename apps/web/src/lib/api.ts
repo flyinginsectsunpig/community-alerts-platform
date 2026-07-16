@@ -16,6 +16,7 @@ import type {
   StatsResponse,
   StationStats,
   WatchZone,
+  ZoneNotification,
 } from "./types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
@@ -54,6 +55,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(response.status, detail);
   }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
@@ -99,6 +105,33 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input),
     });
+  },
+
+  fetchWatchZones(): Promise<WatchZone[]> {
+    return request<WatchZone[]>("/api/v1/watch-zones");
+  },
+
+  updateWatchZone(id: string, input: CreateWatchZoneInput): Promise<WatchZone> {
+    return request<WatchZone>(`/api/v1/watch-zones/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  },
+
+  deleteWatchZone(id: string): Promise<void> {
+    return request<void>(`/api/v1/watch-zones/${id}`, { method: "DELETE" });
+  },
+
+  fetchClaimableZones(): Promise<WatchZone[]> {
+    return request<WatchZone[]>("/api/v1/watch-zones/claimable");
+  },
+
+  claimWatchZones(): Promise<WatchZone[]> {
+    return request<WatchZone[]>("/api/v1/watch-zones/claim", { method: "POST" });
+  },
+
+  fetchZoneNotifications(zoneId: string): Promise<ZoneNotification[]> {
+    return request<ZoneNotification[]>(`/api/v1/watch-zones/${zoneId}/notifications`);
   },
 
   signup(input: SignupInput): Promise<AuthResponse> {
