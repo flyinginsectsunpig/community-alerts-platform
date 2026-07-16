@@ -7,6 +7,8 @@ import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import ModalOverlay from "./ModalOverlay";
+import MyZonesPanel from "./MyZonesPanel";
 import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
@@ -58,6 +60,10 @@ export default function Dashboard() {
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [zoneDraft, setZoneDraft] = useState<ZoneDraft | null>(null);
+  const [zones, setZones] = useState<WatchZone[] | null>(null);
+  const [showZonesPanel, setShowZonesPanel] = useState(false);
+  const [editingZone, setEditingZone] = useState<WatchZone | null>(null);
+  const [claimOffer, setClaimOffer] = useState<WatchZone[] | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -203,7 +209,10 @@ export default function Dashboard() {
     setPendingPoint(null);
   }, []);
 
-  const closeZone = useCallback(() => setZoneDraft(null), []);
+  const closeZone = useCallback(() => {
+    setZoneDraft(null);
+    setEditingZone(null);
+  }, []);
 
   const handleZoneRadius = useCallback((radiusM: number) => {
     setZoneDraft((draft) => (draft ? { ...draft, radiusM } : draft));
@@ -225,9 +234,83 @@ export default function Dashboard() {
     showToast("info", "Report submitted — severity scoring in progress");
   }
 
+  const loadZones = useCallback(async () => {
+    try {
+      setZones(await api.fetchWatchZones());
+    } catch {
+      setZones([]);
+      showToast("error", "Could not load your watch zones");
+    }
+  }, [showToast]);
+
+  function openZonesPanel() {
+    setShowZonesPanel(true);
+    setZones(null);
+    void loadZones();
+  }
+
   function handleZoneCreated(zone: WatchZone) {
     closeZone();
-    showToast("info", `Watch zone “${zone.name}” created — notifications will collect there`);
+    setZones((current) => (current ? [zone, ...current] : current));
+    showToast("info", `Watch zone “${zone.name}” created — manage it under “My zones”`);
+  }
+
+  function handleZoneUpdated(zone: WatchZone) {
+    closeZone();
+    setZones((current) =>
+      current ? current.map((z) => (z.id === zone.id ? zone : z)) : current,
+    );
+    showToast("info", `Watch zone “${zone.name}” updated`);
+  }
+
+  function startEditZone(zone: WatchZone) {
+    setShowZonesPanel(false);
+    setEditingZone(zone);
+    setZoneDraft({ center: { lat: zone.centerLat, lng: zone.centerLng }, radiusM: zone.radiusM });
+    setFocus({ lat: zone.centerLat, lng: zone.centerLng });
+  }
+
+  async function handleDeleteZone(zone: WatchZone) {
+    if (!window.confirm(`Delete watch zone “${zone.name}”? Its notification history goes with it.`)) {
+      return;
+    }
+    const previous = zones;
+    setZones((current) => (current ? current.filter((z) => z.id !== zone.id) : current));
+    try {
+      await api.deleteWatchZone(zone.id);
+      showToast("info", `Watch zone “${zone.name}” deleted`);
+    } catch (e) {
+      setZones(previous);
+      showToast("error", e instanceof ApiError ? e.message : "Could not delete the watch zone");
+    }
+  }
+
+  function focusZone(zone: WatchZone) {
+    setFocus({ lat: zone.centerLat, lng: zone.centerLng });
+  }
+
+  async function offerClaim() {
+    try {
+      const claimable = await api.fetchClaimableZones();
+      if (claimable.length > 0) setClaimOffer(claimable);
+    } catch {
+      // Claiming is a bonus flow — stay quiet if it can't be checked.
+    }
+  }
+
+  async function handleClaim() {
+    try {
+      const adopted = await api.claimWatchZones();
+      setClaimOffer(null);
+      showToast(
+        "info",
+        `Added ${adopted.length} watch zone${adopted.length === 1 ? "" : "s"} to your account`,
+      );
+      if (zones !== null) void loadZones();
+    } catch (e) {
+      setClaimOffer(null);
+      showToast("error", e instanceof ApiError ? e.message : "Could not claim your watch zones");
+    }
   }
 
   async function handleConfirm(alertId: string) {
@@ -308,6 +391,9 @@ export default function Dashboard() {
             <span className="switch" aria-hidden />
             Stations
           </label>
+          <button type="button" className="btn btn--small" onClick={openZonesPanel}>
+            My zones
+          </button>
           {session ? (
             <div className="user-chip">
               <span className="user-chip__name">{session.displayName}</span>
@@ -356,9 +442,21 @@ export default function Dashboard() {
           {zoneDraft && (
             <WatchZonePanel
               draft={zoneDraft}
+              editing={editingZone}
+              session={session}
               onRadiusChange={handleZoneRadius}
               onClose={closeZone}
               onCreated={handleZoneCreated}
+              onUpdated={handleZoneUpdated}
+            />
+          )}
+          {showZonesPanel && !zoneDraft && (
+            <MyZonesPanel
+              zones={zones}
+              onClose={() => setShowZonesPanel(false)}
+              onEdit={startEditZone}
+              onDelete={(zone) => void handleDeleteZone(zone)}
+              onFocus={focusZone}
             />
           )}
           {showHint && (
@@ -411,8 +509,40 @@ export default function Dashboard() {
             setSession(authed);
             setShowAuthModal(false);
             showToast("info", `Welcome, ${authed.displayName}`);
+            void offerClaim();
           }}
         />
+      )}
+
+      {claimOffer && (
+        <ModalOverlay label="Add your watch zones to this account" onClose={() => setClaimOffer(null)}>
+          <div className="panel">
+            <div className="panel__header">
+              <h2>Watch zones on this device</h2>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => setClaimOffer(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <p className="panel__hint">
+              You have {claimOffer.length} watch zone{claimOffer.length === 1 ? "" : "s"} created on
+              this device. Add {claimOffer.length === 1 ? "it" : "them"} to your account so you can
+              manage {claimOffer.length === 1 ? "it" : "them"} from anywhere?
+            </p>
+            <div className="panel__actions">
+              <button type="button" className="btn btn--primary" onClick={() => void handleClaim()}>
+                Add to my account
+              </button>
+              <button type="button" className="btn" onClick={() => setClaimOffer(null)}>
+                Not now
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
       )}
 
       {toast && (
