@@ -1,6 +1,7 @@
 package com.communityalerts.api.service;
 
 import com.communityalerts.api.auth.AuthUser;
+import com.communityalerts.api.config.AlertLifecycleProperties;
 import com.communityalerts.api.config.RedisPubSubConfig;
 import com.communityalerts.api.domain.Alert;
 import com.communityalerts.api.domain.AlertCategory;
@@ -10,6 +11,7 @@ import com.communityalerts.api.domain.Severity;
 import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
 import com.communityalerts.api.error.ConflictException;
+import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.messaging.AlertEventPublisher;
 import com.communityalerts.api.messaging.events.AlertCreatedEvent;
@@ -44,6 +46,7 @@ public class AlertService {
     private final AlertEventPublisher eventPublisher;
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+    private final AlertLifecycleProperties lifecycleProperties;
     private final int verifyThreshold;
     private final long nearbyTtlSeconds;
 
@@ -52,6 +55,7 @@ public class AlertService {
                         AlertEventPublisher eventPublisher,
                         StringRedisTemplate redis,
                         ObjectMapper objectMapper,
+                        AlertLifecycleProperties lifecycleProperties,
                         @Value("${app.alerts.verify-threshold}") int verifyThreshold,
                         @Value("${app.cache.nearby-ttl-seconds}") long nearbyTtlSeconds) {
         this.alertRepository = alertRepository;
@@ -59,6 +63,7 @@ public class AlertService {
         this.eventPublisher = eventPublisher;
         this.redis = redis;
         this.objectMapper = objectMapper;
+        this.lifecycleProperties = lifecycleProperties;
         this.verifyThreshold = verifyThreshold;
         this.nearbyTtlSeconds = nearbyTtlSeconds;
     }
@@ -73,6 +78,7 @@ public class AlertService {
         alert.setLng(request.lng());
         alert.setReporterFingerprint(reporterFingerprint);
         alert.setReportedByUserId(reporter.id());
+        alert.setExpiresAt(Instant.now().plus(lifecycleProperties.ttlFor(request.category())));
 
         Alert saved = alertRepository.save(alert);
 
@@ -128,6 +134,25 @@ public class AlertService {
         if (alert.getStatus() == AlertStatus.ACTIVE && alert.getConfirmationCount() >= verifyThreshold) {
             alert.setStatus(AlertStatus.VERIFIED);
         }
+        Alert saved = alertRepository.save(alert);
+
+        AlertResponse response = AlertResponse.from(saved);
+        publishLive("alert.updated", response);
+        return response;
+    }
+
+    /** Reporter-only early close; the worker's sweep handles EXPIRED. */
+    @Transactional
+    public AlertResponse resolve(UUID alertId, AuthUser user) {
+        Alert alert = alertRepository.findById(alertId)
+                .orElseThrow(() -> new NotFoundException("Alert %s not found".formatted(alertId)));
+        if (!user.id().equals(alert.getReportedByUserId())) {
+            throw new ForbiddenException("Only the reporter can resolve this alert");
+        }
+        if (alert.getStatus() == AlertStatus.RESOLVED || alert.getStatus() == AlertStatus.EXPIRED) {
+            return AlertResponse.from(alert);
+        }
+        alert.setStatus(AlertStatus.RESOLVED);
         Alert saved = alertRepository.save(alert);
 
         AlertResponse response = AlertResponse.from(saved);
