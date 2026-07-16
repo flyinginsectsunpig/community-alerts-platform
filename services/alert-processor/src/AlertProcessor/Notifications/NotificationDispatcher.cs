@@ -7,10 +7,10 @@ namespace AlertProcessor.Notifications;
 
 /// <summary>
 /// Persists notifications for matched watch zones (served to users by the
-/// API), emails the zone contact via Resend, and, for escalations, POSTs to
-/// the optional webhook (e.g. Slack). Inserts are idempotent per
-/// (zone, alert, kind); emails fire only on a fresh insert so AMQP
-/// redeliveries never double-send.
+/// API), emails the zone contact via Resend when the zone has one, and, for
+/// escalations, POSTs to the optional webhook (e.g. Slack). Inserts are
+/// idempotent per (zone, alert, kind); emails fire only on a fresh insert so
+/// AMQP redeliveries never double-send.
 /// </summary>
 public sealed class NotificationDispatcher(
     INotificationRepository notificationRepository,
@@ -37,12 +37,14 @@ public sealed class NotificationDispatcher(
             if (inserted > 0)
             {
                 logger.LogInformation(
-                    "Notified zone {ZoneName} ({Email}) about alert {AlertId} ({Distance} m away)",
-                    match.Zone.Name, match.Zone.ContactEmail, alert.AlertId,
-                    Math.Round(match.DistanceMeters));
+                    "Notified zone {ZoneName} about alert {AlertId} ({Distance} m away)",
+                    match.Zone.Name, alert.AlertId, Math.Round(match.DistanceMeters));
 
-                var (subject, html) = EmailComposer.ZoneMatch(alert, match);
-                await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
+                if (!string.IsNullOrWhiteSpace(match.Zone.ContactEmail))
+                {
+                    var (subject, html) = EmailComposer.ZoneMatch(alert, match);
+                    await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
+                }
             }
         }
     }
@@ -62,8 +64,11 @@ public sealed class NotificationDispatcher(
 
             if (inserted > 0)
             {
-                var (subject, html) = EmailComposer.Escalation(alert, match);
-                await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
+                if (!string.IsNullOrWhiteSpace(match.Zone.ContactEmail))
+                {
+                    var (subject, html) = EmailComposer.Escalation(alert, match);
+                    await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
+                }
             }
         }
 

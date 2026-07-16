@@ -7,7 +7,7 @@ namespace AlertProcessor.Data;
 public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : IWatchZoneRepository
 {
     private sealed record Row(
-        Guid Id, string Name, string ContactEmail,
+        Guid Id, string Name, string? ContactEmail,
         double CenterLat, double CenterLng, int RadiusM, string Categories);
 
     public async Task<IReadOnlyList<WatchZone>> GetAllAsync(CancellationToken ct)
