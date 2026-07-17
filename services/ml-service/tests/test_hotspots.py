@@ -1,6 +1,12 @@
 import pytest
 
-from app.models.hotspots import AlertPoint, compute_hotspots, haversine_m
+from app.models.hotspots import (
+    AlertPoint,
+    StationCrime,
+    compute_hotspots,
+    haversine_m,
+    station_hotspots,
+)
 
 
 def cluster_around(lat: float, lng: float, count: int, category: str) -> list[AlertPoint]:
@@ -73,3 +79,33 @@ def test_invalid_parameters_are_rejected() -> None:
         compute_hotspots(points, eps_m=0)
     with pytest.raises(ValueError):
         compute_hotspots(points, min_samples=1)
+
+
+def test_station_hotspots_normalize_against_the_busiest_station() -> None:
+    stations = [
+        StationCrime(lat=-33.92, lng=18.42, total=400, top_category="Common assault"),
+        StationCrime(lat=-33.93, lng=18.47, total=200, top_category="Burglary at residential premises"),
+        StationCrime(lat=-33.95, lng=18.50, total=10, top_category="Shoplifting"),
+    ]
+
+    spots = station_hotspots(stations)
+
+    # The quiet station falls under the intensity floor and is dropped.
+    assert [s.count for s in spots] == [400, 200]
+    assert spots[0].intensity == 0.6  # busiest station carries the cap
+    assert spots[1].intensity == 0.3
+    assert spots[0].source == "STATIONS"
+    assert spots[0].dominant_category == "Common assault"
+
+
+def test_station_hotspots_with_no_data() -> None:
+    assert station_hotspots([]) == []
+
+
+def test_report_hotspots_are_tagged_with_their_source() -> None:
+    points = cluster_around(51.5074, -0.1278, 5, "THEFT")
+
+    hotspots = compute_hotspots(points, eps_m=250.0, min_samples=3)
+
+    assert hotspots[0].source == "REPORTS"
+    assert hotspots[0].to_dict()["source"] == "REPORTS"

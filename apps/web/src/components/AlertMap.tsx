@@ -19,7 +19,15 @@ import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import type { Alert, Hotspot, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
+import type {
+  Alert,
+  AlertCategory,
+  Hotspot,
+  LatLng,
+  StationStats,
+  WatchZone,
+  ZoneDraft,
+} from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -150,12 +158,20 @@ export default function AlertMap({
             pathOptions={{
               color: HOTSPOT_COLOR,
               weight: 1,
+              // Official station baselines wear a dashed ring so they read
+              // as background statistics, not live activity.
+              dashArray: hotspot.source === "STATIONS" ? "4 6" : undefined,
               fillColor: HOTSPOT_COLOR,
               fillOpacity: 0.1 + 0.25 * hotspot.intensity,
             }}
           >
             <Tooltip sticky>
-              {hotspot.count} alerts · mostly {CATEGORY_LABELS[hotspot.dominantCategory].toLowerCase()}
+              {hotspot.source === "STATIONS"
+                ? `${hotspot.count} incidents last quarter (SAPS) · mostly ${hotspot.dominantCategory.toLowerCase()}`
+                : `${hotspot.count} alerts · mostly ${(
+                    CATEGORY_LABELS[hotspot.dominantCategory as AlertCategory] ??
+                    hotspot.dominantCategory
+                  ).toLowerCase()}`}
             </Tooltip>
           </Circle>
         ))}
