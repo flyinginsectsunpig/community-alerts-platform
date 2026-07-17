@@ -1,5 +1,7 @@
 package com.communityalerts.api.service;
 
+import com.communityalerts.api.auth.AuthUser;
+import com.communityalerts.api.config.AlertLifecycleProperties;
 import com.communityalerts.api.config.RedisPubSubConfig;
 import com.communityalerts.api.domain.Alert;
 import com.communityalerts.api.domain.AlertCategory;
@@ -9,6 +11,7 @@ import com.communityalerts.api.domain.Severity;
 import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
 import com.communityalerts.api.error.ConflictException;
+import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.messaging.AlertEventPublisher;
 import com.communityalerts.api.messaging.events.AlertCreatedEvent;
@@ -43,6 +46,7 @@ public class AlertService {
     private final AlertEventPublisher eventPublisher;
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
+    private final AlertLifecycleProperties lifecycleProperties;
     private final int verifyThreshold;
     private final long nearbyTtlSeconds;
 
@@ -51,6 +55,7 @@ public class AlertService {
                         AlertEventPublisher eventPublisher,
                         StringRedisTemplate redis,
                         ObjectMapper objectMapper,
+                        AlertLifecycleProperties lifecycleProperties,
                         @Value("${app.alerts.verify-threshold}") int verifyThreshold,
                         @Value("${app.cache.nearby-ttl-seconds}") long nearbyTtlSeconds) {
         this.alertRepository = alertRepository;
@@ -58,12 +63,13 @@ public class AlertService {
         this.eventPublisher = eventPublisher;
         this.redis = redis;
         this.objectMapper = objectMapper;
+        this.lifecycleProperties = lifecycleProperties;
         this.verifyThreshold = verifyThreshold;
         this.nearbyTtlSeconds = nearbyTtlSeconds;
     }
 
     @Transactional
-    public AlertResponse create(CreateAlertRequest request, String reporterFingerprint) {
+    public AlertResponse create(CreateAlertRequest request, String reporterFingerprint, AuthUser reporter) {
         Alert alert = new Alert();
         alert.setId(UUID.randomUUID());
         alert.setCategory(request.category());
@@ -71,6 +77,8 @@ public class AlertService {
         alert.setLat(request.lat());
         alert.setLng(request.lng());
         alert.setReporterFingerprint(reporterFingerprint);
+        alert.setReportedByUserId(reporter.id());
+        alert.setExpiresAt(Instant.now().plus(lifecycleProperties.ttlFor(request.category())));
 
         Alert saved = alertRepository.save(alert);
 
@@ -102,18 +110,21 @@ public class AlertService {
     }
 
     @Transactional
-    public AlertResponse confirm(UUID alertId, String fingerprint) {
+    public AlertResponse confirm(UUID alertId, String fingerprint, AuthUser confirmer) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new NotFoundException("Alert %s not found".formatted(alertId)));
 
-        if (alert.getReporterFingerprint().equals(fingerprint)) {
+        // Account identity is authoritative; the fingerprint check still
+        // covers legacy alerts reported before accounts were required.
+        if (confirmer.id().equals(alert.getReportedByUserId())
+                || alert.getReporterFingerprint().equals(fingerprint)) {
             throw new ConflictException("You cannot confirm your own report");
         }
-        if (confirmationRepository.existsByAlertIdAndFingerprint(alertId, fingerprint)) {
+        if (confirmationRepository.existsByAlertIdAndUserId(alertId, confirmer.id())) {
             throw new ConflictException("You have already confirmed this alert");
         }
         try {
-            confirmationRepository.save(new AlertConfirmation(alertId, fingerprint));
+            confirmationRepository.save(new AlertConfirmation(alertId, fingerprint, confirmer.id()));
         } catch (DataIntegrityViolationException e) {
             // Unique constraint race between the exists-check and the insert.
             throw new ConflictException("You have already confirmed this alert");
@@ -123,6 +134,25 @@ public class AlertService {
         if (alert.getStatus() == AlertStatus.ACTIVE && alert.getConfirmationCount() >= verifyThreshold) {
             alert.setStatus(AlertStatus.VERIFIED);
         }
+        Alert saved = alertRepository.save(alert);
+
+        AlertResponse response = AlertResponse.from(saved);
+        publishLive("alert.updated", response);
+        return response;
+    }
+
+    /** Reporter-only early close; the worker's sweep handles EXPIRED. */
+    @Transactional
+    public AlertResponse resolve(UUID alertId, AuthUser user) {
+        Alert alert = alertRepository.findById(alertId)
+                .orElseThrow(() -> new NotFoundException("Alert %s not found".formatted(alertId)));
+        if (!user.id().equals(alert.getReportedByUserId())) {
+            throw new ForbiddenException("Only the reporter can resolve this alert");
+        }
+        if (alert.getStatus() == AlertStatus.RESOLVED || alert.getStatus() == AlertStatus.EXPIRED) {
+            return AlertResponse.from(alert);
+        }
+        alert.setStatus(AlertStatus.RESOLVED);
         Alert saved = alertRepository.save(alert);
 
         AlertResponse response = AlertResponse.from(saved);

@@ -70,21 +70,36 @@ within milliseconds and re-color when scoring lands.
   of alerts into intensity-weighted circles, cached in Redis for 5 minutes.
 - **Live feed** — SSE backed by Redis pub/sub, correct across API replicas;
   heartbeats keep proxies from dropping streams.
-- **Community verification** — "I saw this too" confirmations; 3 unique
-  confirmers flip an alert to VERIFIED (self- and duplicate-confirms rejected).
-- **Accounts + discussion threads** — email/password signup with HS256 JWTs
-  (`POST /api/v1/auth/signup|login`); each alert carries a flat, chronological
-  updates thread (`GET|POST /api/v1/alerts/{id}/comments`). Threads are
-  publicly readable, posting requires sign-in, and new comments stream live
-  to every open dashboard. Hybrid model: reporting stays anonymous.
+- **Community verification** — "I saw this too" confirmations, one per
+  account; 3 unique confirmers flip an alert to VERIFIED (self- and
+  duplicate-confirms rejected, even across devices).
+- **Accounts** — email/password signup with HS256 JWTs
+  (`POST /api/v1/auth/signup|login`). Everything that changes what the
+  community sees — reporting, confirming, commenting — requires sign-in;
+  watch zones stay anonymous-friendly. Each alert carries a flat updates
+  thread (`GET|POST /api/v1/alerts/{id}/comments`), publicly readable and
+  streamed live to every open dashboard.
+- **Alert lifecycle** — alerts auto-expire per category (24 h–7 d,
+  config-driven); the worker sweeps every 5 minutes and open maps drop the
+  pins live. Reporters can mark their own alerts resolved early.
+- **Category icon pins** — every report renders as a neutral pin with a
+  category glyph (flame for hazard, burglar for burglary, …); severity lives
+  in the feed and detail badges.
 - **Watch zones** — draw a radius, pick categories, get durable notifications;
   zones belong to your device fingerprint (or your account when signed in,
-  with a claim prompt to adopt device zones), and a "My zones" panel lists,
-  edits — geometry included — and deletes them and shows each zone's
-  notification history. CRITICAL (or high-risk HIGH) alerts escalate to 2x
-  every zone's radius and optionally POST to a Slack-compatible webhook.
-- **Abuse control** — Redis fixed-window rate limiting per anonymous client
-  fingerprint on all write endpoints (fails open if Redis is down).
+  with a claim prompt to adopt device zones — push subscriptions come along),
+  and a "My zones" panel lists, edits — geometry included — and deletes them,
+  shows each zone's notification history, and draws your zones on the map
+  while open. CRITICAL (or high-risk HIGH) alerts escalate to 2x every zone's
+  radius and optionally POST to a Slack-compatible webhook.
+- **Browser push** — opt in per device ("Notify this device"); zone hits
+  arrive as Web Push notifications (VAPID) even with the dashboard closed,
+  and dead subscriptions self-clean on 404/410.
+- **Email digests** — opt-in daily or weekly summary of your zones'
+  notifications, sent to the account address by a worker job at 06:00 SAST.
+- **Abuse control** — Redis fixed-window rate limiting on all write
+  endpoints, keyed per account when signed in and per client fingerprint
+  otherwise (fails open if Redis is down).
 - **7-day trends** — the worker maintains a stats snapshot in Redis; the API
   falls back to SQL aggregates when the cache is cold.
 - **Police stations layer** — official SAPS stations (toggleable, zoom-gated)
@@ -182,11 +197,12 @@ build time — build it with the API app's FQDN.
   App secrets in Azure. `.env` and `terraform.tfvars` are gitignored.
 - **Rotate any credential that has ever been shared in plaintext** (chat,
   email, tickets) via the Neon / Upstash / CloudAMQP consoles.
-- Hybrid identity model: reporting and confirming are deliberately anonymous
-  (random client fingerprint + rate limiting + community verification), while
-  commenting requires an account. Auth is a small explicit JWT filter
-  (`JWT_SECRET`, HS256) with bcrypt password hashes — spring-security-crypto
-  only, no full Spring Security stack. Auth endpoints share the write-path
-  rate limiter for brute-force protection.
+- Identity model: community-visible actions (reporting, confirming,
+  commenting) require an account; watch zones and push subscriptions work
+  anonymously per device fingerprint, with a claim flow that adopts both into
+  an account on sign-in. Auth is a small explicit JWT filter (`JWT_SECRET`,
+  HS256) with bcrypt password hashes — spring-security-crypto only, no full
+  Spring Security stack. Auth endpoints share the write-path rate limiter for
+  brute-force protection.
 - Geo queries use bounding-box + haversine on vanilla PostgreSQL — no PostGIS
   extension required on Neon's free tier.

@@ -12,6 +12,9 @@ COPY . .
 # NEXT_PUBLIC_* values are baked into the client bundle at build time.
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Public VAPID key for Web Push subscriptions; empty disables the opt-in UI.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
 RUN npm run build
 
 # ---- Runtime ----

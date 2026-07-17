@@ -19,7 +19,7 @@ public class WatchZone {
     @Column(nullable = false, length = 120)
     private String name;
 
-    @Column(name = "contact_email", nullable = false, length = 254)
+    @Column(name = "contact_email", length = 254)
     private String contactEmail;
 
     @Column(name = "center_lat", nullable = false)

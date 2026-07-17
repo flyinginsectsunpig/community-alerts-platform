@@ -7,7 +7,7 @@ namespace AlertProcessor.Data;
 public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : IWatchZoneRepository
 {
     private sealed record Row(
-        Guid Id, string Name, string ContactEmail,
+        Guid Id, string Name, string? ContactEmail,
         double CenterLat, double CenterLng, int RadiusM, string Categories);
 
     public async Task<IReadOnlyList<WatchZone>> GetAllAsync(CancellationToken ct)
@@ -44,6 +44,76 @@ public sealed class PostgresNotificationRepository(NpgsqlDataSource dataSource) 
         await using var connection = await dataSource.OpenConnectionAsync(ct);
         return await connection.ExecuteAsync(new CommandDefinition(
             sql, new { watchZoneId, alertId, kind, message }, cancellationToken: ct));
+    }
+}
+
+public sealed class PostgresPushSubscriptionRepository(NpgsqlDataSource dataSource) : IPushSubscriptionRepository
+{
+    public async Task<IReadOnlyList<PushSubscriptionRow>> GetForZoneAsync(Guid zoneId, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT ps.id, ps.endpoint, ps.p256dh, ps.auth
+            FROM push_subscriptions ps
+            JOIN watch_zones wz ON (wz.user_id IS NOT NULL AND ps.user_id = wz.user_id)
+                                OR (wz.owner_fingerprint IS NOT NULL
+                                    AND ps.owner_fingerprint = wz.owner_fingerprint)
+            WHERE wz.id = @zoneId
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<PushSubscriptionRow>(
+            new CommandDefinition(sql, new { zoneId }, cancellationToken: ct));
+        return rows.ToList();
+    }
+
+    public async Task DeleteAsync(string endpoint, CancellationToken ct)
+    {
+        const string sql = "DELETE FROM push_subscriptions WHERE endpoint = @endpoint";
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { endpoint }, cancellationToken: ct));
+    }
+}
+
+public sealed class PostgresDigestRepository(NpgsqlDataSource dataSource) : IDigestRepository
+{
+    public async Task<IReadOnlyList<DigestRow>> GetDigestRowsAsync(
+        string frequency, DateTimeOffset since, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT u.email, wz.name AS ZoneName, n.message, n.created_at AS CreatedAt
+            FROM users u
+            JOIN watch_zones wz ON wz.user_id = u.id
+            JOIN notifications n ON n.watch_zone_id = wz.id
+            WHERE u.digest_frequency = @frequency AND n.created_at >= @since
+            ORDER BY u.email, wz.name, n.created_at
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<DigestRow>(
+            new CommandDefinition(sql, new { frequency, since }, cancellationToken: ct));
+        return rows.ToList();
+    }
+}
+
+public sealed class PostgresAlertExpiryRepository(NpgsqlDataSource dataSource) : IAlertExpiryRepository
+{
+    public async Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct)
+    {
+        const string sql = """
+            UPDATE alerts SET status = 'EXPIRED', updated_at = now()
+            WHERE status IN ('ACTIVE', 'VERIFIED') AND expires_at < now()
+            RETURNING id, category, description, lat, lng, severity,
+                      risk_score AS RiskScore, status,
+                      confirmation_count AS ConfirmationCount,
+                      comment_count AS CommentCount,
+                      reported_by_user_id AS ReportedByUserId,
+                      created_at AS CreatedAt, updated_at AS UpdatedAt
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<ExpiredAlert>(
+            new CommandDefinition(sql, cancellationToken: ct));
+        return rows.ToList();
     }
 }
 

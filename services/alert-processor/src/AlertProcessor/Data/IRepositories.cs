@@ -13,6 +13,28 @@ public interface INotificationRepository
     Task<int> InsertAsync(Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct);
 }
 
+public interface IPushSubscriptionRepository
+{
+    /// <summary>Subscriptions belonging to the zone's owner (account or fingerprint).</summary>
+    Task<IReadOnlyList<PushSubscriptionRow>> GetForZoneAsync(Guid zoneId, CancellationToken ct);
+
+    /// <summary>Removes a subscription the push service reported gone (404/410).</summary>
+    Task DeleteAsync(string endpoint, CancellationToken ct);
+}
+
+public interface IAlertExpiryRepository
+{
+    /// <summary>Flips overdue ACTIVE/VERIFIED alerts to EXPIRED and returns them.</summary>
+    Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct);
+}
+
+public interface IDigestRepository
+{
+    /// <summary>Notifications since the window start for accounts at the given digest frequency.</summary>
+    Task<IReadOnlyList<DigestRow>> GetDigestRowsAsync(
+        string frequency, DateTimeOffset since, CancellationToken ct);
+}
+
 public interface IStatsRepository
 {
     Task<IReadOnlyList<CountRow>> GetCategoryCountsAsync(DateTimeOffset since, CancellationToken ct);

@@ -1,8 +1,10 @@
 """Crime hotspot detection.
 
-DBSCAN over recent alert coordinates using the haversine metric, producing
-circular hotspot zones the dashboard renders as a heat layer. Pure function
-of its inputs — trivially testable and cacheable.
+Two pure sources blended into one heat layer:
+- DBSCAN over recent alert coordinates (haversine metric) — live reports.
+- A per-station baseline from official SAPS latest-quarter crime stats, so
+  statistically dangerous areas glow even without recent user reports.
+Pure functions of their inputs — trivially testable and cacheable.
 """
 
 from __future__ import annotations
@@ -17,12 +19,30 @@ from sklearn.cluster import DBSCAN
 EARTH_RADIUS_M = 6_371_000.0
 _MIN_RADIUS_M = 75.0
 
+# Station-baseline tuning: official stats should inform, not shout over,
+# live reports — so their intensity is capped below a maxed-out report
+# cluster, drawn over a fixed precinct-scale radius, and stations too far
+# below the busiest one are dropped entirely.
+_STATION_RADIUS_M = 1500.0
+_STATION_MAX_INTENSITY = 0.6
+_STATION_MIN_INTENSITY = 0.15
+
 
 @dataclass(frozen=True)
 class AlertPoint:
     lat: float
     lng: float
     category: str
+
+
+@dataclass(frozen=True)
+class StationCrime:
+    """One SAPS station's latest-quarter totals (see db.fetch_station_crime)."""
+
+    lat: float
+    lng: float
+    total: int
+    top_category: str
 
 
 @dataclass(frozen=True)
@@ -33,6 +53,10 @@ class Hotspot:
     count: int
     dominant_category: str
     intensity: float
+    # "REPORTS" (live DBSCAN cluster; count = alerts, category = AlertCategory
+    # name) or "STATIONS" (SAPS baseline; count = quarterly incidents,
+    # category = raw SAPS category text). Mirrored in apps/web types.ts.
+    source: str = "REPORTS"
 
     def to_dict(self) -> dict:
         return {
@@ -42,6 +66,7 @@ class Hotspot:
             "count": self.count,
             "dominantCategory": self.dominant_category,
             "intensity": self.intensity,
+            "source": self.source,
         }
 
 
@@ -105,6 +130,34 @@ def compute_hotspots(
                 count=len(members),
                 dominant_category=dominant_category,
                 intensity=round(len(members) / max_count, 3),
+            )
+        )
+
+    hotspots.sort(key=lambda h: h.count, reverse=True)
+    return hotspots
+
+
+def station_hotspots(stations: list[StationCrime]) -> list[Hotspot]:
+    """Baseline heat from official SAPS stats, normalized to the busiest station."""
+    eligible = [s for s in stations if s.total > 0]
+    if not eligible:
+        return []
+
+    max_total = max(s.total for s in eligible)
+    hotspots: list[Hotspot] = []
+    for station in eligible:
+        intensity = round(station.total / max_total * _STATION_MAX_INTENSITY, 3)
+        if intensity < _STATION_MIN_INTENSITY:
+            continue
+        hotspots.append(
+            Hotspot(
+                center_lat=round(station.lat, 6),
+                center_lng=round(station.lng, 6),
+                radius_m=_STATION_RADIUS_M,
+                count=station.total,
+                dominant_category=station.top_category,
+                intensity=intensity,
+                source="STATIONS",
             )
         )
 

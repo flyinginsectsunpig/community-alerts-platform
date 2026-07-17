@@ -2,6 +2,7 @@ package com.communityalerts.api.web;
 
 import com.communityalerts.api.error.BadRequestException;
 import com.communityalerts.api.error.ConflictException;
+import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.error.ServiceUnavailableException;
 import com.communityalerts.api.error.UnauthorizedException;
@@ -33,6 +34,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ProblemDetail handleUnauthorized(UnauthorizedException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, e.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ProblemDetail handleForbidden(ForbiddenException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)

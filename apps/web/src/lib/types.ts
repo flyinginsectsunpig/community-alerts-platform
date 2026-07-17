@@ -23,6 +23,8 @@ export interface Alert {
   description: string;
   lat: number;
   lng: number;
+  /** Null on alerts reported before accounts were required. */
+  reportedByUserId: string | null;
   severity: Severity;
   riskScore: number | null;
   status: AlertStatus;
@@ -44,14 +46,18 @@ export interface Hotspot {
   centerLng: number;
   radiusM: number;
   count: number;
-  dominantCategory: AlertCategory;
+  /** An AlertCategory name for REPORTS; raw SAPS category text for STATIONS. */
+  dominantCategory: string;
   intensity: number;
+  /** Live report cluster, or official SAPS station baseline. */
+  source: "REPORTS" | "STATIONS";
 }
 
 export interface HotspotsResponse {
   hotspots: Hotspot[];
   windowHours: number;
   sampleSize: number;
+  stationSampleSize: number;
   generatedAt: string;
 }
 
@@ -81,17 +87,25 @@ export interface SeverityPreview {
 
 export interface CreateWatchZoneInput {
   name: string;
-  contactEmail: string;
   centerLat: number;
   centerLng: number;
   radiusM: number;
   categories: AlertCategory[];
 }
 
+/** The browser's PushSubscription.toJSON() shape, minus expirationTime. */
+export interface PushSubscriptionInput {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export interface WatchZone {
   id: string;
   name: string;
-  contactEmail: string;
+  contactEmail: string | null;
   centerLat: number;
   centerLng: number;
   radiusM: number;
@@ -127,6 +141,12 @@ export interface SignupInput {
 export interface LoginInput {
   email: string;
   password: string;
+}
+
+export type DigestFrequency = "OFF" | "DAILY" | "WEEKLY";
+
+export interface ProfileResponse {
+  digestFrequency: DigestFrequency;
 }
 
 export interface AuthResponse {

@@ -7,10 +7,13 @@ import type {
   AuthResponse,
   CreateAlertInput,
   CreateWatchZoneInput,
+  DigestFrequency,
   HotspotsResponse,
   LoginInput,
   MapBounds,
   PoliceStation,
+  ProfileResponse,
+  PushSubscriptionInput,
   SeverityPreview,
   SignupInput,
   StatsResponse,
@@ -85,6 +88,10 @@ export const api = {
     return request<Alert>(`/api/v1/alerts/${id}/confirm`, { method: "POST" });
   },
 
+  resolveAlert(id: string): Promise<Alert> {
+    return request<Alert>(`/api/v1/alerts/${id}/resolve`, { method: "POST" });
+  },
+
   previewSeverity(text: string): Promise<SeverityPreview> {
     return request<SeverityPreview>("/api/v1/alerts/severity-preview", {
       method: "POST",
@@ -130,6 +137,20 @@ export const api = {
     return request<WatchZone[]>("/api/v1/watch-zones/claim", { method: "POST" });
   },
 
+  savePushSubscription(input: PushSubscriptionInput): Promise<void> {
+    return request<void>("/api/v1/push/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  deletePushSubscription(endpoint: string): Promise<void> {
+    return request<void>("/api/v1/push/subscriptions", {
+      method: "DELETE",
+      body: JSON.stringify({ endpoint }),
+    });
+  },
+
   fetchZoneNotifications(zoneId: string): Promise<ZoneNotification[]> {
     return request<ZoneNotification[]>(`/api/v1/watch-zones/${zoneId}/notifications`);
   },
@@ -145,6 +166,17 @@ export const api = {
     return request<AuthResponse>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  },
+
+  fetchProfile(): Promise<ProfileResponse> {
+    return request<ProfileResponse>("/api/v1/auth/profile");
+  },
+
+  updateDigestFrequency(digestFrequency: DigestFrequency): Promise<ProfileResponse> {
+    return request<ProfileResponse>("/api/v1/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ digestFrequency }),
     });
   },
 

@@ -19,6 +19,8 @@ public record AlertResponse(
         AlertStatus status,
         int confirmationCount,
         int commentCount,
+        /* null on alerts reported before accounts were required */
+        UUID reportedByUserId,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -34,6 +36,7 @@ public record AlertResponse(
                 alert.getStatus(),
                 alert.getConfirmationCount(),
                 alert.getCommentCount(),
+                alert.getReportedByUserId(),
                 alert.getCreatedAt(),
                 alert.getUpdatedAt());
     }
