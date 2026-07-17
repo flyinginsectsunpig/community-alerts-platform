@@ -17,8 +17,17 @@ import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
-import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
-import type { Alert, Hotspot, LatLng, StationStats, ZoneDraft } from "@/lib/types";
+import { categoryDivIcon } from "@/lib/categoryIcons";
+import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import type {
+  Alert,
+  AlertCategory,
+  Hotspot,
+  LatLng,
+  StationStats,
+  WatchZone,
+  ZoneDraft,
+} from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -52,6 +61,8 @@ interface AlertMapProps {
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
+  /** Saved zones to display (My Zones panel open); null hides them. */
+  zones: WatchZone[] | null;
   onZoneMove: (center: LatLng) => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
@@ -109,6 +120,7 @@ export default function AlertMap({
   pendingPoint,
   focus,
   zoneDraft,
+  zones,
   onZoneMove,
   onMapClick,
   onConfirm,
@@ -146,30 +158,29 @@ export default function AlertMap({
             pathOptions={{
               color: HOTSPOT_COLOR,
               weight: 1,
+              // Official station baselines wear a dashed ring so they read
+              // as background statistics, not live activity.
+              dashArray: hotspot.source === "STATIONS" ? "4 6" : undefined,
               fillColor: HOTSPOT_COLOR,
               fillOpacity: 0.1 + 0.25 * hotspot.intensity,
             }}
           >
             <Tooltip sticky>
-              {hotspot.count} alerts · mostly {CATEGORY_LABELS[hotspot.dominantCategory].toLowerCase()}
+              {hotspot.source === "STATIONS"
+                ? `${hotspot.count} incidents last quarter (SAPS) · mostly ${hotspot.dominantCategory.toLowerCase()}`
+                : `${hotspot.count} alerts · mostly ${(
+                    CATEGORY_LABELS[hotspot.dominantCategory as AlertCategory] ??
+                    hotspot.dominantCategory
+                  ).toLowerCase()}`}
             </Tooltip>
           </Circle>
         ))}
 
       {alerts.map((alert) => (
-        <CircleMarker
+        <Marker
           key={alert.id}
-          center={[alert.lat, alert.lng]}
-          radius={9}
-          pathOptions={{
-            // Critical pings trade the surface ring for a pulsing halo in
-            // their own color; everything else keeps the 2px separator ring.
-            color: alert.severity === "CRITICAL" ? SEVERITY_COLORS.CRITICAL : "#1a1a19",
-            weight: 2,
-            fillColor: SEVERITY_COLORS[alert.severity],
-            fillOpacity: 0.95,
-            className: alert.severity === "CRITICAL" ? "marker--critical" : undefined,
-          }}
+          position={[alert.lat, alert.lng]}
+          icon={categoryDivIcon(alert.category)}
         >
           <Tooltip>
             {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
@@ -203,7 +214,7 @@ export default function AlertMap({
               </div>
             </div>
           </Popup>
-        </CircleMarker>
+        </Marker>
       ))}
 
       {pendingPoint && (
@@ -219,6 +230,22 @@ export default function AlertMap({
           }}
         />
       )}
+
+      {zones?.map((zone) => (
+        <Circle
+          key={zone.id}
+          center={[zone.centerLat, zone.centerLng]}
+          radius={zone.radiusM}
+          pathOptions={{
+            color: ZONE_COLOR,
+            weight: 2,
+            fillColor: ZONE_COLOR,
+            fillOpacity: 0.06,
+          }}
+        >
+          <Tooltip sticky>{zone.name}</Tooltip>
+        </Circle>
+      ))}
 
       {zoneDraft && (
         <>

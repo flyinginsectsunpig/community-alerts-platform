@@ -1,5 +1,7 @@
 package com.communityalerts.api.service;
 
+import com.communityalerts.api.auth.AuthUser;
+import com.communityalerts.api.config.AlertLifecycleProperties;
 import com.communityalerts.api.domain.Alert;
 import com.communityalerts.api.domain.AlertCategory;
 import com.communityalerts.api.domain.AlertStatus;
@@ -7,6 +9,7 @@ import com.communityalerts.api.domain.Severity;
 import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
 import com.communityalerts.api.error.ConflictException;
+import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.messaging.AlertEventPublisher;
 import com.communityalerts.api.messaging.events.AlertCreatedEvent;
@@ -43,6 +46,8 @@ class AlertServiceTest {
 
     private static final int VERIFY_THRESHOLD = 3;
     private static final long NEARBY_TTL_SECONDS = 30;
+    private static final AuthUser REPORTER = new AuthUser(UUID.randomUUID(), "Reporter");
+    private static final AuthUser CONFIRMER = new AuthUser(UUID.randomUUID(), "Confirmer");
 
     @Mock
     private AlertRepository alertRepository;
@@ -59,14 +64,18 @@ class AlertServiceTest {
 
     private AlertService alertService;
 
+    private final AlertLifecycleProperties lifecycleProperties = new AlertLifecycleProperties();
+
     @BeforeEach
     void setUp() {
+        lifecycleProperties.setTtlHours(java.util.Map.of("SUSPICIOUS_ACTIVITY", 24, "THEFT", 72));
         alertService = new AlertService(
                 alertRepository,
                 confirmationRepository,
                 eventPublisher,
                 redis,
                 objectMapper,
+                lifecycleProperties,
                 VERIFY_THRESHOLD,
                 NEARBY_TTL_SECONDS);
     }
@@ -97,11 +106,12 @@ class AlertServiceTest {
         CreateAlertRequest request = new CreateAlertRequest(
                 AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278);
 
-        AlertResponse response = alertService.create(request, "reporter-1");
+        AlertResponse response = alertService.create(request, "reporter-1", REPORTER);
 
         assertThat(response.id()).isNotNull();
         assertThat(response.severity()).isEqualTo(Severity.UNSCORED);
         assertThat(response.status()).isEqualTo(AlertStatus.ACTIVE);
+        assertThat(response.reportedByUserId()).isEqualTo(REPORTER.id());
 
         ArgumentCaptor<AlertCreatedEvent> eventCaptor = ArgumentCaptor.forClass(AlertCreatedEvent.class);
         verify(eventPublisher).publishAlertCreated(eventCaptor.capture());
@@ -109,6 +119,65 @@ class AlertServiceTest {
         assertThat(eventCaptor.getValue().category()).isEqualTo("THEFT");
 
         verify(redis).convertAndSend(eq("alerts.live"), anyString());
+    }
+
+    @Test
+    @DisplayName("create stamps the category's expiry window on the alert")
+    void createSetsCategoryExpiry() {
+        when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateAlertRequest request = new CreateAlertRequest(
+                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278);
+        alertService.create(request, "reporter-1", REPORTER);
+
+        ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(captor.capture());
+        Instant expected = Instant.now().plus(72, java.time.temporal.ChronoUnit.HOURS);
+        assertThat(captor.getValue().getExpiresAt())
+                .isBetween(expected.minusSeconds(60), expected.plusSeconds(60));
+    }
+
+    @Test
+    @DisplayName("resolve by the reporter closes the alert and pushes a live update")
+    void resolveByReporterCloses() {
+        UUID id = UUID.randomUUID();
+        Alert alert = persistedAlert(id, "reporter-1");
+        alert.setReportedByUserId(REPORTER.id());
+        when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
+        when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        AlertResponse response = alertService.resolve(id, REPORTER);
+
+        assertThat(response.status()).isEqualTo(AlertStatus.RESOLVED);
+        verify(redis).convertAndSend(eq("alerts.live"), anyString());
+    }
+
+    @Test
+    @DisplayName("resolve by anyone else is forbidden")
+    void resolveByNonReporterForbidden() {
+        UUID id = UUID.randomUUID();
+        Alert alert = persistedAlert(id, "reporter-1");
+        alert.setReportedByUserId(REPORTER.id());
+        when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
+
+        assertThatThrownBy(() -> alertService.resolve(id, CONFIRMER))
+                .isInstanceOf(ForbiddenException.class);
+        verify(alertRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("resolving an already-closed alert is idempotent")
+    void resolveAlreadyClosedIsIdempotent() {
+        UUID id = UUID.randomUUID();
+        Alert alert = persistedAlert(id, "reporter-1");
+        alert.setReportedByUserId(REPORTER.id());
+        alert.setStatus(AlertStatus.RESOLVED);
+        when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
+
+        AlertResponse response = alertService.resolve(id, REPORTER);
+
+        assertThat(response.status()).isEqualTo(AlertStatus.RESOLVED);
+        verify(alertRepository, never()).save(any());
     }
 
     @Test
@@ -143,10 +212,10 @@ class AlertServiceTest {
         Alert alert = persistedAlert(id, "reporter-1");
         alert.setConfirmationCount(VERIFY_THRESHOLD - 1);
         when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
-        when(confirmationRepository.existsByAlertIdAndFingerprint(id, "other-user")).thenReturn(false);
+        when(confirmationRepository.existsByAlertIdAndUserId(id, CONFIRMER.id())).thenReturn(false);
         when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AlertResponse response = alertService.confirm(id, "other-user");
+        AlertResponse response = alertService.confirm(id, "other-user", CONFIRMER);
 
         assertThat(response.confirmationCount()).isEqualTo(VERIFY_THRESHOLD);
         assertThat(response.status()).isEqualTo(AlertStatus.VERIFIED);
@@ -154,27 +223,41 @@ class AlertServiceTest {
     }
 
     @Test
-    @DisplayName("reporters cannot confirm their own alert")
+    @DisplayName("reporters cannot confirm their own alert, even from another device")
     void confirmOwnReportRejected() {
         UUID id = UUID.randomUUID();
         Alert alert = persistedAlert(id, "reporter-1");
+        alert.setReportedByUserId(REPORTER.id());
         when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
 
-        assertThatThrownBy(() -> alertService.confirm(id, "reporter-1"))
+        assertThatThrownBy(() -> alertService.confirm(id, "some-other-device", REPORTER))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("own report");
         verify(confirmationRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("duplicate confirmations are rejected")
+    @DisplayName("legacy anonymous reports still reject same-device self-confirms")
+    void confirmLegacyOwnReportRejectedByFingerprint() {
+        UUID id = UUID.randomUUID();
+        Alert alert = persistedAlert(id, "reporter-1"); // no reporter user id
+        when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
+
+        assertThatThrownBy(() -> alertService.confirm(id, "reporter-1", CONFIRMER))
+                .isInstanceOf(ConflictException.class)
+                .hasMessageContaining("own report");
+        verify(confirmationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("duplicate confirmations by the same account are rejected")
     void duplicateConfirmationRejected() {
         UUID id = UUID.randomUUID();
         Alert alert = persistedAlert(id, "reporter-1");
         when(alertRepository.findById(id)).thenReturn(Optional.of(alert));
-        when(confirmationRepository.existsByAlertIdAndFingerprint(id, "other-user")).thenReturn(true);
+        when(confirmationRepository.existsByAlertIdAndUserId(id, CONFIRMER.id())).thenReturn(true);
 
-        assertThatThrownBy(() -> alertService.confirm(id, "other-user"))
+        assertThatThrownBy(() -> alertService.confirm(id, "other-device", CONFIRMER))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("already confirmed");
     }

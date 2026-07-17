@@ -47,6 +47,9 @@ services:
       NOTIFICATION_WEBHOOK_URL: ${NOTIFICATION_WEBHOOK_URL}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT}
     # The API owns the Flyway migrations; start it first on a fresh database.
     depends_on:
       - alerts-api
@@ -80,6 +83,7 @@ services:
         # Baked at build time (Next.js public env); this is the URL the
         # *browser* uses, so it points at the host-mapped API port.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
     ports:
       - "3000:3000"
     depends_on:

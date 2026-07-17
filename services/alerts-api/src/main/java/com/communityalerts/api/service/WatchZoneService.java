@@ -7,6 +7,7 @@ import com.communityalerts.api.dto.NotificationResponse;
 import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.repository.NotificationRepository;
+import com.communityalerts.api.repository.PushSubscriptionRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
 import com.communityalerts.api.support.ZoneOwner;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,14 @@ public class WatchZoneService {
 
     private final WatchZoneRepository watchZoneRepository;
     private final NotificationRepository notificationRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
 
     public WatchZoneService(WatchZoneRepository watchZoneRepository,
-                            NotificationRepository notificationRepository) {
+                            NotificationRepository notificationRepository,
+                            PushSubscriptionRepository pushSubscriptionRepository) {
         this.watchZoneRepository = watchZoneRepository;
         this.notificationRepository = notificationRepository;
+        this.pushSubscriptionRepository = pushSubscriptionRepository;
     }
 
     @Transactional
@@ -48,7 +52,8 @@ public class WatchZoneService {
 
     private static void applyRequest(WatchZone zone, CreateWatchZoneRequest request) {
         zone.setName(request.name().trim());
-        zone.setContactEmail(request.contactEmail().trim().toLowerCase());
+        String email = request.contactEmail() == null ? "" : request.contactEmail().trim();
+        zone.setContactEmail(email.isEmpty() ? null : email.toLowerCase());
         zone.setCenterLat(request.centerLat());
         zone.setCenterLng(request.centerLng());
         zone.setRadiusM(request.radiusM());
@@ -100,6 +105,9 @@ public class WatchZoneService {
             zone.setUserId(userId);
             zone.setOwnerFingerprint(null);
         });
+        // This device's push subscriptions follow the account, so claimed
+        // zones keep notifying the device that created them.
+        pushSubscriptionRepository.claimByFingerprint(userId, fingerprint);
         return watchZoneRepository.saveAll(zones).stream().map(WatchZoneResponse::from).toList();
     }
 

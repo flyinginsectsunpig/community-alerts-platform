@@ -25,6 +25,10 @@ public class AlertConfirmation {
     @Column(nullable = false, length = 64)
     private String fingerprint;
 
+    /** Null on confirmations recorded before accounts were required. */
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -32,9 +36,10 @@ public class AlertConfirmation {
         // for JPA
     }
 
-    public AlertConfirmation(UUID alertId, String fingerprint) {
+    public AlertConfirmation(UUID alertId, String fingerprint, UUID userId) {
         this.alertId = alertId;
         this.fingerprint = fingerprint;
+        this.userId = userId;
     }
 
     @PrePersist
@@ -47,5 +52,6 @@ public class AlertConfirmation {
     public Long getId() { return id; }
     public UUID getAlertId() { return alertId; }
     public String getFingerprint() { return fingerprint; }
+    public UUID getUserId() { return userId; }
     public Instant getCreatedAt() { return createdAt; }
 }

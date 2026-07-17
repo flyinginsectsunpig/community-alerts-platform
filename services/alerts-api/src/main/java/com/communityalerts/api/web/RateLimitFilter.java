@@ -1,5 +1,6 @@
 package com.communityalerts.api.web;
 
+import com.communityalerts.api.auth.AuthContext;
 import com.communityalerts.api.support.ClientFingerprint;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -42,7 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         String uri = request.getRequestURI();
         if (("PUT".equals(method) || "DELETE".equals(method))
-                && uri.startsWith("/api/v1/watch-zones/")) {
+                && (uri.startsWith("/api/v1/watch-zones/") || uri.startsWith("/api/v1/push/"))) {
             return false;
         }
         if (!"POST".equals(method)) {
@@ -50,8 +51,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         boolean limited = uri.equals("/api/v1/alerts")
                 || uri.endsWith("/confirm")
+                || uri.endsWith("/resolve")
                 || uri.endsWith("/comments")
                 || uri.startsWith("/api/v1/watch-zones") // create + claim
+                || uri.startsWith("/api/v1/push/") // subscription writes
                 || uri.startsWith("/api/v1/auth/"); // brute-force protection
         return !limited;
     }
@@ -61,7 +64,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String window = String.valueOf(Instant.now().getEpochSecond() / 60);
-        String key = "rl:" + ClientFingerprint.of(request) + ":" + window;
+        // Signed-in traffic is limited per account (stable across devices);
+        // anonymous traffic falls back to the client fingerprint.
+        String principal = AuthContext.optional(request)
+                .map(user -> "u-" + user.id())
+                .orElseGet(() -> ClientFingerprint.of(request));
+        String key = "rl:" + principal + ":" + window;
 
         try {
             Long count = redis.opsForValue().increment(key);

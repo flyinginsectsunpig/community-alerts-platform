@@ -126,6 +126,10 @@ export default function Dashboard() {
   const upsertAlert = useCallback((alert: Alert) => {
     setAlerts((current) => {
       const others = current.filter((a) => a.id !== alert.id);
+      // Closed alerts leave the map and feed immediately.
+      if (alert.status === "RESOLVED" || alert.status === "EXPIRED") {
+        return others;
+      }
       return [alert, ...others].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
@@ -198,10 +202,16 @@ export default function Dashboard() {
         setZoneDraft((draft) => (draft ? { ...draft, center: point } : draft));
         return;
       }
+      if (!session) {
+        // Pings are visible to everyone, so reporting needs an account.
+        showToast("info", "Sign in to report an alert");
+        setShowAuthModal(true);
+        return;
+      }
       setPendingPoint(point);
       setPanelMode("report");
     },
-    [dismissHint, zoneActive],
+    [dismissHint, zoneActive, session, showToast],
   );
 
   const closePanel = useCallback(() => {
@@ -286,7 +296,10 @@ export default function Dashboard() {
   }
 
   function focusZone(zone: WatchZone) {
-    setFocus({ lat: zone.centerLat, lng: zone.centerLng });
+    // Rough zoom-to-fit: each zoom step halves the visible span. 10 km
+    // radius ≈ zoom 11, 1 km ≈ zoom 14, 100 m ≈ zoom 17.
+    const zoom = Math.round(Math.max(11, Math.min(17, 14 - Math.log2(zone.radiusM / 1000))));
+    setFocus({ lat: zone.centerLat, lng: zone.centerLng, zoom });
   }
 
   async function offerClaim() {
@@ -314,11 +327,26 @@ export default function Dashboard() {
   }
 
   async function handleConfirm(alertId: string) {
+    if (!session) {
+      showToast("info", "Sign in to confirm alerts");
+      setShowAuthModal(true);
+      return;
+    }
     try {
       upsertAlert(await api.confirmAlert(alertId));
       showToast("info", "Thanks — confirmation recorded");
     } catch (e) {
       showToast("error", e instanceof ApiError ? e.message : "Could not record the confirmation");
+    }
+  }
+
+  async function handleResolve(alertId: string) {
+    try {
+      upsertAlert(await api.resolveAlert(alertId));
+      setDetailAlertId(null);
+      showToast("info", "Alert marked as resolved");
+    } catch (e) {
+      showToast("error", e instanceof ApiError ? e.message : "Could not resolve the alert");
     }
   }
 
@@ -434,6 +462,7 @@ export default function Dashboard() {
             pendingPoint={pendingPoint}
             focus={focus}
             zoneDraft={zoneDraft}
+            zones={showZonesPanel && !zoneDraft ? zones : null}
             onZoneMove={handleZoneMove}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
@@ -453,6 +482,7 @@ export default function Dashboard() {
           {showZonesPanel && !zoneDraft && (
             <MyZonesPanel
               zones={zones}
+              session={session}
               onClose={() => setShowZonesPanel(false)}
               onEdit={startEditZone}
               onDelete={(zone) => void handleDeleteZone(zone)}
@@ -487,6 +517,7 @@ export default function Dashboard() {
               liveComment={liveComment}
               onClose={() => setDetailAlertId(null)}
               onConfirm={handleConfirm}
+              onResolve={(alertId) => void handleResolve(alertId)}
               onRequestAuth={() => setShowAuthModal(true)}
             />
           )}
