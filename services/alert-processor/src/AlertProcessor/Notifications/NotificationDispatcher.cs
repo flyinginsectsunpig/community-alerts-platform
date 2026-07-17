@@ -7,14 +7,16 @@ namespace AlertProcessor.Notifications;
 
 /// <summary>
 /// Persists notifications for matched watch zones (served to users by the
-/// API), emails the zone contact via Resend when the zone has one, and, for
-/// escalations, POSTs to the optional webhook (e.g. Slack). Inserts are
-/// idempotent per (zone, alert, kind); emails fire only on a fresh insert so
-/// AMQP redeliveries never double-send.
+/// API), delivers a browser push to the zone owner's subscribed devices, and,
+/// for escalations, POSTs to the optional webhook (e.g. Slack). Inserts are
+/// idempotent per (zone, alert, kind); pushes fire only on a fresh insert so
+/// AMQP redeliveries never double-send. Zone-hit email was retired in favour
+/// of push + account digests.
 /// </summary>
 public sealed class NotificationDispatcher(
     INotificationRepository notificationRepository,
-    IEmailSender emailSender,
+    IPushSubscriptionRepository pushSubscriptions,
+    IPushSender pushSender,
     HttpClient httpClient,
     WorkerOptions options,
     ILogger<NotificationDispatcher> logger)
@@ -40,11 +42,8 @@ public sealed class NotificationDispatcher(
                     "Notified zone {ZoneName} about alert {AlertId} ({Distance} m away)",
                     match.Zone.Name, alert.AlertId, Math.Round(match.DistanceMeters));
 
-                if (!string.IsNullOrWhiteSpace(match.Zone.ContactEmail))
-                {
-                    var (subject, html) = EmailComposer.ZoneMatch(alert, match);
-                    await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
-                }
+                await PushToZoneAsync(
+                    match.Zone, $"Alert near '{match.Zone.Name}'", message, alert.AlertId, ct);
             }
         }
     }
@@ -64,15 +63,32 @@ public sealed class NotificationDispatcher(
 
             if (inserted > 0)
             {
-                if (!string.IsNullOrWhiteSpace(match.Zone.ContactEmail))
-                {
-                    var (subject, html) = EmailComposer.Escalation(alert, match);
-                    await emailSender.SendAsync(match.Zone.ContactEmail, subject, html, ct);
-                }
+                await PushToZoneAsync(
+                    match.Zone, $"{alert.Severity} alert near '{match.Zone.Name}'",
+                    message, alert.AlertId, ct);
             }
         }
 
         await PostWebhookAsync(alert, matches.Count, ct);
+    }
+
+    /// <summary>Best-effort: a push failure never fails the durable notification.</summary>
+    private async Task PushToZoneAsync(
+        WatchZone zone, string title, string body, Guid alertId, CancellationToken ct)
+    {
+        if (!pushSender.Enabled)
+        {
+            return;
+        }
+
+        foreach (var subscription in await pushSubscriptions.GetForZoneAsync(zone.Id, ct))
+        {
+            var result = await pushSender.SendAsync(subscription, title, body, alertId, ct);
+            if (result == PushSendResult.Gone)
+            {
+                await pushSubscriptions.DeleteAsync(subscription.Endpoint, ct);
+            }
+        }
     }
 
     private async Task PostWebhookAsync(AlertScoredEvent alert, int zonesNotified, CancellationToken ct)
