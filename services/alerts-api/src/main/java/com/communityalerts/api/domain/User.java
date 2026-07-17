@@ -2,6 +2,8 @@ package com.communityalerts.api.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -25,6 +27,10 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "digest_frequency", nullable = false, length = 16)
+    private DigestFrequency digestFrequency = DigestFrequency.OFF;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -46,6 +52,9 @@ public class User {
 
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public DigestFrequency getDigestFrequency() { return digestFrequency; }
+    public void setDigestFrequency(DigestFrequency digestFrequency) { this.digestFrequency = digestFrequency; }
 
     public Instant getCreatedAt() { return createdAt; }
 }
