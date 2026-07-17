@@ -5,6 +5,7 @@ import com.communityalerts.api.domain.WatchZone;
 import com.communityalerts.api.dto.CreateWatchZoneRequest;
 import com.communityalerts.api.dto.WatchZoneResponse;
 import com.communityalerts.api.repository.NotificationRepository;
+import com.communityalerts.api.repository.PushSubscriptionRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
 import com.communityalerts.api.support.ZoneOwner;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,12 +32,15 @@ class WatchZoneServiceTest {
     private WatchZoneRepository watchZoneRepository;
     @Mock
     private NotificationRepository notificationRepository;
+    @Mock
+    private PushSubscriptionRepository pushSubscriptionRepository;
 
     private WatchZoneService watchZoneService;
 
     @BeforeEach
     void setUp() {
-        watchZoneService = new WatchZoneService(watchZoneRepository, notificationRepository);
+        watchZoneService = new WatchZoneService(
+                watchZoneRepository, notificationRepository, pushSubscriptionRepository);
     }
 
     private static CreateWatchZoneRequest validRequest() {
@@ -89,6 +93,19 @@ class WatchZoneServiceTest {
         ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
         verify(watchZoneRepository).save(captor.capture());
         assertThat(captor.getValue().getContactEmail()).isNull();
+    }
+
+    @Test
+    @DisplayName("claiming zones also claims this device's push subscriptions")
+    void claimAlsoClaimsPushSubscriptions() {
+        UUID userId = UUID.randomUUID();
+        when(watchZoneRepository.findByOwnerFingerprintAndUserIdIsNull("fp-123"))
+                .thenReturn(List.of(zoneOwnedByFingerprint("fp-123")));
+        when(watchZoneRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        watchZoneService.claim(userId, "fp-123");
+
+        verify(pushSubscriptionRepository).claimByFingerprint(userId, "fp-123");
     }
 
     @Test
