@@ -11,6 +11,7 @@ import type {
   LoginInput,
   MapBounds,
   PoliceStation,
+  PushSubscriptionInput,
   SeverityPreview,
   SignupInput,
   StatsResponse,
@@ -132,6 +133,20 @@ export const api = {
 
   claimWatchZones(): Promise<WatchZone[]> {
     return request<WatchZone[]>("/api/v1/watch-zones/claim", { method: "POST" });
+  },
+
+  savePushSubscription(input: PushSubscriptionInput): Promise<void> {
+    return request<void>("/api/v1/push/subscriptions", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  deletePushSubscription(endpoint: string): Promise<void> {
+    return request<void>("/api/v1/push/subscriptions", {
+      method: "DELETE",
+      body: JSON.stringify({ endpoint }),
+    });
   },
 
   fetchZoneNotifications(zoneId: string): Promise<ZoneNotification[]> {

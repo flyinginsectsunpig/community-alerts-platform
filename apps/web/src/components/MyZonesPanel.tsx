@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { disablePush, enablePush, getPushSubscription, pushSupported } from "@/lib/push";
 import type { WatchZone, ZoneNotification } from "@/lib/types";
+
+type PushState = "unsupported" | "off" | "on" | "busy";
 
 interface MyZonesPanelProps {
   /** null while the list is loading. */
@@ -19,6 +22,39 @@ export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus
   const [openZoneId, setOpenZoneId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Record<string, ZoneNotification[]>>({});
   const [notifErrors, setNotifErrors] = useState<Record<string, string>>({});
+  const [pushState, setPushState] = useState<PushState>("unsupported");
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pushSupported()) return;
+    let cancelled = false;
+    getPushSubscription().then((subscription) => {
+      if (!cancelled) setPushState(subscription ? "on" : "off");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function togglePush() {
+    const wasOn = pushState === "on";
+    setPushState("busy");
+    setPushError(null);
+    try {
+      if (wasOn) {
+        await disablePush();
+        setPushState("off");
+      } else if (await enablePush()) {
+        setPushState("on");
+      } else {
+        setPushState("off");
+        setPushError("Notifications are blocked for this site in your browser settings.");
+      }
+    } catch {
+      setPushState(wasOn ? "on" : "off");
+      setPushError("Could not update notifications for this device — try again.");
+    }
+  }
 
   // Escape closes the panel, unless a modal dialog is stacked above it.
   useEffect(() => {
@@ -63,6 +99,31 @@ export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus
           ×
         </button>
       </div>
+
+      {pushState !== "unsupported" && (
+        <div className="zone-item">
+          <p className="panel__hint">
+            {pushState === "on"
+              ? "This device gets a notification when an alert lands in your zones."
+              : "Get a notification on this device when an alert lands in your zones."}
+          </p>
+          <div className="panel__actions">
+            <button
+              type="button"
+              className="btn btn--small"
+              disabled={pushState === "busy"}
+              onClick={() => void togglePush()}
+            >
+              {pushState === "busy"
+                ? "Working…"
+                : pushState === "on"
+                  ? "Disable device notifications"
+                  : "Notify this device"}
+            </button>
+          </div>
+          {pushError && <p className="form-error">{pushError}</p>}
+        </div>
+      )}
 
       {zones === null && <p className="panel__hint">Loading…</p>}
       {zones?.length === 0 && (

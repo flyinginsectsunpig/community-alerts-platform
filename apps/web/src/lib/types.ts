@@ -89,6 +89,15 @@ export interface CreateWatchZoneInput {
   categories: AlertCategory[];
 }
 
+/** The browser's PushSubscription.toJSON() shape, minus expirationTime. */
+export interface PushSubscriptionInput {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export interface WatchZone {
   id: string;
   name: string;
