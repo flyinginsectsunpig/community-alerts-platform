@@ -8,26 +8,48 @@ namespace AlertProcessor.Tests;
 
 public class NotificationDispatcherTests
 {
-    private sealed class CountingNotificationRepository : INotificationRepository
+    private sealed class CountingNotificationRepository(int insertResult = 1) : INotificationRepository
     {
         public int Inserted { get; private set; }
 
         public Task<int> InsertAsync(
             Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct)
         {
-            Inserted++;
-            return Task.FromResult(1); // fresh insert every time
+            Inserted += insertResult;
+            return Task.FromResult(insertResult);
         }
     }
 
-    private sealed class RecordingEmailSender : IEmailSender
+    private sealed class FakePushSubscriptions(params PushSubscriptionRow[] rows) : IPushSubscriptionRepository
     {
-        public List<string> Recipients { get; } = [];
+        public List<string> Deleted { get; } = [];
+        public int Queries { get; private set; }
 
-        public Task SendAsync(string to, string subject, string html, CancellationToken ct)
+        public Task<IReadOnlyList<PushSubscriptionRow>> GetForZoneAsync(Guid zoneId, CancellationToken ct)
         {
-            Recipients.Add(to);
+            Queries++;
+            return Task.FromResult<IReadOnlyList<PushSubscriptionRow>>(rows);
+        }
+
+        public Task DeleteAsync(string endpoint, CancellationToken ct)
+        {
+            Deleted.Add(endpoint);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class RecordingPushSender(PushSendResult result = PushSendResult.Sent, bool enabled = true)
+        : IPushSender
+    {
+        public List<(string Endpoint, string Title)> Sent { get; } = [];
+
+        public bool Enabled => enabled;
+
+        public Task<PushSendResult> SendAsync(
+            PushSubscriptionRow subscription, string title, string body, Guid alertId, CancellationToken ct)
+        {
+            Sent.Add((subscription.Endpoint, title));
+            return Task.FromResult(result);
         }
     }
 
@@ -44,44 +66,79 @@ public class NotificationDispatcherTests
         // NotificationWebhookUrl stays null so the webhook path is inert.
     };
 
+    private static NotificationDispatcher Dispatcher(
+        CountingNotificationRepository repository,
+        FakePushSubscriptions subscriptions,
+        RecordingPushSender sender) => new(
+        repository, subscriptions, sender, new HttpClient(), Options(),
+        NullLogger<NotificationDispatcher>.Instance);
+
     private static AlertCreatedEvent Created() => new(
         Guid.NewGuid(), "THEFT", "Bike stolen from front garden",
         51.5074, -0.1278, DateTimeOffset.UtcNow);
 
-    private static ZoneMatch Match(string? email) => new(
-        new WatchZone(Guid.NewGuid(), "Home", email, 51.5074, -0.1278, 1000, []),
+    private static ZoneMatch Match() => new(
+        new WatchZone(Guid.NewGuid(), "Home", null, 51.5074, -0.1278, 1000, []),
         250.0);
 
+    private static PushSubscriptionRow Subscription(string endpoint) =>
+        new(1, endpoint, "p256dh", "auth");
+
     [Fact]
-    public async Task ZoneWithEmailIsEmailed()
+    public async Task FreshZoneMatchPushesToEverySubscription()
     {
         var repository = new CountingNotificationRepository();
-        var emails = new RecordingEmailSender();
-        var dispatcher = new NotificationDispatcher(
-            repository, emails, new HttpClient(), Options(),
-            NullLogger<NotificationDispatcher>.Instance);
+        var subscriptions = new FakePushSubscriptions(
+            Subscription("https://push/one"), Subscription("https://push/two"));
+        var sender = new RecordingPushSender();
 
-        await dispatcher.DispatchZoneMatchesAsync(
-            Created(), [Match("sam@example.com")], CancellationToken.None);
+        await Dispatcher(repository, subscriptions, sender)
+            .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
 
         Assert.Equal(1, repository.Inserted);
-        var recipient = Assert.Single(emails.Recipients);
-        Assert.Equal("sam@example.com", recipient);
+        Assert.Equal(2, sender.Sent.Count);
+        Assert.All(sender.Sent, s => Assert.Equal("Alert near 'Home'", s.Title));
+        Assert.Empty(subscriptions.Deleted);
     }
 
     [Fact]
-    public async Task ZoneWithoutEmailIsRecordedButNotEmailed()
+    public async Task GoneSubscriptionsAreDeleted()
     {
         var repository = new CountingNotificationRepository();
-        var emails = new RecordingEmailSender();
-        var dispatcher = new NotificationDispatcher(
-            repository, emails, new HttpClient(), Options(),
-            NullLogger<NotificationDispatcher>.Instance);
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/stale"));
+        var sender = new RecordingPushSender(PushSendResult.Gone);
 
-        await dispatcher.DispatchZoneMatchesAsync(
-            Created(), [Match(null)], CancellationToken.None);
+        await Dispatcher(repository, subscriptions, sender)
+            .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
+
+        Assert.Equal(["https://push/stale"], subscriptions.Deleted);
+    }
+
+    [Fact]
+    public async Task DisabledPushSkipsSubscriptionLookup()
+    {
+        var repository = new CountingNotificationRepository();
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+        var sender = new RecordingPushSender(enabled: false);
+
+        await Dispatcher(repository, subscriptions, sender)
+            .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
 
         Assert.Equal(1, repository.Inserted);
-        Assert.Empty(emails.Recipients);
+        Assert.Equal(0, subscriptions.Queries);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task RedeliveredMatchDoesNotPushAgain()
+    {
+        var repository = new CountingNotificationRepository(insertResult: 0);
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+        var sender = new RecordingPushSender();
+
+        await Dispatcher(repository, subscriptions, sender)
+            .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
+
+        Assert.Empty(sender.Sent);
     }
 }

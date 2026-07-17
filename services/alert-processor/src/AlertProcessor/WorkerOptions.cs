@@ -17,6 +17,9 @@ public sealed record WorkerOptions
     public string? NotificationWebhookUrl { get; init; }
     public string? ResendApiKey { get; init; }
     public string EmailFrom { get; init; } = DefaultEmailFrom;
+    public string? VapidPublicKey { get; init; }
+    public string? VapidPrivateKey { get; init; }
+    public string? VapidSubject { get; init; }
 
     /// <summary>Resend sandbox sender; verified-domain senders go in EMAIL_FROM.</summary>
     public const string DefaultEmailFrom = "Community Alerts <onboarding@resend.dev>";
@@ -43,6 +46,9 @@ public sealed record WorkerOptions
             NotificationWebhookUrl = Optional("NOTIFICATION_WEBHOOK_URL"),
             ResendApiKey = Optional("RESEND_API_KEY"),
             EmailFrom = Optional("EMAIL_FROM") ?? DefaultEmailFrom,
+            VapidPublicKey = Optional("VAPID_PUBLIC_KEY"),
+            VapidPrivateKey = Optional("VAPID_PRIVATE_KEY"),
+            VapidSubject = Optional("VAPID_SUBJECT"),
         };
     }
 

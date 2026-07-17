@@ -47,6 +47,33 @@ public sealed class PostgresNotificationRepository(NpgsqlDataSource dataSource) 
     }
 }
 
+public sealed class PostgresPushSubscriptionRepository(NpgsqlDataSource dataSource) : IPushSubscriptionRepository
+{
+    public async Task<IReadOnlyList<PushSubscriptionRow>> GetForZoneAsync(Guid zoneId, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT ps.id, ps.endpoint, ps.p256dh, ps.auth
+            FROM push_subscriptions ps
+            JOIN watch_zones wz ON (wz.user_id IS NOT NULL AND ps.user_id = wz.user_id)
+                                OR (wz.owner_fingerprint IS NOT NULL
+                                    AND ps.owner_fingerprint = wz.owner_fingerprint)
+            WHERE wz.id = @zoneId
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<PushSubscriptionRow>(
+            new CommandDefinition(sql, new { zoneId }, cancellationToken: ct));
+        return rows.ToList();
+    }
+
+    public async Task DeleteAsync(string endpoint, CancellationToken ct)
+    {
+        const string sql = "DELETE FROM push_subscriptions WHERE endpoint = @endpoint";
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { endpoint }, cancellationToken: ct));
+    }
+}
+
 public sealed class PostgresAlertExpiryRepository(NpgsqlDataSource dataSource) : IAlertExpiryRepository
 {
     public async Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct)
