@@ -14,6 +14,9 @@ public sealed record ZoneMatch(WatchZone Zone, double DistanceMeters);
 /// <summary>A browser push target for a zone owner's device.</summary>
 public sealed record PushSubscriptionRow(long Id, string Endpoint, string P256dh, string Auth);
 
+/// <summary>One zone notification joined to its opted-in account, for digests.</summary>
+public sealed record DigestRow(string Email, string ZoneName, string Message, DateTimeOffset CreatedAt);
+
 /// <summary>
 /// An alert flipped to EXPIRED by the sweep. Serialized (camelCase) into the
 /// <c>alerts.live</c> pub/sub payload; must mirror the Java API's
