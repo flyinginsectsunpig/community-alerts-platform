@@ -11,7 +11,7 @@ interface AuthModalProps {
   onAuthed: (session: AuthSession) => void;
 }
 
-type Mode = "signin" | "signup";
+type Mode = "signin" | "signup" | "reset";
 
 export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
   const [mode, setMode] = useState<Mode>("signin");
@@ -20,16 +20,29 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetRequested, setResetRequested] = useState(false);
 
   function switchMode(next: Mode) {
     setMode(next);
     setError(null);
+    setResetRequested(false);
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
+    if (mode === "reset") {
+      try {
+        await api.requestPasswordReset(email.trim());
+        setResetRequested(true);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : "Something went wrong — try again");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
     try {
       const response =
         mode === "signup"
@@ -54,12 +67,19 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
     <ModalOverlay label="Sign in or create an account" onClose={onClose}>
       <form className="panel" onSubmit={handleSubmit}>
         <div className="panel__header">
-          <h2>{mode === "signin" ? "Sign in" : "Create an account"}</h2>
+          <h2>
+            {mode === "signin"
+              ? "Sign in"
+              : mode === "signup"
+                ? "Create an account"
+                : "Reset your password"}
+          </h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
 
+        {mode !== "reset" && (
         <div className="auth-tabs" role="tablist">
           <button
             type="button"
@@ -80,7 +100,14 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
             Sign up
           </button>
         </div>
+        )}
 
+        {mode === "reset" && resetRequested ? (
+          <p className="panel__hint">
+            If that email has an account, a reset link is on its way. The link
+            works once and expires in an hour.
+          </p>
+        ) : (
         <label className="field">
           <span>Email</span>
           <input
@@ -92,6 +119,7 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
             required
           />
         </label>
+        )}
 
         {mode === "signup" && (
           <label className="field">
@@ -108,6 +136,7 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
           </label>
         )}
 
+        {mode !== "reset" && (
         <label className="field">
           <span>Password{mode === "signup" ? " (at least 8 characters)" : ""}</span>
           <input
@@ -120,21 +149,43 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
             required
           />
         </label>
+        )}
+
+        {mode === "signin" && (
+          <button type="button" className="link-button" onClick={() => switchMode("reset")}>
+            Forgot your password?
+          </button>
+        )}
 
         {error && <p className="form-error">{error}</p>}
 
         <div className="panel__actions">
-          <button type="submit" className="btn btn--primary" disabled={submitting}>
-            {submitting ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
-          </button>
+          {!(mode === "reset" && resetRequested) && (
+            <button type="submit" className="btn btn--primary" disabled={submitting}>
+              {submitting
+                ? "Working…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : mode === "signup"
+                    ? "Create account"
+                    : "Send reset link"}
+            </button>
+          )}
           <button type="button" className="btn" onClick={onClose}>
-            Cancel
+            {mode === "reset" && resetRequested ? "Close" : "Cancel"}
           </button>
         </div>
 
-        <p className="panel__hint">
-          Reporting stays anonymous — an account is only needed to join alert discussions.
-        </p>
+        {mode === "reset" ? (
+          <button type="button" className="link-button" onClick={() => switchMode("signin")}>
+            Back to sign in
+          </button>
+        ) : (
+          <p className="panel__hint">
+            An account is needed to report, confirm, and discuss alerts — watch
+            zones work without one.
+          </p>
+        )}
       </form>
     </ModalOverlay>
   );

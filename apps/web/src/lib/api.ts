@@ -169,6 +169,20 @@ export const api = {
     });
   },
 
+  requestPasswordReset(email: string): Promise<void> {
+    return request<void>("/api/v1/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword(token: string, password: string): Promise<void> {
+    return request<void>("/api/v1/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    });
+  },
+
   fetchProfile(): Promise<ProfileResponse> {
     return request<ProfileResponse>("/api/v1/auth/profile");
   },
