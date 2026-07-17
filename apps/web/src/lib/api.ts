@@ -7,10 +7,12 @@ import type {
   AuthResponse,
   CreateAlertInput,
   CreateWatchZoneInput,
+  DigestFrequency,
   HotspotsResponse,
   LoginInput,
   MapBounds,
   PoliceStation,
+  ProfileResponse,
   PushSubscriptionInput,
   SeverityPreview,
   SignupInput,
@@ -164,6 +166,17 @@ export const api = {
     return request<AuthResponse>("/api/v1/auth/login", {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  },
+
+  fetchProfile(): Promise<ProfileResponse> {
+    return request<ProfileResponse>("/api/v1/auth/profile");
+  },
+
+  updateDigestFrequency(digestFrequency: DigestFrequency): Promise<ProfileResponse> {
+    return request<ProfileResponse>("/api/v1/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ digestFrequency }),
     });
   },
 

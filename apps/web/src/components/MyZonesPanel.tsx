@@ -3,27 +3,73 @@
 import { useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
+import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import { disablePush, enablePush, getPushSubscription, pushSupported } from "@/lib/push";
-import type { WatchZone, ZoneNotification } from "@/lib/types";
+import type { DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
 
 type PushState = "unsupported" | "off" | "on" | "busy";
 
 interface MyZonesPanelProps {
   /** null while the list is loading. */
   zones: WatchZone[] | null;
+  session: AuthSession | null;
   onClose: () => void;
   onEdit: (zone: WatchZone) => void;
   onDelete: (zone: WatchZone) => void;
   onFocus: (zone: WatchZone) => void;
 }
 
-export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus }: MyZonesPanelProps) {
+export default function MyZonesPanel({
+  zones,
+  session,
+  onClose,
+  onEdit,
+  onDelete,
+  onFocus,
+}: MyZonesPanelProps) {
   const [openZoneId, setOpenZoneId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Record<string, ZoneNotification[]>>({});
   const [notifErrors, setNotifErrors] = useState<Record<string, string>>({});
   const [pushState, setPushState] = useState<PushState>("unsupported");
   const [pushError, setPushError] = useState<string | null>(null);
+  // null while loading; the control stays disabled until the profile arrives.
+  const [digest, setDigest] = useState<DigestFrequency | null>(null);
+  const [digestBusy, setDigestBusy] = useState(false);
+  const [digestError, setDigestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
+    api
+      .fetchProfile()
+      .then((profile) => {
+        if (!cancelled) setDigest(profile.digestFrequency);
+      })
+      .catch(() => {
+        if (!cancelled) setDigestError("Could not load your digest setting.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  async function changeDigest(frequency: DigestFrequency) {
+    const previous = digest;
+    setDigest(frequency);
+    setDigestBusy(true);
+    setDigestError(null);
+    try {
+      await api.updateDigestFrequency(frequency);
+    } catch (e) {
+      setDigest(previous);
+      setDigestError(
+        e instanceof ApiError ? e.message : "Could not update the digest setting — try again.",
+      );
+    } finally {
+      setDigestBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!pushSupported()) return;
@@ -124,6 +170,26 @@ export default function MyZonesPanel({ zones, onClose, onEdit, onDelete, onFocus
           {pushError && <p className="form-error">{pushError}</p>}
         </div>
       )}
+
+      <div className="zone-item">
+        {session ? (
+          <label className="field">
+            <span>Email digest of your zones</span>
+            <select
+              value={digest ?? "OFF"}
+              disabled={digest === null || digestBusy}
+              onChange={(event) => void changeDigest(event.target.value as DigestFrequency)}
+            >
+              <option value="OFF">Off</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+            </select>
+          </label>
+        ) : (
+          <p className="panel__hint">Sign in to get email summaries of your zones.</p>
+        )}
+        {digestError && <p className="form-error">{digestError}</p>}
+      </div>
 
       {zones === null && <p className="panel__hint">Loading…</p>}
       {zones?.length === 0 && (

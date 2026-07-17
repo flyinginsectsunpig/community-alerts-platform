@@ -139,6 +139,12 @@ export interface LoginInput {
   password: string;
 }
 
+export type DigestFrequency = "OFF" | "DAILY" | "WEEKLY";
+
+export interface ProfileResponse {
+  digestFrequency: DigestFrequency;
+}
+
 export interface AuthResponse {
   token: string;
   userId: string;

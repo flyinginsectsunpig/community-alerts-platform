@@ -482,6 +482,7 @@ export default function Dashboard() {
           {showZonesPanel && !zoneDraft && (
             <MyZonesPanel
               zones={zones}
+              session={session}
               onClose={() => setShowZonesPanel(false)}
               onEdit={startEditZone}
               onDelete={(zone) => void handleDeleteZone(zone)}
