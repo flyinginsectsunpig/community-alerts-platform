@@ -2,32 +2,35 @@ import L from "leaflet";
 
 import type { AlertCategory } from "./types";
 
-/**
- * One inline SVG glyph per category, rendered white inside the neutral
- * `.category-pin` disc (see globals.css). Deliberately simple silhouettes —
- * they have to read at 14px on a dark map.
- */
+// Glyph path data from Lucide (https://lucide.dev), ISC License.
+// Rendered as white strokes inside the neutral `.category-pin` disc
+// (globals.css); simple, professionally drawn shapes that stay readable
+// at pin size on a dark map.
+const SVG_OPEN =
+  `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" ` +
+  `stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">`;
+
 const CATEGORY_GLYPHS: Record<AlertCategory, string> = {
-  // Wallet with a notch.
-  THEFT: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v7A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5v-7Zm8 2.5a1 1 0 1 0 0 2h4V7h-4Z"/></svg>`,
-  // Raised fist.
-  ASSAULT: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M5 2.5a1 1 0 0 1 2 0V6h.5V1.5a1 1 0 0 1 2 0V6h.5V2.5a1 1 0 0 1 2 0V8.8c0 .6-.2 1.2-.6 1.7l-1 1.2a2 2 0 0 0-.4 1.3v1.5H6v-1.6a2 2 0 0 0-.6-1.4L4.2 10A2.6 2.6 0 0 1 3.5 8V5a1 1 0 0 1 2 0v1.6H5V2.5Z"/></svg>`,
-  // Burglar: masked head over a swag bag.
-  BURGLARY: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M8 2a3 3 0 0 1 3 3H5a3 3 0 0 1 3-3Zm-3.5 4h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1ZM8 8c2.8 0 5 2 5 4.5 0 .8-.7 1.5-1.5 1.5h-7c-.8 0-1.5-.7-1.5-1.5C3 10 5.2 8 8 8Z"/><circle cx="6.6" cy="4.4" r=".8" fill="#2f2d28"/><circle cx="9.4" cy="4.4" r=".8" fill="#2f2d28"/></svg>`,
-  // Spray can with mist.
-  VANDALISM: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M6 2h2v1.5H6V2Zm-1 2.5h4A1.5 1.5 0 0 1 10.5 6v6.5A1.5 1.5 0 0 1 9 14H5a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 5 4.5Z"/><circle cx="12.2" cy="3" r=".9" fill="#fff"/><circle cx="14" cy="5" r=".7" fill="#fff"/><circle cx="12.6" cy="6.8" r=".6" fill="#fff"/></svg>`,
-  // Eye.
-  SUSPICIOUS_ACTIVITY: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M8 4c3.2 0 5.6 2.2 6.7 3.7a.6.6 0 0 1 0 .6C13.6 9.8 11.2 12 8 12S2.4 9.8 1.3 8.3a.6.6 0 0 1 0-.6C2.4 6.2 4.8 4 8 4Z"/><circle cx="8" cy="8" r="2.2" fill="#2f2d28"/><circle cx="8" cy="8" r="1" fill="#fff"/></svg>`,
-  // Car silhouette.
-  VEHICLE_CRIME: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M3.6 6.6 4.5 4A1.5 1.5 0 0 1 5.9 3h4.2a1.5 1.5 0 0 1 1.4 1l.9 2.6c.9.2 1.6 1 1.6 2v2.4a1 1 0 0 1-1 1h-.5a1.25 1.25 0 0 1-2.5 0h-4a1.25 1.25 0 0 1-2.5 0H3a1 1 0 0 1-1-1V8.6c0-1 .7-1.8 1.6-2Zm1.9-.1h5l-.6-1.8a.5.5 0 0 0-.5-.35H6.6a.5.5 0 0 0-.5.35L5.5 6.5Z"/></svg>`,
-  // Capsule pill, angled.
-  DRUGS: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M3.2 9.6 9.6 3.2a3.1 3.1 0 0 1 4.4 4.4l-6.4 6.4a3.1 3.1 0 0 1-4.4-4.4Zm3.3 3.3 2.9-2.9-3.3-3.3-2.9 2.9a2 2 0 1 0 3.3 3.3Z"/></svg>`,
-  // Speech bubble with exclamation mark.
-  HARASSMENT: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v6a1.5 1.5 0 0 1-1.5 1.5H8.4L5 14.4a.5.5 0 0 1-.8-.4v-2.5H3A1.5 1.5 0 0 1 1.5 10V4A1.5 1.5 0 0 1 3 2.5Z"/><path fill="#2f2d28" d="M7.4 4.4h1.2l-.2 3.4H7.6l-.2-3.4ZM8 8.7a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6Z"/></svg>`,
-  // Flame.
-  HAZARD: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M8.2 1.5c.3 2 1.6 3.1 2.8 4.3 1.2 1.2 2.3 2.5 2.3 4.4a5.3 5.3 0 0 1-10.6 0c0-1.4.6-2.6 1.4-3.5.3 1 .8 1.6 1.5 2 0-2.3.6-5.6 2.6-7.2Zm-.1 11.9a2.3 2.3 0 0 0 2.3-2.3c0-1-.6-1.6-1.2-2.2-.5-.6-1-1-1.3-1.9-.9 1-1.4 2.4-1.4 3.6 0 1.6 1 2.8 1.6 2.8Z"/></svg>`,
-  // Question mark.
-  OTHER: `<svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="#fff" d="M8 1.8A3.7 3.7 0 0 1 11.7 5.5c0 1.6-1 2.4-1.8 3-.6.5-1 .8-1 1.5v.3H6.9v-.4c0-1.4.8-2 1.5-2.6.6-.5 1.2-.9 1.2-1.8a1.6 1.6 0 0 0-3.2 0H4.3A3.7 3.7 0 0 1 8 1.8ZM8 11.6a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6Z"/></svg>`,
+  // wallet
+  THEFT: `<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>`,
+  // zap
+  ASSAULT: `<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>`,
+  // door-open
+  BURGLARY: `<path d="M11 20H2"/><path d="M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.562Z"/><path d="M11 4H8a2 2 0 0 0-2 2v14"/><path d="M14 12h.01"/><path d="M22 20h-3"/>`,
+  // spray-can
+  VANDALISM: `<path d="M3 3h.01"/><path d="M7 5h.01"/><path d="M11 7h.01"/><path d="M3 7h.01"/><path d="M7 9h.01"/><path d="M3 11h.01"/><rect width="4" height="4" x="15" y="5"/><path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2"/><path d="m13 14 8-2"/><path d="m13 19 8-2"/>`,
+  // eye
+  SUSPICIOUS_ACTIVITY: `<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>`,
+  // car
+  VEHICLE_CRIME: `<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>`,
+  // pill
+  DRUGS: `<path d="M10.5 20.5 3.5 13.5a4.95 4.95 0 1 1 7-7l7 7a4.95 4.95 0 1 1-7 7Z"/><path d="m8.5 8.5 7 7"/>`,
+  // message-square-warning
+  HARASSMENT: `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v2"/><path d="M12 13h.01"/>`,
+  // flame
+  HAZARD: `<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>`,
+  // circle-help's question mark (the disc itself is the circle)
+  OTHER: `<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`,
 };
 
 const iconCache = new Map<AlertCategory, L.DivIcon>();
@@ -38,7 +41,7 @@ export function categoryDivIcon(category: AlertCategory): L.DivIcon {
   if (!icon) {
     icon = L.divIcon({
       className: "category-pin",
-      html: CATEGORY_GLYPHS[category],
+      html: `${SVG_OPEN}${CATEGORY_GLYPHS[category]}</svg>`,
       iconSize: [26, 26],
       iconAnchor: [13, 13],
       popupAnchor: [0, -14],
