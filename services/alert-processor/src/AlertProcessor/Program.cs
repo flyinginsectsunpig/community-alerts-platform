@@ -23,6 +23,7 @@ builder.Services.AddSingleton<INotificationRepository, PostgresNotificationRepos
 builder.Services.AddSingleton<IStatsRepository, PostgresStatsRepository>();
 builder.Services.AddSingleton<IAlertExpiryRepository, PostgresAlertExpiryRepository>();
 builder.Services.AddSingleton<IPushSubscriptionRepository, PostgresPushSubscriptionRepository>();
+builder.Services.AddSingleton<IDigestRepository, PostgresDigestRepository>();
 builder.Services.AddSingleton<ISnapshotCache, RedisSnapshotCache>();
 
 builder.Services.AddSingleton<IEmailSender, ResendEmailSender>();
@@ -35,5 +36,6 @@ builder.Services.AddSingleton<EscalationHandler>();
 
 builder.Services.AddHostedService<RabbitConsumerService>();
 builder.Services.AddHostedService<ExpirySweepService>();
+builder.Services.AddHostedService<DigestService>();
 
 await builder.Build().RunAsync();

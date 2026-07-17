@@ -28,6 +28,13 @@ public interface IAlertExpiryRepository
     Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct);
 }
 
+public interface IDigestRepository
+{
+    /// <summary>Notifications since the window start for accounts at the given digest frequency.</summary>
+    Task<IReadOnlyList<DigestRow>> GetDigestRowsAsync(
+        string frequency, DateTimeOffset since, CancellationToken ct);
+}
+
 public interface IStatsRepository
 {
     Task<IReadOnlyList<CountRow>> GetCategoryCountsAsync(DateTimeOffset since, CancellationToken ct);

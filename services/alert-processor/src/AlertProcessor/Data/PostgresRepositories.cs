@@ -74,6 +74,27 @@ public sealed class PostgresPushSubscriptionRepository(NpgsqlDataSource dataSour
     }
 }
 
+public sealed class PostgresDigestRepository(NpgsqlDataSource dataSource) : IDigestRepository
+{
+    public async Task<IReadOnlyList<DigestRow>> GetDigestRowsAsync(
+        string frequency, DateTimeOffset since, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT u.email, wz.name AS ZoneName, n.message, n.created_at AS CreatedAt
+            FROM users u
+            JOIN watch_zones wz ON wz.user_id = u.id
+            JOIN notifications n ON n.watch_zone_id = wz.id
+            WHERE u.digest_frequency = @frequency AND n.created_at >= @since
+            ORDER BY u.email, wz.name, n.created_at
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<DigestRow>(
+            new CommandDefinition(sql, new { frequency, since }, cancellationToken: ct));
+        return rows.ToList();
+    }
+}
+
 public sealed class PostgresAlertExpiryRepository(NpgsqlDataSource dataSource) : IAlertExpiryRepository
 {
     public async Task<IReadOnlyList<ExpiredAlert>> ExpireOverdueAsync(CancellationToken ct)
