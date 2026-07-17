@@ -43,7 +43,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         String uri = request.getRequestURI();
         if (("PUT".equals(method) || "DELETE".equals(method))
-                && uri.startsWith("/api/v1/watch-zones/")) {
+                && (uri.startsWith("/api/v1/watch-zones/") || uri.startsWith("/api/v1/push/"))) {
             return false;
         }
         if (!"POST".equals(method)) {
@@ -51,8 +51,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         boolean limited = uri.equals("/api/v1/alerts")
                 || uri.endsWith("/confirm")
+                || uri.endsWith("/resolve")
                 || uri.endsWith("/comments")
                 || uri.startsWith("/api/v1/watch-zones") // create + claim
+                || uri.startsWith("/api/v1/push/") // subscription writes
                 || uri.startsWith("/api/v1/auth/"); // brute-force protection
         return !limited;
     }
