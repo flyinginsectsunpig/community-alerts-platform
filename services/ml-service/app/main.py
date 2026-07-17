@@ -20,9 +20,9 @@ from pydantic import BaseModel, Field
 
 from .cache import Cache
 from .config import load_settings
-from .db import fetch_recent_alerts
+from .db import fetch_recent_alerts, fetch_station_crime
 from .messaging.consumer import AlertScoringConsumer
-from .models.hotspots import compute_hotspots
+from .models.hotspots import compute_hotspots, station_hotspots
 from .models.severity import SeverityModel
 
 logging.basicConfig(
@@ -92,10 +92,20 @@ def hotspots(
         log.error("Hotspot query failed: %s", exc)
         raise HTTPException(status_code=503, detail="Alert database unavailable") from exc
 
+    # The SAPS baseline is an enhancement: if its query fails, the live
+    # report clusters still ship.
+    try:
+        stations = fetch_station_crime(settings.database_url)
+    except psycopg.Error as exc:
+        log.warning("Station baseline query failed; reports only: %s", exc)
+        stations = []
+
+    blended = compute_hotspots(points, eps_m, min_samples) + station_hotspots(stations)
     result = {
-        "hotspots": [h.to_dict() for h in compute_hotspots(points, eps_m, min_samples)],
+        "hotspots": [h.to_dict() for h in blended],
         "windowHours": window_hours,
         "sampleSize": len(points),
+        "stationSampleSize": len(stations),
         "generatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     cache.set_json(cache_key, result, settings.hotspot_cache_ttl_seconds)

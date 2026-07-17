@@ -46,14 +46,18 @@ export interface Hotspot {
   centerLng: number;
   radiusM: number;
   count: number;
-  dominantCategory: AlertCategory;
+  /** An AlertCategory name for REPORTS; raw SAPS category text for STATIONS. */
+  dominantCategory: string;
   intensity: number;
+  /** Live report cluster, or official SAPS station baseline. */
+  source: "REPORTS" | "STATIONS";
 }
 
 export interface HotspotsResponse {
   hotspots: Hotspot[];
   windowHours: number;
   sampleSize: number;
+  stationSampleSize: number;
   generatedAt: string;
 }
 
