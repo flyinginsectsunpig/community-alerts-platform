@@ -27,6 +27,9 @@ services:
       ML_SERVICE_URL: http://ml-service:8000
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES}
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
     restart: unless-stopped
 
   alert-processor:
