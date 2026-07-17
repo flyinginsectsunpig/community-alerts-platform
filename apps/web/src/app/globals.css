@@ -1035,6 +1035,23 @@ input[type="range"] {
   cursor: grabbing;
 }
 
+/* Standalone pages (e.g. the emailed password-reset link) reuse the panel
+   styling, centered on an otherwise empty page. */
+.standalone-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.standalone-page .panel {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 /* Category glyph pins: one neutral disc for every alert — severity lives in
    the feed badges and detail panel, not on the map. */
 .category-pin {
