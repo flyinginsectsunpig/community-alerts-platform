@@ -1,26 +1,99 @@
-/* Community Alerts — dark operations-room theme.
-   Tokens follow the validated dataviz reference palette (dark mode). */
+/* Community Alerts — night-watch theme.
+
+   Colour strategy is deliberately Restrained: the chrome is a near-monochrome
+   cool ink so that the ONLY saturated colour on screen is information —
+   severity, hotspot density, and your own watch zones. The primary action is a
+   white fill rather than a brand hue, which keeps the entire hue circle free
+   for data and stops "primary blue" competing with "low severity blue".
+
+   Every foreground/background pair below was verified against WCAG AA
+   (4.5:1 body, 3:1 large/graphical) before being committed. */
 
 :root {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-2: #222221;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #979589; /* keeps ≥4.5:1 on --surface-2 for small meta text */
-  --grid: #2c2c2a;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #3987e5; /* sole magnitude hue for bars */
-  --accent-strong: #2f6fc9; /* action surface: white label stays ≥4.5:1 */
-  --accent-hover: #3273cd;
-  --critical: #d03b3b;
-  --good: #0ca30c;
-  --worse-ink: #e35d5d; /* rising-crime delta text: --critical misses 4.5:1 at 12px on --surface */
-  --radius: 10px;
+
+  /* ---- Surfaces: a cool ink ramp tuned to sit with the CARTO dark tiles,
+         so panels read as glass over the city rather than pasted on top. ---- */
+  --page: oklch(0.145 0.008 265);
+  --surface: oklch(0.19 0.01 265);
+  --surface-2: oklch(0.235 0.011 265);
+  --surface-3: oklch(0.285 0.012 265);
+
+  /* ---- Text ---- */
+  --ink: oklch(0.975 0.002 265); /* 17.2:1 on --surface */
+  --ink-2: oklch(0.815 0.008 265); /* 9.4:1 on --surface-2 */
+  --muted: oklch(0.66 0.012 265); /* 4.6:1 on --surface-3, the worst case */
+
+  /* ---- Lines ---- */
+  --border: oklch(1 0 0 / 0.09);
+  --border-strong: oklch(1 0 0 / 0.16);
+  --grid: oklch(0.3 0.012 265);
+
+  /* ---- Accent: selection, focus, and your zones. Never a severity. ---- */
+  --accent: oklch(0.7 0.14 235);
+  --accent-quiet: oklch(0.52 0.11 235);
+
+  /* ---- Severity heat ramp. Keep in sync with SEVERITY_COLORS in
+         src/lib/format.ts, which is the source of truth for JS/Leaflet. ---- */
+  --sev-unscored: oklch(0.68 0.02 265);
+  --sev-low: oklch(0.75 0.085 200);
+  --sev-medium: oklch(0.8 0.15 85);
+  --sev-high: oklch(0.73 0.17 50);
+  --sev-critical: oklch(0.66 0.21 25);
+
+  /* ---- Other data hues ---- */
+  --hotspot: oklch(0.66 0.17 300);
+  --good: oklch(0.72 0.15 150);
+  --station: oklch(0.72 0.04 245);
+
+  /* ---- Elevation. Panels that float over the map get a hairline top
+         highlight so they catch "light" from above and read as physical. ---- */
+  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-2: 0 4px 16px -2px oklch(0 0 0 / 0.5);
+  --shadow-3: 0 12px 40px -8px oklch(0 0 0 / 0.65), 0 2px 8px oklch(0 0 0 / 0.4);
+  --lip: inset 0 1px 0 oklch(1 0 0 / 0.06);
+
+  /* ---- Space: 4px base ---- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+
+  /* ---- Radii ---- */
+  --r-sm: 6px;
+  --r-md: 9px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  /* ---- Type: fixed rem scale, ~1.15 ratio (product UI, not fluid) ---- */
+  --t-micro: 11px;
+  --t-small: 12px;
+  --t-body: 14px;
+  --t-lead: 16px;
+  --t-title: 19px;
+  --t-hero: 40px;
+
+  /* ---- Motion ---- */
   --speed-fast: 120ms;
-  --speed: 180ms;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --speed: 200ms;
+  --speed-slow: 320ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* quint */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- Semantic z-index scale. No arbitrary 999s. ---- */
+  --z-map-chrome: 400;
+  --z-docked: 1000;
+  --z-sheet: 1050;
+  --z-modal-backdrop: 1100;
+  --z-modal: 1101;
+  --z-toast: 1200;
+
+  /* ---- Layout ---- */
+  --rail-open: 366px;
+  --rail: var(--rail-open);
+
   --font: var(--font-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -36,21 +109,24 @@ body {
   background: var(--page);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: var(--t-body);
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
-h2 {
+h2,
+h3 {
   margin: 0;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
   text-wrap: balance;
 }
 
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: var(--r-sm);
 }
 
 input[type="checkbox"],
@@ -58,10 +134,31 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
-/* Shimmer placeholders shaped like the content they stand in for. */
+/* Theme the native scrollbars to the dark surfaces. Standard properties only —
+   the control keeps its platform behaviour, it just stops glowing white. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+/* ---------- Utilities ---------- */
+
+/* Carries the real value where an animated one is shown visually. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .skeleton {
-  border-radius: 6px;
-  background: linear-gradient(100deg, var(--surface-2) 40%, var(--grid) 50%, var(--surface-2) 60%);
+  border-radius: var(--r-sm);
+  background: linear-gradient(100deg, var(--surface-2) 40%, var(--surface-3) 50%, var(--surface-2) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -78,17 +175,15 @@ input[type="range"] {
   }
 }
 
+/* Content replacing a skeleton crossfades up rather than snapping in. */
 .fade-in {
-  animation: fade-in 150ms ease;
+  animation: rise-in var(--speed-slow) var(--ease-out);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
   }
 }
 
@@ -99,49 +194,119 @@ input[type="range"] {
   flex-direction: column;
   height: 100vh;
   height: 100dvh;
+  overflow: hidden;
 }
 
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
+  gap: var(--s4);
+  padding: 10px var(--s4);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
   flex-shrink: 0;
+  position: relative;
+  z-index: var(--z-docked);
 }
 
 .topbar__brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .topbar__brand h1 {
-  font-size: 16px;
+  font-size: var(--t-lead);
   white-space: nowrap;
 }
 
+/* The mark carries a slow ambient pulse — the one piece of chrome allowed to
+   breathe, because it stands for "this feed is live". */
 .topbar__logo {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--critical);
-  font-size: 15px;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-md);
+  background: var(--surface-3);
+  box-shadow: var(--lip);
+  color: var(--sev-high);
+  font-size: var(--t-lead);
+  flex-shrink: 0;
+}
+
+.topbar__logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid var(--sev-high);
+  opacity: 0;
+  animation: mark-breathe 4s var(--ease-out) infinite;
+}
+
+@keyframes mark-breathe {
+  0%,
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  35% {
+    opacity: 0.5;
+    transform: scale(1.18);
+  }
+}
+
+.topbar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-left: auto;
+}
+
+.topbar__account {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Layer toggles read as one segmented cluster rather than two loose labels. */
+.layer-switches {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
 }
 
 .hotspot-toggle {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
+  padding: 5px var(--s2);
+  border-radius: var(--r-sm);
   color: var(--ink-2);
+  font-size: var(--t-small);
+  font-weight: 500;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  transition: background var(--speed-fast) ease, color var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .hotspot-toggle:hover {
+    background: var(--surface-3);
+    color: var(--ink);
+  }
 }
 
 .switch__input {
@@ -154,13 +319,13 @@ input[type="range"] {
 
 .switch {
   position: relative;
-  width: 34px;
+  width: 32px;
   height: 18px;
-  border-radius: 999px;
+  border-radius: var(--r-pill);
   background: var(--grid);
   border: 1px solid var(--border);
   flex-shrink: 0;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background var(--speed) var(--ease-out), border-color var(--speed) var(--ease-out);
 }
 
 .switch::after {
@@ -172,17 +337,17 @@ input[type="range"] {
   height: 12px;
   border-radius: 50%;
   background: var(--ink-2);
-  transition: transform 150ms ease, background 150ms ease;
+  transition: transform var(--speed) var(--ease-out), background var(--speed) var(--ease-out);
 }
 
 .switch__input:checked + .switch {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: var(--accent-quiet);
+  border-color: var(--accent);
 }
 
 .switch__input:checked + .switch::after {
-  transform: translateX(16px);
-  background: #ffffff;
+  transform: translateX(14px);
+  background: var(--ink);
 }
 
 .switch__input:focus-visible + .switch {
@@ -190,35 +355,47 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
+/* Body is a grid so the rail can collapse without the panel contents
+   reflowing mid-transition (the inner keeps a fixed width and is clipped). */
 .dashboard__body {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--rail) 1fr;
   flex: 1;
   min-height: 0;
+  transition: grid-template-columns var(--speed-slow) var(--ease-out-expo);
+}
+
+.dashboard--rail-closed {
+  --rail: 0px;
 }
 
 .sidebar {
-  width: 360px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--page);
   border-right: 1px solid var(--border);
-  transition: width 200ms ease, padding 200ms ease;
+  min-width: 0;
 }
 
-.sidebar > * {
-  min-width: 336px; /* content keeps its width while the container clips */
+.dashboard--rail-closed .sidebar {
+  border-right-color: transparent;
 }
 
-.sidebar--closed {
-  width: 0;
-  padding-left: 0;
-  padding-right: 0;
-  border-right: none;
-  overflow: hidden;
+.sidebar__inner {
+  width: var(--rail-open);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3);
+  overflow-y: auto;
+  /* Reserves the scrollbar gutter, so the vertical bar can never push content
+     sideways and produce a horizontal scrollbar in the rail. */
+  scrollbar-gutter: stable;
+}
+
+/* The drag handle only exists in the mobile sheet. */
+.sheet-handle {
+  display: none;
 }
 
 .panel-toggle {
@@ -226,30 +403,9 @@ input[type="range"] {
   place-items: center;
 }
 
-.map-hint {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  max-width: calc(100% - 24px);
-  padding: 5px 6px 5px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-  color: var(--ink-2);
-  font-size: 13px;
-  animation: toast-in var(--speed) var(--ease-out);
-}
-
 .map-wrap {
-  flex: 1;
-  min-width: 0;
   position: relative;
+  min-width: 0;
 }
 
 .alert-map,
@@ -264,39 +420,30 @@ input[type="range"] {
   color: var(--muted);
 }
 
-@media (max-width: 860px) {
-  .dashboard__body {
-    flex-direction: column-reverse;
-  }
-  .sidebar {
-    width: 100%;
-    max-height: 45vh;
-    max-height: 45dvh;
-    border-right: none;
-    border-top: 1px solid var(--border);
-    transition: max-height 200ms ease, padding 200ms ease;
-  }
-  .sidebar > * {
-    min-width: 0;
-  }
-  .sidebar--closed {
-    max-height: 0;
-    padding: 0;
-    border-top: none;
-  }
+.map-hint {
+  position: absolute;
+  top: var(--s3);
+  left: 50%;
+  z-index: var(--z-docked);
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  max-width: calc(100% - var(--s5));
+  padding: 5px 6px 5px var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-2), var(--lip);
+  color: var(--ink-2);
+  font-size: 13px;
+  transform: translateX(-50%);
+  animation: hint-in var(--speed-slow) var(--ease-out-expo);
 }
 
-@media (max-width: 480px) {
-  .topbar {
-    flex-wrap: wrap;
-    padding: 10px 12px;
-    gap: 6px 10px;
-  }
-  .topbar__brand {
-    gap: 8px;
-  }
-  .topbar__controls {
-    gap: 10px;
+@keyframes hint-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
   }
 }
 
@@ -305,69 +452,76 @@ input[type="range"] {
 .stats {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1), var(--lip);
+  padding: var(--s4);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--s4);
+  flex-shrink: 0;
 }
 
 .stats__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: var(--s2);
 }
 
 .stats__header h2 {
-  font-size: 14px;
+  font-size: var(--t-body);
 }
 
 .stats__source {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--muted);
 }
 
 .stats__hero {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .stats__hero-number {
-  font-size: 34px;
-  font-weight: 700;
+  font-size: var(--t-hero);
+  font-weight: 600;
   line-height: 1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+}
+
+.stats__hero-label {
+  color: var(--ink-2);
+  font-size: 13px;
 }
 
 .stats-skeleton {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--s4);
 }
 
 .stats-skeleton__hero {
-  height: 34px;
+  height: var(--t-hero);
   width: 60%;
 }
 
 .stats-skeleton__row {
-  height: 12px;
+  height: var(--s3);
 }
 
 .stats-skeleton__row--short {
   width: 75%;
 }
 
-.stats__hero-label {
-  color: var(--ink-2);
-}
-
+/* Seven slots, always. Empty days render as a baseline tick so the week reads
+   as a week rather than as however many days happened to have data. */
 .stats__days {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  height: 56px;
+  gap: 5px;
+  height: 60px;
 }
 
 .stats__day {
@@ -376,17 +530,37 @@ input[type="range"] {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: var(--s1);
   height: 100%;
+  min-width: 0;
 }
 
 .stats__day-bar {
   width: 100%;
-  background: var(--accent);
-  border-radius: 4px 4px 0 0; /* rounded data-end, flat baseline */
-  min-height: 3px;
+  background: var(--accent-quiet);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
   transform-origin: bottom;
-  animation: bar-grow 300ms var(--ease-out);
+  animation: bar-grow var(--speed-slow) var(--ease-out) backwards;
+  animation-delay: var(--bar-delay, 0ms);
+  transition: background var(--speed-fast) ease;
+}
+
+/* A quiet day is data, so it gets a real baseline tick. At 2px in --grid it
+   read as a rendering artifact rather than as "nothing happened here". */
+.stats__day--empty .stats__day-bar {
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
+  min-height: 4px;
+  border-radius: 2px;
+}
+
+.stats__day--today .stats__day-bar {
+  background: var(--accent);
+}
+
+.stats__day--today .stats__day-label {
+  color: var(--ink-2);
+  font-weight: 600;
 }
 
 @keyframes bar-grow {
@@ -406,61 +580,76 @@ input[type="range"] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .stats__category {
   display: grid;
-  grid-template-columns: 110px 1fr 28px;
+  grid-template-columns: 104px 1fr 28px;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .stats__category-label {
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--t-small);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .stats__category-track {
-  background: var(--grid);
-  border-radius: 4px;
-  height: 8px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  height: 7px;
   overflow: hidden;
 }
 
+/* Filled by scaling rather than by width: the track already clips to a
+   rounded shape, so the visual result is identical and nothing reflows when
+   the 60s refresh lands new counts. */
 .stats__category-bar {
   display: block;
+  width: 100%;
   height: 100%;
-  background: var(--accent);
-  border-radius: 0 4px 4px 0;
-  transition: width 300ms var(--ease-out);
+  background: var(--accent-quiet);
+  transform: scaleX(var(--fill, 0));
+  transform-origin: left;
+  animation: bar-grow-x var(--speed-slow) var(--ease-out) backwards;
+  animation-delay: var(--bar-delay, 0ms);
+  transition: transform var(--speed-slow) var(--ease-out);
+}
+
+@keyframes bar-grow-x {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .stats__category-count {
   text-align: right;
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--t-small);
 }
 
 .stats__severities {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
 }
 
 .severity-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border: 1px solid var(--grid);
-  border-radius: 999px;
-  font-size: 12px;
+  gap: var(--s2);
+  padding: 3px 9px 3px 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  font-size: var(--t-small);
   color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Severity badge ---------- */
@@ -468,8 +657,8 @@ input[type="range"] {
 .severity-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: var(--t-micro);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--ink-2);
@@ -477,20 +666,39 @@ input[type="range"] {
   white-space: nowrap;
 }
 
-.severity-badge--pending .severity-dot {
-  animation: pulse 1.4s ease-in-out infinite;
-}
-
 .severity-dot {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  background: var(--sev, var(--sev-unscored));
+}
+
+/* Still being scored by the ML service — the dot breathes to say "working". */
+.severity-badge--pending .severity-dot {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* Critical gets a halo instead of a blink: readable as urgent at a glance,
+   but slow enough that a screen left open all evening isn't exhausting. */
+.severity-badge--critical .severity-dot {
+  box-shadow: 0 0 0 0 var(--sev-critical);
+  animation: halo 2.6s var(--ease-out) infinite;
 }
 
 @keyframes pulse {
   50% {
-    opacity: 0.35;
+    opacity: 0.3;
+  }
+}
+
+@keyframes halo {
+  0% {
+    box-shadow: 0 0 0 0 oklch(0.66 0.21 25 / 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px oklch(0.66 0.21 25 / 0);
   }
 }
 
@@ -499,35 +707,43 @@ input[type="range"] {
 .feed {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1), var(--lip);
+  padding: var(--s4);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--s3);
   min-height: 0;
+  flex: 1;
 }
 
 .feed__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--s2);
+  flex-shrink: 0;
 }
 
 .feed__header h2 {
-  font-size: 14px;
+  font-size: var(--t-body);
 }
 
 .live-indicator {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
   color: var(--muted);
+  text-transform: uppercase;
 }
 
 .live-indicator__dot {
-  width: 8px;
-  height: 8px;
+  position: relative;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--muted);
 }
@@ -538,7 +754,33 @@ input[type="range"] {
 
 .live-indicator--on .live-indicator__dot {
   background: var(--good);
-  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Connected: a steady expanding ring — a heartbeat, not a blink. */
+.live-indicator--on .live-indicator__dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--good);
+  animation: heartbeat 2.4s var(--ease-out) infinite;
+}
+
+@keyframes heartbeat {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+/* Reconnecting reads as motion-in-place rather than a dead dot. */
+.live-indicator:not(.live-indicator--on) .live-indicator__dot {
+  animation: pulse 1.2s ease-in-out infinite;
 }
 
 .feed__empty {
@@ -552,80 +794,62 @@ input[type="range"] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  min-height: 0;
 }
 
 .feed-item {
+  position: relative;
   width: 100%;
   text-align: left;
   background: var(--surface-2);
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: var(--r-md);
+  padding: 10px var(--s3);
   color: var(--ink);
   font: inherit;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  overflow: hidden;
   transition:
     background var(--speed-fast) ease,
-    border-color var(--speed-fast) ease;
+    border-color var(--speed-fast) ease,
+    transform var(--speed-fast) var(--ease-out);
 }
 
 @media (hover: hover) {
   .feed-item:hover {
-    border-color: var(--border);
-    background: var(--grid);
+    border-color: var(--border-strong);
+    background: var(--surface-3);
   }
 }
 
 .feed-item:active {
-  background: var(--surface);
+  transform: scale(0.99);
+}
+
+/* Linked = the matching map pin is hovered. Same treatment in both
+   directions, so the connection is legible from either end. */
+.feed-item--linked {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
 }
 
 .feed-item--active,
 .feed-item--active:hover {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
-}
-
-@keyframes feed-item-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes feed-item-wash {
-  from {
-    background-color: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
-  }
-}
-
-.feed-item--new {
-  animation:
-    feed-item-in 200ms var(--ease-out),
-    feed-item-wash 1.5s ease-out;
-}
-
-.feed-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.feed-skeleton__item {
-  height: 76px;
-  border-radius: 8px;
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface-2));
 }
 
 .feed-item__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .feed-item__description {
@@ -639,9 +863,49 @@ input[type="range"] {
 
 .feed-item__meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A row that just arrived over the stream: it slides in, and a wash in its own
+   severity colour sweeps through and settles. The colour is the point — you
+   learn how bad it is before you finish reading the label. */
+.feed-item--new {
+  animation:
+    feed-item-in var(--speed-slow) var(--ease-out-expo),
+    feed-item-wash 2.4s var(--ease-out);
+}
+
+@keyframes feed-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+@keyframes feed-item-wash {
+  0% {
+    background-color: color-mix(in oklab, var(--sev, var(--accent)) 34%, var(--surface-2));
+    border-color: var(--sev, var(--accent));
+  }
+  100% {
+    background-color: var(--surface-2);
+    border-color: transparent;
+  }
+}
+
+.feed-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.feed-skeleton__item {
+  height: 78px;
+  border-radius: var(--r-md);
 }
 
 .verified-chip {
@@ -649,213 +913,66 @@ input[type="range"] {
   font-weight: 600;
 }
 
-/* ---------- Panels (report / watch zone) ---------- */
-
-.panel-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: grid;
-  place-items: center;
-  z-index: 1100;
-  padding: 16px;
-  animation: overlay-in var(--speed-fast) ease;
-}
-
-@keyframes overlay-in {
-  from {
-    opacity: 0;
-  }
-}
-
-.panel {
-  width: min(440px, 100%);
-  max-height: 90vh;
-  max-height: 90dvh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: panel-in var(--speed) var(--ease-out);
-}
-
-@keyframes panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.98);
-  }
-}
-
-.panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.panel__header h2 {
-  font-size: 16px;
-}
-
-.panel__hint {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: none;
-  margin: 0;
-  padding: 0;
-}
-
-.field > span,
-.field > legend {
-  color: var(--ink-2);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0;
-}
-
-.field input[type="text"],
-.field input[type="email"],
-.field input[type="password"],
-.field select,
-.field textarea {
-  background: var(--surface-2);
-  border: 1px solid var(--grid);
-  border-radius: 8px;
-  color: var(--ink);
-  font: inherit;
-  padding: 9px 10px;
-}
-
-.field textarea {
-  resize: vertical;
-}
-
-.field ::placeholder,
-.comment-composer ::placeholder {
-  color: var(--muted); /* ≥4.5:1 — UA default placeholder is too dim */
-  opacity: 1;
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-
-.category-option {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--ink-2);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.ai-preview {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--grid);
-  border-radius: 8px;
-}
-
-.ai-preview__label {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.ai-preview__risk {
-  font-size: 11px;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-}
-
-.form-error {
-  margin: 0;
-  color: var(--critical);
-  font-size: 12px;
-}
-
-.panel__actions {
-  display: flex;
-  gap: 8px;
-}
-
-/* ---------- Buttons, toasts ---------- */
+/* ---------- Buttons ---------- */
 
 .btn {
   background: var(--surface-2);
-  border: 1px solid var(--grid);
-  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
   color: var(--ink);
   font: inherit;
   font-weight: 600;
-  padding: 9px 14px;
+  font-size: 13px;
+  padding: 9px var(--s3);
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: var(--lip);
   transition:
     background var(--speed-fast) ease,
     border-color var(--speed-fast) ease,
-    transform var(--speed-fast) ease;
+    transform var(--speed-fast) var(--ease-out),
+    opacity var(--speed-fast) ease;
 }
 
 @media (hover: hover) {
   .btn:hover:not(:disabled) {
+    background: var(--surface-3);
     border-color: var(--muted);
-    background: var(--grid);
   }
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Primary is a white fill: maximum contrast, and it spends no hue. */
 .btn--primary {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--page);
 }
 
 @media (hover: hover) {
   .btn--primary:hover:not(:disabled) {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
+    background: #fff;
+    border-color: #fff;
   }
 }
 
 .btn--small {
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--t-small);
 }
 
 .btn-icon {
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   color: var(--muted);
   font-size: 20px;
   line-height: 1;
@@ -863,14 +980,19 @@ input[type="range"] {
   padding: 2px 6px;
   transition:
     color var(--speed-fast) ease,
-    background var(--speed-fast) ease;
+    background var(--speed-fast) ease,
+    transform var(--speed-fast) var(--ease-out);
 }
 
 @media (hover: hover) {
   .btn-icon:hover {
     color: var(--ink);
-    background: var(--surface-2);
+    background: var(--surface-3);
   }
+}
+
+.btn-icon:active {
+  transform: scale(0.92);
 }
 
 .link-button {
@@ -878,7 +1000,7 @@ input[type="range"] {
   border: none;
   color: var(--accent);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--t-small);
   cursor: pointer;
   text-align: left;
   padding: 0;
@@ -890,83 +1012,267 @@ input[type="range"] {
   }
 }
 
+/* ---------- Panels, forms ---------- */
+
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: oklch(0.145 0.008 265 / 0.72);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  z-index: var(--z-modal-backdrop);
+  padding: var(--s4);
+  animation: fade-in var(--speed) ease;
+}
+
+.panel {
+  position: relative;
+  z-index: var(--z-modal);
+  width: min(440px, 100%);
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--lip);
+  padding: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  animation: panel-in var(--speed-slow) var(--ease-out-expo);
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.panel__header h2 {
+  font-size: var(--t-title);
+}
+
+.panel__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--t-small);
+  max-width: 65ch;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.field > span,
+.field > legend {
+  color: var(--ink-2);
+  font-size: var(--t-small);
+  font-weight: 600;
+  padding: 0;
+}
+
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="password"],
+.field select,
+.field textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--grid);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: inherit;
+  padding: 10px var(--s3);
+  transition: border-color var(--speed-fast) ease, background var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .field input:hover:not(:focus),
+  .field select:hover:not(:focus),
+  .field textarea:hover:not(:focus) {
+    border-color: var(--border-strong);
+  }
+}
+
+.field textarea {
+  resize: vertical;
+}
+
+.field ::placeholder,
+.comment-composer ::placeholder {
+  color: var(--muted); /* the UA default is well below 4.5:1 */
+  opacity: 1;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: var(--surface-3);
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s1);
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: var(--r-sm);
+  color: var(--ink-2);
+  font-size: var(--t-small);
+  cursor: pointer;
+  transition: background var(--speed-fast) ease, color var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .category-option:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+
+.ai-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px var(--s3);
+  background: var(--surface-2);
+  border: 1px solid var(--grid);
+  border-radius: var(--r-md);
+  animation: rise-in var(--speed) var(--ease-out);
+}
+
+.ai-preview__label {
+  font-size: var(--t-micro);
+  color: var(--muted);
+}
+
+.ai-preview__risk {
+  font-size: var(--t-micro);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--sev-critical);
+  font-size: var(--t-small);
+  animation: shake 320ms var(--ease-out);
+}
+
+/* Errors nudge once so a repeated failure is still noticed. */
+@keyframes shake {
+  20% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+  80% {
+    transform: translateX(-2px);
+  }
+}
+
+.panel__actions {
+  display: flex;
+  gap: var(--s2);
+}
+
+/* ---------- Toast ---------- */
+
 .toast {
   position: fixed;
-  bottom: 20px;
+  bottom: var(--s5);
   left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 16px;
-  z-index: 1200;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 10px var(--s4);
+  z-index: var(--z-toast);
   color: var(--ink);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
-  animation: toast-in var(--speed) var(--ease-out);
+  box-shadow: var(--shadow-3), var(--lip);
+  transform: translateX(-50%);
+  animation: toast-in var(--speed-slow) var(--ease-out-expo);
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translate(-50%, 14px) scale(0.96);
   }
 }
 
 .toast::before {
   content: "";
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--good);
   flex-shrink: 0;
 }
 
 .toast--error::before {
-  background: var(--critical);
+  background: var(--sev-critical);
 }
 
 /* ---------- Auth & user chip ---------- */
 
-.topbar__controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .user-chip {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--s2);
 }
 
 .user-chip__name {
-  font-weight: 650;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .auth-tabs {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   background: var(--surface-2);
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: var(--r-md);
+  padding: 3px;
 }
 
 .auth-tab {
   flex: 1;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   color: var(--ink-2);
   font: inherit;
   font-weight: 600;
-  padding: 7px 0;
+  font-size: 13px;
+  padding: 8px 0;
   cursor: pointer;
-  transition:
-    background var(--speed-fast) ease,
-    color var(--speed-fast) ease;
+  transition: background var(--speed-fast) ease, color var(--speed-fast) ease;
 }
 
 @media (hover: hover) {
@@ -976,126 +1282,99 @@ input[type="range"] {
 }
 
 .auth-tab--active {
-  background: var(--surface);
+  background: var(--surface-3);
   color: var(--ink);
+  box-shadow: var(--shadow-1);
 }
 
-/* ---------- Alert detail / discussion panel ---------- */
+/* ---------- Docked map panels ---------- */
 
 .detail-panel {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
-  width: min(380px, calc(100% - 24px));
-  z-index: 1000;
+  top: var(--s3);
+  right: var(--s3);
+  bottom: var(--s3);
+  width: min(384px, calc(100% - var(--s5)));
+  z-index: var(--z-docked);
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--lip);
+  padding: var(--s4);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  animation: detail-in var(--speed) var(--ease-out);
+  gap: var(--s3);
+  animation: dock-in-right var(--speed-slow) var(--ease-out-expo);
 }
 
-@keyframes detail-in {
+@keyframes dock-in-right {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(20px);
   }
 }
 
-/* ---------- Watch-zone editor (docked left, clear of the zoom control) ---------- */
-
 .zone-panel {
   position: absolute;
-  top: 84px; /* below Leaflet's top-left zoom control */
-  left: 12px;
-  z-index: 1000;
-  width: min(320px, calc(100% - 24px));
+  top: 84px; /* clears Leaflet's top-left zoom control */
+  left: var(--s3);
+  z-index: var(--z-docked);
+  width: min(320px, calc(100% - var(--s5)));
   max-height: calc(100% - 96px);
   overflow-y: auto;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  animation: zone-in var(--speed) var(--ease-out);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), var(--lip);
+  padding: var(--s4);
+  animation: dock-in-left var(--speed-slow) var(--ease-out-expo);
+}
+
+@keyframes dock-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
 }
 
 .zone-panel__form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-@keyframes zone-in {
-  from {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
+  gap: var(--s3);
 }
 
 .zone-handle {
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-2);
   cursor: grab;
+  transition: transform var(--speed-fast) var(--ease-out);
+}
+
+.zone-handle:hover {
+  transform: scale(1.15);
 }
 
 .zone-handle:active {
   cursor: grabbing;
+  transform: scale(1.05);
 }
 
-/* Standalone pages (e.g. the emailed password-reset link) reuse the panel
-   styling, centered on an otherwise empty page. */
 .standalone-page {
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--s5);
 }
 
 .standalone-page .panel {
   width: min(420px, 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
 }
 
-/* Category glyph pins: one neutral disc for every alert — severity lives in
-   the feed badges and detail panel, not on the map. */
-.category-pin {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #2f2d28;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-}
-
-.category-pin svg {
-  width: 15px;
-  height: 15px;
-  display: block;
-}
-
-.comment-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.comment-skeleton__item {
-  height: 52px;
-  border-radius: 8px;
-}
+/* ---------- Alert detail ---------- */
 
 .detail-panel__header {
   display: flex;
@@ -1108,12 +1387,14 @@ input[type="range"] {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: var(--s1);
 }
 
 .detail-panel__description {
   margin: 0;
   color: var(--ink-2);
+  max-width: 65ch;
+  text-wrap: pretty;
 }
 
 .detail-panel__meta {
@@ -1121,21 +1402,23 @@ input[type="range"] {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .detail-panel__thread-title {
   margin: 0;
   font-size: 13px;
   border-top: 1px solid var(--grid);
-  padding-top: 12px;
+  padding-top: var(--s3);
 }
 
 .detail-panel__thread {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .comment-list {
@@ -1144,20 +1427,21 @@ input[type="range"] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--s2);
 }
 
 .comment {
   background: var(--surface-2);
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: var(--r-md);
+  padding: var(--s2) 10px;
+  animation: rise-in var(--speed) var(--ease-out);
 }
 
 .comment__meta {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--s2);
+  font-size: var(--t-micro);
   color: var(--muted);
 }
 
@@ -1166,7 +1450,7 @@ input[type="range"] {
 }
 
 .comment__body {
-  margin: 4px 0 0;
+  margin: var(--s1) 0 0;
   color: var(--ink);
   overflow-wrap: anywhere;
 }
@@ -1174,18 +1458,18 @@ input[type="range"] {
 .comment-composer {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
   border-top: 1px solid var(--grid);
-  padding-top: 12px;
+  padding-top: var(--s3);
 }
 
 .comment-composer textarea {
   background: var(--surface-2);
   border: 1px solid var(--grid);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   color: var(--ink);
   font: inherit;
-  padding: 8px 10px;
+  padding: var(--s2) 10px;
   resize: vertical;
 }
 
@@ -1194,50 +1478,45 @@ input[type="range"] {
   outline-offset: 1px;
 }
 
-.map-popup__actions {
+.comment-skeleton {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* ---------- Leaflet dark chrome ---------- */
+.comment-skeleton__item {
+  height: 52px;
+  border-radius: var(--r-md);
+}
+
+/* ---------- Leaflet chrome ---------- */
 
 .leaflet-container {
   background: var(--page);
   font-family: var(--font);
 }
 
-@keyframes marker-pulse {
-  0%,
-  100% {
-    stroke-width: 2;
-    stroke-opacity: 0.85;
-  }
-  50% {
-    stroke-width: 7;
-    stroke-opacity: 0.15;
-  }
-}
-
-.marker--critical {
-  animation: marker-pulse 1.6s ease-in-out infinite;
-}
-
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   background: var(--surface);
   color: var(--ink);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-3);
+}
+
+.leaflet-popup-content-wrapper {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
 }
 
 .leaflet-popup-content {
-  margin: 12px 14px;
+  margin: var(--s3) var(--s4);
 }
 
 .map-popup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 200px;
+  gap: var(--s2);
+  min-width: 210px;
 }
 
 .map-popup__header {
@@ -1255,56 +1534,175 @@ input[type="range"] {
 .map-popup__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--s2);
+  font-size: var(--t-micro);
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-popup__actions {
+  display: flex;
+  gap: var(--s2);
 }
 
 .leaflet-tooltip {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
   color: var(--ink-2);
+  box-shadow: var(--shadow-2);
 }
 
 .leaflet-bar a {
   background: var(--surface);
   color: var(--ink);
   border-bottom-color: var(--grid);
+  transition: background var(--speed-fast) ease;
 }
 
 @media (hover: hover) {
   .leaflet-bar a:hover {
-    background: var(--surface-2);
+    background: var(--surface-3);
   }
 }
 
-/* Police station markers: official reference data in a neutral steel tone —
-   deliberately distinct from severity colors and the hotspot violet. */
+.leaflet-bar {
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: var(--shadow-2) !important;
+}
+
+/* ---------- Alert pins ---------- */
+
+/* Leaflet gives every div icon a white box by default; the wrapper is only a
+   positioning shell, so it has to be stripped back. */
+.category-pin-wrap {
+  background: none;
+  border: none;
+}
+
+/* The pin carries severity in its ring and recency in its opacity, so the map
+   answers "how bad, how recent" before anything is clicked. */
+.category-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--sev, var(--sev-unscored));
+  box-shadow: 0 2px 10px oklch(0 0 0 / 0.6);
+  opacity: var(--pin-fade, 1);
+  transition:
+    transform var(--speed) var(--ease-out),
+    opacity var(--speed) ease,
+    box-shadow var(--speed) ease;
+}
+
+.category-pin svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  color: var(--sev, var(--ink));
+}
+
+/* Hovered from either the map or its row in the feed. */
+.category-pin--linked {
+  transform: scale(1.35);
+  opacity: 1;
+  z-index: 1;
+  box-shadow:
+    0 2px 10px oklch(0 0 0 / 0.6),
+    0 0 0 4px color-mix(in oklab, var(--sev, var(--accent)) 30%, transparent);
+}
+
+.category-pin--selected {
+  opacity: 1;
+  border-color: var(--accent);
+  box-shadow:
+    0 2px 10px oklch(0 0 0 / 0.6),
+    0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
+}
+
+/* An alert that just landed: a ring pushes out from the pin three times.
+   This is the app's signature moment — something happened, here, now. */
+.category-pin--new::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--sev, var(--accent));
+  animation: pin-ripple 2s var(--ease-out) 3;
+  pointer-events: none;
+}
+
+@keyframes pin-ripple {
+  from {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(4.2);
+  }
+}
+
+/* Critical alerts keep a slow halo for as long as they're open. */
+.category-pin--critical::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 oklch(0.66 0.21 25 / 0.5);
+  animation: halo 2.8s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+/* The spot picked for a report, while the form is open. */
+.pending-pin {
+  animation: pending-crawl 1.4s linear infinite;
+}
+
+@keyframes pending-crawl {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
 .station-marker {
-  color: #8fa3b8;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  color: var(--station);
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.6));
+  transition: transform var(--speed-fast) var(--ease-out);
+}
+
+@media (hover: hover) {
+  .station-marker:hover {
+    transform: scale(1.15);
+  }
 }
 
 .station-popup__categories {
   margin: 6px 0;
-  padding-left: 16px;
-  font-size: 12px;
+  padding-left: var(--s4);
+  font-size: var(--t-small);
 }
+
+/* ---------- Station statistics ---------- */
 
 .station-stats-panel {
   overflow-y: auto;
-  gap: 14px;
+  gap: var(--s4);
 }
 
-/* Latest-quarter stat tile */
 .station-quarter {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--s1);
 }
 
 .station-quarter__label {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--muted);
 }
 
@@ -1315,14 +1713,15 @@ input[type="range"] {
 }
 
 .station-quarter__value {
-  font-size: 34px;
+  font-size: var(--t-hero);
   font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .station-quarter__caption {
-  font-size: 11px;
+  font-size: var(--t-micro);
   color: var(--muted);
 }
 
@@ -1341,7 +1740,7 @@ input[type="range"] {
 }
 
 .spark__dot-ring {
-  fill: var(--surface); /* 2px surface ring keeps the end-dot legible on the line */
+  fill: var(--surface); /* keeps the end-dot legible where it crosses the line */
 }
 
 .spark__dot {
@@ -1349,14 +1748,14 @@ input[type="range"] {
 }
 
 .delta {
-  font-size: 12px;
+  font-size: var(--t-small);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .delta--worse {
-  color: var(--worse-ink);
+  color: var(--sev-high);
 }
 
 .delta--better {
@@ -1373,7 +1772,7 @@ input[type="range"] {
   margin: 0;
   font-size: 13px;
   border-top: 1px solid var(--grid);
-  padding-top: 12px;
+  padding-top: var(--s3);
 }
 
 .station-cat-list {
@@ -1387,7 +1786,7 @@ input[type="range"] {
 .station-cat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--s1);
   padding: 7px 0;
   border-bottom: 1px solid var(--grid);
 }
@@ -1400,11 +1799,11 @@ input[type="range"] {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .station-cat__name {
-  font-size: 12px;
+  font-size: var(--t-small);
   color: var(--ink-2);
   white-space: nowrap;
   overflow: hidden;
@@ -1414,36 +1813,30 @@ input[type="range"] {
 .station-cat__viz {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
 .station-cat__track {
   flex: 1;
-  background: var(--grid);
-  border-radius: 4px;
-  height: 8px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  height: 7px;
   overflow: hidden;
 }
 
 .station-cat__bar {
   display: block;
   height: 100%;
-  background: var(--accent);
-  border-radius: 0 4px 4px 0; /* rounded data-end, square baseline */
+  background: var(--accent-quiet);
+  border-radius: 0 3px 3px 0;
   transform-origin: left;
-  animation: bar-grow-x 300ms var(--ease-out);
-}
-
-@keyframes bar-grow-x {
-  from {
-    transform: scaleX(0);
-  }
+  animation: bar-grow-x var(--speed-slow) var(--ease-out);
 }
 
 .station-cat__count {
   min-width: 4ch;
   text-align: right;
-  font-size: 12px;
+  font-size: var(--t-small);
   font-variant-numeric: tabular-nums;
   color: var(--ink-2);
 }
@@ -1457,7 +1850,7 @@ input[type="range"] {
 
 .station-table-details summary {
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--t-small);
   color: var(--ink-2);
   padding: 10px 0 0;
   border-top: 1px solid var(--grid);
@@ -1476,7 +1869,7 @@ input[type="range"] {
 .station-table-details summary:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
 .station-stats-empty {
@@ -1487,20 +1880,21 @@ input[type="range"] {
 
 .station-stats-table-wrap {
   overflow-x: auto;
-  margin-top: 8px;
+  margin-top: var(--s2);
 }
 
 .station-stats-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--t-small);
+  font-variant-numeric: tabular-nums;
 }
 
 .station-stats-table th,
 .station-stats-table td {
-  padding: 4px 8px;
+  padding: var(--s1) var(--s2);
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .station-stats-table th:nth-child(n + 3),
@@ -1509,30 +1903,30 @@ input[type="range"] {
 }
 
 .station-stats-source {
-  font-size: 11px;
-  opacity: 0.7;
+  font-size: var(--t-micro);
+  color: var(--muted);
 }
 
 .zone-item {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.6rem 0;
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
 }
 
 .zone-notifications {
   list-style: none;
-  margin: 0.4rem 0 0;
+  margin: 6px 0 0;
   padding: 0;
-  font-size: 0.85rem;
+  font-size: var(--t-small);
   display: grid;
-  gap: 0.3rem;
+  gap: 5px;
 }
 
 /* ---------- Touch pointers ---------- */
 
 @media (pointer: coarse) {
-  /* iOS Safari zooms the whole page when a focused control's text is under
-     16px, and the base size here is 14px. Bumping the controls avoids that
-     without disabling pinch-zoom, which must stay available. */
+  /* iOS zooms the page when a focused control's text is under 16px and the
+     base here is 14px. Bumping the controls avoids that without disabling
+     pinch-zoom, which has to stay available. */
   .field input[type="text"],
   .field input[type="email"],
   .field input[type="password"],
@@ -1542,8 +1936,7 @@ input[type="range"] {
     font-size: 16px;
   }
 
-  /* WCAG 2.5.5 asks for 44px targets. These grow the hit area only — the
-     padding and type sizes stay as they are on desktop. */
+  /* WCAG 2.5.5 asks for 44px targets. These grow the hit area only. */
   .btn-icon {
     min-width: 44px;
     min-height: 44px;
@@ -1564,13 +1957,11 @@ input[type="range"] {
     min-height: 44px;
   }
 
-  /* The layer switches are labels wrapping a 20px-tall control, so the label
-     itself has to carry the target. */
   .hotspot-toggle {
     min-height: 44px;
   }
 
-  /* Leaflet adds .leaflet-touch on touch devices and sizes its buttons through
+  /* Leaflet adds .leaflet-touch and sizes its buttons through
      `.leaflet-touch .leaflet-bar a` (0,2,1), which outranks a bare
      `.leaflet-bar a` — the selector has to be matched or the zoom controls
      stay at Leaflet's 30px. */
@@ -1591,69 +1982,227 @@ input[type="range"] {
   }
 }
 
-/* ---------- Small screens ---------- */
+/* ---------- Small screens ----------
 
-/* These rules have to sit after the panel definitions above: a media query
-   adds no specificity, so an override placed earlier in the file would lose
-   the cascade to the desktop rule. */
+   Below 860px the rail stops being a rail and becomes a draggable sheet over
+   the map, with three snap points. The old fixed-height panel gave the live
+   feed about 40px once the stats card was in — the whole point of the app was
+   the least visible thing on a phone. */
+
 @media (max-width: 860px) {
-  /* The panels that dock over the map on desktop become bottom sheets, and
-     anchor to the viewport rather than .map-wrap — the map is only about half
-     the screen here, so a sheet confined to it would have no room. */
+  .dashboard__body {
+    display: block;
+    position: relative;
+  }
+
+  .map-wrap {
+    position: absolute;
+    inset: 0;
+  }
+
+  .sidebar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 88dvh;
+    z-index: var(--z-sheet);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-bottom: none;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    box-shadow: var(--shadow-3), var(--lip);
+    overflow: visible;
+    /* --sheet-y is written by useBottomSheet; the fallback keeps the sheet at
+       its peek height before hydration so it never covers the map. Keep the
+       176px in step with PEEK_PX in that hook. */
+    transform: translateY(var(--sheet-y, calc(88dvh - 176px)));
+  }
+
+  /* Only animate when the user isn't dragging — during a drag the transform
+     must track the finger exactly. */
+  .sidebar:not(.sidebar--dragging) {
+    transition: transform var(--speed-slow) var(--ease-out-expo);
+  }
+
+  .sheet-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 26px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: grab;
+    flex-shrink: 0;
+    touch-action: none;
+  }
+
+  .sheet-handle::before {
+    content: "";
+    width: 40px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--surface-3);
+    transition: background var(--speed-fast) ease, transform var(--speed) var(--ease-out);
+  }
+
+  .sidebar--dragging .sheet-handle {
+    cursor: grabbing;
+  }
+
+  .sidebar--dragging .sheet-handle::before,
+  .sheet-handle:active::before {
+    background: var(--muted);
+    transform: scaleX(1.3);
+  }
+
+  .sidebar__inner {
+    width: 100%;
+    height: calc(100% - 26px);
+    padding: 0 var(--s3) calc(var(--s3) + env(safe-area-inset-bottom));
+    gap: var(--s3);
+    scrollbar-gutter: auto;
+    /* Feed first on a phone: at the peek height you get the live feed and its
+       latest alert, which is what the sheet is for. The 7-day summary is
+       context and sits below it. On desktop the rail keeps the original
+       order, where both are visible at once anyway. */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar__inner > .feed {
+    order: -1;
+    /* Inside a sheet the feed sizes to the sheet, not to a shared column. */
+    flex: 1 1 auto;
+  }
+
+  .sidebar__inner > .stats {
+    order: 0;
+  }
+
+  /* The rail collapse is a desktop affordance; the sheet handle replaces it. */
+  .panel-toggle {
+    display: none;
+  }
+
+  /* The rail toggle is a desktop affordance; on mobile the handle is the
+     control, so the collapsed state must not also hide the sheet. */
+  .dashboard--rail-closed .sidebar {
+    border-right-color: var(--border-strong);
+  }
+
+  /* Docked map panels become bottom sheets too, and anchor to the viewport
+     rather than .map-wrap. */
   .zone-panel,
   .detail-panel {
     position: fixed;
     inset: auto 0 0 0;
     width: auto;
-    border-radius: 14px 14px 0 0;
+    max-width: none;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
     border-bottom: none;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom));
     overflow-y: auto;
     overscroll-behavior: contain;
-    z-index: 1050; /* over the map and its hints, under modals and toasts */
-    animation: sheet-in var(--speed) var(--ease-out);
+    z-index: var(--z-modal-backdrop);
+    animation: sheet-in var(--speed-slow) var(--ease-out-expo);
   }
 
   .detail-panel {
-    max-height: 70dvh;
+    top: auto;
+    max-height: 76dvh;
   }
 
-  /* Kept shallow deliberately: the sheet covers roughly the sidebar's share of
-     the screen, so the map stays visible while the radius handle is dragged. */
   .zone-panel {
-    max-height: 45dvh;
+    max-height: 48dvh;
   }
 
   .toast {
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    bottom: calc(var(--s5) + env(safe-area-inset-bottom));
   }
 
   .topbar {
-    padding-left: calc(16px + env(safe-area-inset-left));
-    padding-right: calc(16px + env(safe-area-inset-right));
+    padding-left: calc(var(--s4) + env(safe-area-inset-left));
+    padding-right: calc(var(--s4) + env(safe-area-inset-right));
   }
 }
 
 @keyframes sheet-in {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(24px);
   }
 }
 
-@media (max-width: 480px) {
-  /* The four controls need more width than a phone has, so they wrap onto a
-     second row rather than being crushed. */
+@media (max-width: 620px) {
+  /* Two rows, not three: the account sits beside the brand and the map
+     controls take the row underneath. Left to wrap on its own the bar ate
+     ~130px of an 844px screen. */
+  .topbar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand account"
+      "controls controls";
+    padding: 10px var(--s3);
+    gap: var(--s2) 10px;
+  }
+
+  .topbar__brand {
+    grid-area: brand;
+  }
+
+  .topbar__account {
+    grid-area: account;
+    justify-self: end;
+  }
+
   .topbar__controls {
-    flex-wrap: wrap;
-    gap: 8px 10px;
+    grid-area: controls;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: var(--s2);
+  }
+
+  .stats__category {
+    grid-template-columns: 92px 1fr 26px;
   }
 }
 
-/* Installed to the home screen, the iOS status bar is translucent and the
-   layout runs underneath it, so the topbar has to reserve that space. */
+/* Installed to the home screen the iOS status bar is translucent and the
+   layout runs underneath it, so the topbar reserves that space. */
 @media (display-mode: standalone) {
   .topbar {
     padding-top: calc(10px + env(safe-area-inset-top));
+  }
+}
+
+/* ---------- Reduced motion ----------
+
+   Everything above degrades to a crossfade or to nothing. State that was
+   carried by motion (pending scoring, live connection, a new arrival) is also
+   carried by colour and text, so nothing becomes unreadable here. */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A new row still needs to announce itself — keep the wash, drop the travel. */
+  .feed-item--new {
+    animation: feed-item-wash 2.4s ease !important;
+  }
+
+  .category-pin--linked {
+    transform: none;
+    outline: 2px solid var(--sev, var(--accent));
+    outline-offset: 2px;
   }
 }

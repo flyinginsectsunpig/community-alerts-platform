@@ -1,7 +1,7 @@
 "use client";
 
 import SeverityBadge from "./SeverityBadge";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
 import type { Alert } from "@/lib/types";
 
 interface AlertFeedProps {
@@ -11,7 +11,10 @@ interface AlertFeedProps {
   selectedId: string | null;
   /** Ids that just arrived over the live stream — get the "new" animation. */
   newIds: ReadonlySet<string>;
+  /** Id whose map pin is hovered, so the matching row can light up too. */
+  linkedId: string | null;
   onSelect: (alert: Alert) => void;
+  onHover: (alertId: string | null) => void;
 }
 
 export default function AlertFeed({
@@ -20,7 +23,9 @@ export default function AlertFeed({
   connected,
   selectedId,
   newIds,
+  linkedId,
   onSelect,
+  onHover,
 }: AlertFeedProps) {
   return (
     <section className="feed" aria-label="Live alert feed">
@@ -28,7 +33,7 @@ export default function AlertFeed({
         <h2>Live feed</h2>
         <span className={`live-indicator${connected ? " live-indicator--on" : ""}`}>
           <span className="live-indicator__dot" aria-hidden />
-          {connected ? "LIVE" : "reconnecting…"}
+          {connected ? "Live" : "Reconnecting"}
         </span>
       </div>
 
@@ -46,11 +51,20 @@ export default function AlertFeed({
             <li key={alert.id}>
               <button
                 type="button"
-                className={`feed-item${alert.id === selectedId ? " feed-item--active" : ""}${
-                  newIds.has(alert.id) ? " feed-item--new" : ""
-                }`}
+                className={
+                  "feed-item" +
+                  (alert.id === selectedId ? " feed-item--active" : "") +
+                  (alert.id === linkedId ? " feed-item--linked" : "") +
+                  (newIds.has(alert.id) ? " feed-item--new" : "")
+                }
+                // The arrival wash tints itself from the row's own severity.
+                style={{ "--sev": SEVERITY_COLORS[alert.severity] } as React.CSSProperties}
                 aria-current={alert.id === selectedId || undefined}
                 onClick={() => onSelect(alert)}
+                onMouseEnter={() => onHover(alert.id)}
+                onMouseLeave={() => onHover(null)}
+                onFocus={() => onHover(alert.id)}
+                onBlur={() => onHover(null)}
               >
                 <div className="feed-item__top">
                   <strong>{CATEGORY_LABELS[alert.category]}</strong>

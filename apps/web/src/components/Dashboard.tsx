@@ -12,6 +12,7 @@ import MyZonesPanel from "./MyZonesPanel";
 import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
+import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
 import type { FocusTarget } from "./AlertMap";
@@ -38,6 +39,9 @@ const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const INITIAL_RADIUS_M = 10000;
 const REFRESH_INTERVAL_MS = 60_000;
 const TOAST_DURATION_MS = 4_000;
+// Long enough for the map pin's three ripples and the feed row's colour wash
+// to finish; both durations live in globals.css.
+const LIVE_HIGHLIGHT_MS = 6_000;
 const HINT_KEY = "communityalerts.hintDismissed";
 
 type PanelMode = "report" | null;
@@ -72,8 +76,14 @@ export default function Dashboard() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
   const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
-  // Ids that arrived over the live stream; drives the feed's "new" animation.
+  // Ids that arrived over the live stream; drives the feed row's wash and the
+  // map pin's arrival ripple.
   const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(new Set());
+  // Hovered from either the feed or the map — the two surfaces share it, so
+  // the pairing is visible from whichever end you started at.
+  const [linkedId, setLinkedId] = useState<string | null>(null);
+
+  const sheet = useBottomSheet();
 
   const markLive = useCallback((alertId: string) => {
     setLiveIds((ids) => new Set(ids).add(alertId));
@@ -83,7 +93,7 @@ export default function Dashboard() {
         next.delete(alertId);
         return next;
       });
-    }, 2000);
+    }, LIVE_HIGHLIGHT_MS);
   }, []);
 
   // Session comes from localStorage, so it must be read client-side only.
@@ -377,7 +387,7 @@ export default function Dashboard() {
     : null;
 
   return (
-    <div className="dashboard">
+    <div className={`dashboard${sidebarOpen ? "" : " dashboard--rail-closed"}`}>
       <header className="topbar">
         <div className="topbar__brand">
           <button
@@ -398,30 +408,40 @@ export default function Dashboard() {
           </span>
           <h1>Community Alerts</h1>
         </div>
+        {/* Map controls and account are separate groups so that on a phone the
+            account can sit beside the brand and the controls drop to their own
+            row, instead of everything wrapping into three. */}
         <div className="topbar__controls">
-          <label className="hotspot-toggle">
-            <input
-              type="checkbox"
-              className="switch__input"
-              checked={showHotspots}
-              onChange={(event) => setShowHotspots(event.target.checked)}
-            />
-            <span className="switch" aria-hidden />
-            Hotspots
-          </label>
-          <label className="hotspot-toggle">
-            <input
-              type="checkbox"
-              className="switch__input"
-              checked={showStations}
-              onChange={(event) => setShowStations(event.target.checked)}
-            />
-            <span className="switch" aria-hidden />
-            Stations
-          </label>
+          {/* The two layer toggles are one decision, so they read as one
+              segmented control rather than two loose labels. */}
+          <div className="layer-switches">
+            <label className="hotspot-toggle">
+              <input
+                type="checkbox"
+                className="switch__input"
+                checked={showHotspots}
+                onChange={(event) => setShowHotspots(event.target.checked)}
+              />
+              <span className="switch" aria-hidden />
+              Hotspots
+            </label>
+            <label className="hotspot-toggle">
+              <input
+                type="checkbox"
+                className="switch__input"
+                checked={showStations}
+                onChange={(event) => setShowStations(event.target.checked)}
+              />
+              <span className="switch" aria-hidden />
+              Stations
+            </label>
+          </div>
           <button type="button" className="btn btn--small" onClick={openZonesPanel}>
             My zones
           </button>
+        </div>
+
+        <div className="topbar__account">
           {session ? (
             <div className="user-chip">
               <span className="user-chip__name">{session.displayName}</span>
@@ -438,16 +458,35 @@ export default function Dashboard() {
       </header>
 
       <div className="dashboard__body">
-        <aside id="sidebar" className={`sidebar${sidebarOpen ? "" : " sidebar--closed"}`}>
-          <StatsPanel stats={stats} loading={!statsLoaded} />
-          <AlertFeed
-            alerts={alerts}
-            loading={!alertsLoaded}
-            connected={connected}
-            selectedId={detailAlertId}
-            newIds={liveIds}
-            onSelect={openDetail}
+        <aside
+          id="sidebar"
+          className={`sidebar${sheet.dragging ? " sidebar--dragging" : ""}`}
+          ref={sheet.sheetRef}
+        >
+          {/* Phones only: the rail becomes a sheet the user drags between
+              peek, half and full. Hidden on desktop via CSS. */}
+          <button
+            type="button"
+            className="sheet-handle"
+            aria-label={`Alerts panel, ${sheet.snap}. Drag or press to resize.`}
+            aria-expanded={sheet.snap !== "peek"}
+            aria-controls="sidebar-inner"
+            onClick={sheet.cycle}
+            {...sheet.handlers}
           />
+          <div className="sidebar__inner" id="sidebar-inner">
+            <StatsPanel stats={stats} loading={!statsLoaded} />
+            <AlertFeed
+              alerts={alerts}
+              loading={!alertsLoaded}
+              connected={connected}
+              selectedId={detailAlertId}
+              newIds={liveIds}
+              linkedId={linkedId}
+              onSelect={openDetail}
+              onHover={setLinkedId}
+            />
+          </div>
         </aside>
 
         <main className="map-wrap">
@@ -463,10 +502,14 @@ export default function Dashboard() {
             focus={focus}
             zoneDraft={zoneDraft}
             zones={showZonesPanel && !zoneDraft ? zones : null}
+            newIds={liveIds}
+            selectedId={detailAlertId}
+            linkedId={linkedId}
             onZoneMove={handleZoneMove}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
+            onHover={setLinkedId}
           />
           {zoneDraft && (
             <WatchZonePanel

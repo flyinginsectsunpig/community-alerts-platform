@@ -1,13 +1,13 @@
 import L from "leaflet";
 
-import type { AlertCategory } from "./types";
+import { SEVERITY_COLORS } from "./format";
+import type { AlertCategory, Severity } from "./types";
 
 // Glyph path data from Lucide (https://lucide.dev), ISC License.
-// Rendered as white strokes inside the neutral `.category-pin` disc
-// (globals.css); simple, professionally drawn shapes that stay readable
-// at pin size on a dark map.
+// Rendered inside the `.category-pin` disc (globals.css); simple,
+// professionally drawn shapes that stay readable at pin size on a dark map.
 const SVG_OPEN =
-  `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" ` +
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ` +
   `stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">`;
 
 const CATEGORY_GLYPHS: Record<AlertCategory, string> = {
@@ -33,21 +33,67 @@ const CATEGORY_GLYPHS: Record<AlertCategory, string> = {
   OTHER: `<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>`,
 };
 
-const iconCache = new Map<AlertCategory, L.DivIcon>();
+/** Everything that changes how a pin looks. */
+export interface PinState {
+  category: AlertCategory;
+  severity: Severity;
+  /** 0 = just reported, 1 = at the staleness horizon. */
+  age: number;
+  /** Arrived over the live stream moments ago — runs the ripple. */
+  isNew: boolean;
+  /** Hovered, from the map itself or from its row in the feed. */
+  isLinked: boolean;
+  isSelected: boolean;
+}
 
-/** Neutral disc pin with the category's glyph; cached per category. */
-export function categoryDivIcon(category: AlertCategory): L.DivIcon {
-  let icon = iconCache.get(category);
-  if (!icon) {
-    icon = L.divIcon({
-      className: "category-pin",
-      html: `${SVG_OPEN}${CATEGORY_GLYPHS[category]}</svg>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13],
-      popupAnchor: [0, -14],
-      tooltipAnchor: [0, -14],
-    });
-    iconCache.set(category, icon);
-  }
+// Icons are immutable in Leaflet, so one is built per distinct appearance and
+// reused. Age is bucketed to keep that set small — without it, every marker
+// would get a unique icon on each refresh.
+const iconCache = new Map<string, L.DivIcon>();
+
+function ageBucket(age: number): number {
+  return Math.round(Math.min(1, Math.max(0, age)) * 4) / 4;
+}
+
+/**
+ * A pin encodes three things at once: what happened (glyph), how bad it is
+ * (ring colour), and how recent it is (opacity). Older alerts recede so the
+ * map reads as "what is happening now" rather than "everything ever filed".
+ */
+export function categoryDivIcon(state: PinState): L.DivIcon {
+  const bucket = ageBucket(state.age);
+  const key = [
+    state.category,
+    state.severity,
+    bucket,
+    state.isNew ? "n" : "",
+    state.isLinked ? "l" : "",
+    state.isSelected ? "s" : "",
+  ].join("|");
+
+  let icon = iconCache.get(key);
+  if (icon) return icon;
+
+  const classes = ["category-pin"];
+  if (state.isNew) classes.push("category-pin--new");
+  if (state.isLinked) classes.push("category-pin--linked");
+  if (state.isSelected) classes.push("category-pin--selected");
+  if (state.severity === "CRITICAL") classes.push("category-pin--critical");
+
+  // Never fade past 0.55 — a stale alert still has to be clickable.
+  const fade = (1 - bucket * 0.45).toFixed(2);
+  const style = `--sev:${SEVERITY_COLORS[state.severity]};--pin-fade:${fade}`;
+
+  icon = L.divIcon({
+    className: "category-pin-wrap",
+    html:
+      `<span class="${classes.join(" ")}" style="${style}">` +
+      `${SVG_OPEN}${CATEGORY_GLYPHS[state.category]}</svg></span>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+    popupAnchor: [0, -15],
+    tooltipAnchor: [0, -15],
+  });
+  iconCache.set(key, icon);
   return icon;
 }
