@@ -31,9 +31,17 @@ export default function AlertFeed({
     <section className="feed" aria-label="Live alert feed">
       <div className="feed__header">
         <h2>Live feed</h2>
-        <span className={`live-indicator${connected ? " live-indicator--on" : ""}`}>
+        {/* Losing the stream is only signalled visually by the dot going
+            still, so the state change is announced too. */}
+        <span
+          className={`live-indicator${connected ? " live-indicator--on" : ""}`}
+          role="status"
+        >
           <span className="live-indicator__dot" aria-hidden />
           {connected ? "Live" : "Reconnecting"}
+          <span className="sr-only">
+            {connected ? " — receiving alerts" : " — not receiving alerts"}
+          </span>
         </span>
       </div>
 

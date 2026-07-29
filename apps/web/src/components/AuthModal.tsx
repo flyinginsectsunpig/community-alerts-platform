@@ -115,7 +115,9 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
-            autoFocus
+            // useFocusCapture focuses this once the dialog has painted. React's
+            // autoFocus fires during commit instead, which raced the hook.
+            data-autofocus
             required
           />
         </label>
