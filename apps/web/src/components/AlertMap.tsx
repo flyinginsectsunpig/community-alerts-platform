@@ -18,7 +18,7 @@ import "leaflet/dist/leaflet.css";
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import { categoryDivIcon } from "@/lib/categoryIcons";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import type {
   Alert,
   AlertCategory,
@@ -37,10 +37,10 @@ export type FocusTarget = LatLng & { zoom?: number };
 
 // Hotspots wear violet — deliberately distinct from every severity status
 // color so density never impersonates severity.
-const HOTSPOT_COLOR = "#9085e9";
+const HOTSPOT_COLOR = "#a376e9";
 
-// Zone drafts wear the accent blue: an action in progress, not data.
-const ZONE_COLOR = "#3987e5";
+// Zone drafts wear the accent: an action of yours in progress, not data.
+const ZONE_COLOR = "#24abe8";
 
 // Styled via .zone-handle in globals.css; a DivIcon avoids Leaflet's default
 // marker sprite (whose assets don't survive bundling).
@@ -63,10 +63,17 @@ interface AlertMapProps {
   zoneDraft: ZoneDraft | null;
   /** Saved zones to display (My Zones panel open); null hides them. */
   zones: WatchZone[] | null;
+  /** Ids that just arrived over the live stream — their pins ripple. */
+  newIds: ReadonlySet<string>;
+  /** Currently open in the detail panel. */
+  selectedId: string | null;
+  /** Hovered from either end of the feed/map pairing. */
+  linkedId: string | null;
   onZoneMove: (center: LatLng) => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
+  onHover: (alertId: string | null) => void;
 }
 
 // Leaflet only watches window resizes; the sidebar collapse resizes the
@@ -121,10 +128,14 @@ export default function AlertMap({
   focus,
   zoneDraft,
   zones,
+  newIds,
+  selectedId,
+  linkedId,
   onZoneMove,
   onMapClick,
   onConfirm,
   onOpenDetail,
+  onHover,
 }: AlertMapProps) {
   return (
     <MapContainer
@@ -180,7 +191,20 @@ export default function AlertMap({
         <Marker
           key={alert.id}
           position={[alert.lat, alert.lng]}
-          icon={categoryDivIcon(alert.category)}
+          icon={categoryDivIcon({
+            category: alert.category,
+            severity: alert.severity,
+            age: ageFraction(alert.createdAt),
+            isNew: newIds.has(alert.id),
+            isLinked: alert.id === linkedId,
+            isSelected: alert.id === selectedId,
+          })}
+          // Hovering a pin lights up its row in the feed, and vice versa —
+          // one piece of state, so the link reads from either end.
+          eventHandlers={{
+            mouseover: () => onHover(alert.id),
+            mouseout: () => onHover(null),
+          }}
         >
           <Tooltip>
             {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
@@ -221,11 +245,14 @@ export default function AlertMap({
         <CircleMarker
           center={[pendingPoint.lat, pendingPoint.lng]}
           radius={11}
+          // The dashes creep anticlockwise while the report form is open, so
+          // the spot you picked stays obviously "in progress".
+          className="pending-pin"
           pathOptions={{
-            color: "#ffffff",
+            color: "#f6f7f8",
             weight: 2,
             dashArray: "4 4",
-            fillColor: "#ffffff",
+            fillColor: "#f6f7f8",
             fillOpacity: 0.15,
           }}
         />

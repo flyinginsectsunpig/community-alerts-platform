@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { OPEN_MODAL, useExiting } from "./Presence";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS } from "@/lib/format";
@@ -33,17 +34,19 @@ export default function WatchZonePanel({
   const [categories, setCategories] = useState<AlertCategory[]>(editing?.categories ?? []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const exiting = useExiting();
 
   // Escape closes the panel, unless a modal dialog is stacked above it.
   useEffect(() => {
+    if (exiting) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      if (document.querySelector(".panel-overlay")) return;
+      if (document.querySelector(OPEN_MODAL)) return;
       onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, exiting]);
 
   function toggleCategory(category: AlertCategory) {
     setCategories((current) =>
@@ -81,7 +84,10 @@ export default function WatchZonePanel({
   }
 
   return (
-    <aside className="zone-panel" aria-label={editing ? "Edit watch zone" : "Create a watch zone"}>
+    <aside
+      className={`zone-panel${exiting ? " zone-panel--exiting" : ""}`}
+      aria-label={editing ? "Edit watch zone" : "Create a watch zone"}
+    >
       <form onSubmit={handleSubmit} className="zone-panel__form">
         <div className="panel__header">
           <h2>{editing ? `Edit “${editing.name}”` : "Create a watch zone"}</h2>
