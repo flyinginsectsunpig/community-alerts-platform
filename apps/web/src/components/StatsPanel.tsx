@@ -1,9 +1,18 @@
 "use client";
 
-import { CATEGORY_LABELS, dayLetter, SEVERITY_COLORS, SEVERITY_LABELS } from "@/lib/format";
+import { useCountUp } from "@/hooks/useCountUp";
+import {
+  CATEGORY_LABELS,
+  dayLetter,
+  fillWeek,
+  SEVERITY_COLORS,
+  SEVERITY_LABELS,
+} from "@/lib/format";
 import type { AlertCategory, Severity, StatsResponse } from "@/lib/types";
 
 const MAX_CATEGORY_ROWS = 6;
+/** Per-bar entrance offset; 7 days finish in ~200ms, so it reads as one sweep. */
+const STAGGER_MS = 34;
 
 interface StatsPanelProps {
   stats: StatsResponse | null;
@@ -11,6 +20,10 @@ interface StatsPanelProps {
 }
 
 export default function StatsPanel({ stats, loading }: StatsPanelProps) {
+  // Hooks can't sit behind the early return below, so the count-up runs on a
+  // safe zero until the first payload lands.
+  const total = useCountUp(stats?.stats.total ?? 0);
+
   if (!stats) {
     return (
       <section className="stats" aria-label="7-day statistics" aria-busy={loading}>
@@ -29,13 +42,15 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
     );
   }
 
-  const { total, byCategory, byDay, bySeverity } = stats.stats;
+  const { byCategory, byDay, bySeverity } = stats.stats;
+
+  const week = fillWeek(byDay);
+  const maxDayCount = Math.max(1, ...week.map((d) => d.count));
 
   const categoryRows = Object.entries(byCategory)
     .sort(([, a], [, b]) => b - a)
     .slice(0, MAX_CATEGORY_ROWS);
   const maxCategoryCount = Math.max(1, ...categoryRows.map(([, count]) => count));
-  const maxDayCount = Math.max(1, ...byDay.map((d) => d.count));
 
   const severityEntries = (Object.keys(SEVERITY_LABELS) as Severity[])
     .filter((severity) => (bySeverity[severity] ?? 0) > 0)
@@ -45,31 +60,48 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
     <section className="stats fade-in" aria-label="7-day statistics">
       <div className="stats__header">
         <h2>Last 7 days</h2>
-        <span className="stats__source">{stats.source === "cache" ? "live snapshot" : "database"}</span>
+        <span className="stats__source">
+          {stats.source === "cache" ? "live snapshot" : "database"}
+        </span>
       </div>
 
       <div className="stats__hero">
-        <span className="stats__hero-number">{total}</span>
-        <span className="stats__hero-label">alerts reported</span>
+        {/* The animated figure is decorative motion over a live value, so the
+            accessible name carries the real number, not the tweened one. */}
+        <span className="stats__hero-number" aria-hidden>
+          {total}
+        </span>
+        <span className="stats__hero-label">
+          <span className="sr-only">{stats.stats.total} </span>alerts reported
+        </span>
       </div>
 
-      {byDay.length > 0 && (
-        <div className="stats__days" role="img" aria-label="Alerts per day">
-          {byDay.map((day) => (
-            <div className="stats__day" key={day.day} title={`${day.day}: ${day.count} alerts`}>
-              <div
-                className="stats__day-bar"
-                style={{ height: `${Math.max(8, (day.count / maxDayCount) * 100)}%` }}
-              />
-              <span className="stats__day-label">{dayLetter(day.day)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="stats__days" role="img" aria-label={weekSummary(week)}>
+        {week.map((day, index) => (
+          <div
+            className={
+              "stats__day" +
+              (day.count === 0 ? " stats__day--empty" : "") +
+              (day.isToday ? " stats__day--today" : "")
+            }
+            key={day.day}
+            title={`${day.day}: ${day.count} alert${day.count === 1 ? "" : "s"}`}
+          >
+            <div
+              className="stats__day-bar"
+              style={{
+                height: `${day.count === 0 ? 2 : Math.max(8, (day.count / maxDayCount) * 100)}%`,
+                "--bar-delay": `${index * STAGGER_MS}ms`,
+              } as React.CSSProperties}
+            />
+            <span className="stats__day-label">{dayLetter(day.day)}</span>
+          </div>
+        ))}
+      </div>
 
       {categoryRows.length > 0 && (
         <ul className="stats__categories">
-          {categoryRows.map(([category, count]) => (
+          {categoryRows.map(([category, count], index) => (
             <li key={category} className="stats__category" title={`${count} alerts`}>
               <span className="stats__category-label">
                 {CATEGORY_LABELS[category as AlertCategory] ?? category}
@@ -77,7 +109,10 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
               <span className="stats__category-track">
                 <span
                   className="stats__category-bar"
-                  style={{ width: `${(count / maxCategoryCount) * 100}%` }}
+                  style={{
+                    "--fill": count / maxCategoryCount,
+                    "--bar-delay": `${index * STAGGER_MS}ms`,
+                  } as React.CSSProperties}
                 />
               </span>
               <span className="stats__category-count">{count}</span>
@@ -92,7 +127,7 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
             <span key={severity} className="severity-chip">
               <span
                 className="severity-dot"
-                style={{ background: SEVERITY_COLORS[severity] }}
+                style={{ "--sev": SEVERITY_COLORS[severity] } as React.CSSProperties}
                 aria-hidden
               />
               {SEVERITY_LABELS[severity]} {count}
@@ -102,4 +137,9 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
       )}
     </section>
   );
+}
+
+function weekSummary(week: readonly { day: string; count: number }[]): string {
+  const parts = week.map((d) => `${dayLetter(d.day)}: ${d.count}`);
+  return `Alerts per day over the last 7 days — ${parts.join(", ")}`;
 }
