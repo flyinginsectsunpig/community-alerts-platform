@@ -22,6 +22,7 @@ interface MyZonesPanelProps {
   zones: WatchZone[] | null;
   session: AuthSession | null;
   onClose: () => void;
+  onCreate: () => void;
   onEdit: (zone: WatchZone) => void;
   onDelete: (zone: WatchZone) => void;
   onFocus: (zone: WatchZone) => void;
@@ -31,6 +32,7 @@ export default function MyZonesPanel({
   zones,
   session,
   onClose,
+  onCreate,
   onEdit,
   onDelete,
   onFocus,
@@ -161,24 +163,105 @@ export default function MyZonesPanel({
         </button>
       </div>
 
-      {pushState === "needs-install" && (
-        <div className="zone-item">
+      {/* The zones are why the panel was opened, so they come first and the
+          notification settings sit below them — previously both wore the same
+          treatment and the settings pushed the list off the top. */}
+      {zones === null ? (
+        <div className="zone-skeleton" aria-hidden>
+          <div className="skeleton zone-skeleton__item" />
+          <div className="skeleton zone-skeleton__item" />
+        </div>
+      ) : zones.length === 0 ? (
+        <div className="zone-empty">
+          <p className="zone-empty__lead">You are not watching anywhere yet.</p>
+          <p className="panel__hint">
+            A watch zone is a circle on the map. When an alert lands inside one, you hear about
+            it — on this device, by email, or both. Most people draw one around home.
+          </p>
+          <button type="button" className="btn btn--primary btn--small" onClick={onCreate}>
+            Draw a zone here
+          </button>
+        </div>
+      ) : (
+        <ul className="zone-list">
+          {zones.map((zone) => (
+            <li key={zone.id} className="zone-card">
+              <div className="zone-card__head">
+                <button type="button" className="zone-card__name" onClick={() => onFocus(zone)}>
+                  {zone.name}
+                </button>
+                <span className="zone-card__radius">{(zone.radiusM / 1000).toFixed(1)} km</span>
+              </div>
+              <p className="zone-card__categories">
+                {zone.categories.length === 0
+                  ? "All categories"
+                  : zone.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
+              </p>
+              <div className="zone-card__actions">
+                <button type="button" className="btn btn--small" onClick={() => onEdit(zone)}>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small"
+                  onClick={() => void toggleNotifications(zone.id)}
+                  aria-expanded={openZoneId === zone.id}
+                >
+                  {openZoneId === zone.id ? "Hide activity" : "Activity"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--small btn--danger"
+                  onClick={() => onDelete(zone)}
+                >
+                  Delete
+                </button>
+              </div>
+              {openZoneId === zone.id && (
+                <ul className="zone-notifications">
+                  {notifErrors[zone.id] && <li className="form-error">{notifErrors[zone.id]}</li>}
+                  {!notifErrors[zone.id] && !notifications[zone.id] && <li>Loading…</li>}
+                  {notifications[zone.id]?.length === 0 && (
+                    <li className="zone-notifications__empty">
+                      Nothing has happened in this zone yet.
+                    </li>
+                  )}
+                  {notifications[zone.id]?.map((n) => (
+                    <li key={n.id}>
+                      {n.message} <span className="panel__hint">{timeAgo(n.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {zones !== null && zones.length > 0 && (
+        <button type="button" className="btn btn--small" onClick={onCreate}>
+          Add another zone
+        </button>
+      )}
+
+      <div className="zone-settings">
+        <h3 className="zone-settings__title">How you hear about it</h3>
+
+        {pushState === "needs-install" && (
           <p className="panel__hint">
             To get alerts on this device, add Community Alerts to your home screen — tap Share,
             then “Add to Home Screen”, and open it from there. iOS only allows notifications for
             installed apps.
           </p>
-        </div>
-      )}
+        )}
 
-      {pushState !== "unsupported" && pushState !== "needs-install" && (
-        <div className="zone-item">
-          <p className="panel__hint">
-            {pushState === "on"
-              ? "This device gets a notification when an alert lands in your zones."
-              : "Get a notification on this device when an alert lands in your zones."}
-          </p>
-          <div className="panel__actions">
+        {pushState !== "unsupported" && pushState !== "needs-install" && (
+          <div className="zone-setting">
+            <p className="panel__hint">
+              {pushState === "on"
+                ? "This device gets a notification when an alert lands in your zones."
+                : "Get a notification on this device when an alert lands in your zones."}
+            </p>
             <button
               type="button"
               className="btn btn--small"
@@ -188,81 +271,33 @@ export default function MyZonesPanel({
               {pushState === "busy"
                 ? "Working…"
                 : pushState === "on"
-                  ? "Disable device notifications"
+                  ? "Turn off on this device"
                   : "Notify this device"}
             </button>
+            {pushError && <p className="form-error">{pushError}</p>}
           </div>
-          {pushError && <p className="form-error">{pushError}</p>}
-        </div>
-      )}
-
-      <div className="zone-item">
-        {session ? (
-          <label className="field">
-            <span>Email digest of your zones</span>
-            <select
-              value={digest ?? "OFF"}
-              disabled={digest === null || digestBusy}
-              onChange={(event) => void changeDigest(event.target.value as DigestFrequency)}
-            >
-              <option value="OFF">Off</option>
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-            </select>
-          </label>
-        ) : (
-          <p className="panel__hint">Sign in to get email summaries of your zones.</p>
         )}
-        {digestError && <p className="form-error">{digestError}</p>}
-      </div>
 
-      {zones === null && <p className="panel__hint">Loading…</p>}
-      {zones?.length === 0 && (
-        <p className="panel__hint">
-          No watch zones yet — click the map, then “watch this area” to create one.
-        </p>
-      )}
-
-      {zones?.map((zone) => (
-        <div key={zone.id} className="zone-item">
-          <button type="button" className="link-button" onClick={() => onFocus(zone)}>
-            {zone.name}
-          </button>
-          <p className="panel__hint">
-            {(zone.radiusM / 1000).toFixed(1)} km ·{" "}
-            {zone.categories.length === 0
-              ? "All categories"
-              : zone.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
-          </p>
-          <div className="panel__actions">
-            <button type="button" className="btn btn--small" onClick={() => onEdit(zone)}>
-              Edit
-            </button>
-            <button type="button" className="btn btn--small" onClick={() => onDelete(zone)}>
-              Delete
-            </button>
-            <button
-              type="button"
-              className="btn btn--small"
-              onClick={() => void toggleNotifications(zone.id)}
-            >
-              {openZoneId === zone.id ? "Hide notifications" : "Notifications"}
-            </button>
-          </div>
-          {openZoneId === zone.id && (
-            <ul className="zone-notifications">
-              {notifErrors[zone.id] && <li className="form-error">{notifErrors[zone.id]}</li>}
-              {!notifErrors[zone.id] && !notifications[zone.id] && <li>Loading…</li>}
-              {notifications[zone.id]?.length === 0 && <li>No notifications yet.</li>}
-              {notifications[zone.id]?.map((n) => (
-                <li key={n.id}>
-                  {n.message} <span className="panel__hint">{timeAgo(n.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
+        <div className="zone-setting">
+          {session ? (
+            <label className="field">
+              <span>Email digest</span>
+              <select
+                value={digest ?? "OFF"}
+                disabled={digest === null || digestBusy}
+                onChange={(event) => void changeDigest(event.target.value as DigestFrequency)}
+              >
+                <option value="OFF">Off</option>
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+              </select>
+            </label>
+          ) : (
+            <p className="panel__hint">Sign in to get email summaries of your zones.</p>
           )}
+          {digestError && <p className="form-error">{digestError}</p>}
         </div>
-      ))}
+      </div>
     </aside>
   );
 }
