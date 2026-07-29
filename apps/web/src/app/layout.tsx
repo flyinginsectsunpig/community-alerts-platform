@@ -13,6 +13,14 @@ export const metadata: Metadata = {
   title: "Community Alerts",
   description:
     "Real-time neighbourhood safety dashboard: report incidents, watch live alerts, and track crime hotspots.",
+  applicationName: "Community Alerts",
+  // iOS reads these rather than the manifest when the app is added to the home
+  // screen, which is the only context where it grants the Push API.
+  appleWebApp: {
+    capable: true,
+    title: "Alerts",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {

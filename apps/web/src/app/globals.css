@@ -1639,3 +1639,11 @@ input[type="range"] {
     gap: 8px 10px;
   }
 }
+
+/* Installed to the home screen, the iOS status bar is translucent and the
+   layout runs underneath it, so the topbar has to reserve that space. */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
+}
