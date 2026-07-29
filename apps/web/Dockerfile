@@ -24,6 +24,9 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
+# Standalone output excludes public/, so it has to be copied explicitly —
+# without this the service worker and manifest icons 404 in production.
+COPY --from=build /app/public ./public
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
