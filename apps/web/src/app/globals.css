@@ -1564,7 +1564,17 @@ input[type="range"] {
     min-height: 44px;
   }
 
-  /* Leaflet ships 26px zoom buttons. */
+  /* The layer switches are labels wrapping a 20px-tall control, so the label
+     itself has to carry the target. */
+  .hotspot-toggle {
+    min-height: 44px;
+  }
+
+  /* Leaflet adds .leaflet-touch on touch devices and sizes its buttons through
+     `.leaflet-touch .leaflet-bar a` (0,2,1), which outranks a bare
+     `.leaflet-bar a` — the selector has to be matched or the zoom controls
+     stay at Leaflet's 30px. */
+  .leaflet-touch .leaflet-bar a,
   .leaflet-bar a {
     width: 44px;
     height: 44px;
