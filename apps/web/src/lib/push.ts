@@ -8,8 +8,38 @@ export function pushSupported(): boolean {
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
     "PushManager" in window &&
+    // Safari withholds Notification outside installed web apps, so checking
+    // for PushManager alone is not enough to know requestPermission exists.
+    "Notification" in window &&
     PUBLIC_KEY.length > 0
   );
+}
+
+function isIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // iPadOS 13+ claims to be a Mac, so touch points are what separate them.
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // Safari's own pre-standard flag for home-screen web apps.
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+/**
+ * iOS grants the Push API only to web apps launched from the home screen, so a
+ * plain Safari tab reports no support even though the device is capable. The
+ * caller uses this to explain the install step instead of hiding the control.
+ */
+export function needsInstallForPush(): boolean {
+  return !pushSupported() && isIos() && !isStandalone() && PUBLIC_KEY.length > 0;
 }
 
 function urlBase64ToUint8Array(base64: string): Uint8Array {
@@ -32,6 +62,9 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
 
 /** @returns false when the user declined the notification permission. */
 export async function enablePush(): Promise<boolean> {
+  if (!pushSupported()) {
+    throw new Error("Push is not available in this browser");
+  }
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
     return false;

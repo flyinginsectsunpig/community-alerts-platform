@@ -5,10 +5,16 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import { disablePush, enablePush, getPushSubscription, pushSupported } from "@/lib/push";
+import {
+  disablePush,
+  enablePush,
+  getPushSubscription,
+  needsInstallForPush,
+  pushSupported,
+} from "@/lib/push";
 import type { DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
 
-type PushState = "unsupported" | "off" | "on" | "busy";
+type PushState = "unsupported" | "needs-install" | "off" | "on" | "busy";
 
 interface MyZonesPanelProps {
   /** null while the list is loading. */
@@ -72,7 +78,10 @@ export default function MyZonesPanel({
   }
 
   useEffect(() => {
-    if (!pushSupported()) return;
+    if (!pushSupported()) {
+      if (needsInstallForPush()) setPushState("needs-install");
+      return;
+    }
     let cancelled = false;
     getPushSubscription().then((subscription) => {
       if (!cancelled) setPushState(subscription ? "on" : "off");
@@ -146,7 +155,17 @@ export default function MyZonesPanel({
         </button>
       </div>
 
-      {pushState !== "unsupported" && (
+      {pushState === "needs-install" && (
+        <div className="zone-item">
+          <p className="panel__hint">
+            To get alerts on this device, add Community Alerts to your home screen — tap Share,
+            then “Add to Home Screen”, and open it from there. iOS only allows notifications for
+            installed apps.
+          </p>
+        </div>
+      )}
+
+      {pushState !== "unsupported" && pushState !== "needs-install" && (
         <div className="zone-item">
           <p className="panel__hint">
             {pushState === "on"
