@@ -1,3 +1,5 @@
+using WebPush;
+
 namespace AlertProcessor;
 
 /// <summary>
@@ -51,6 +53,51 @@ public sealed record WorkerOptions
             VapidSubject = Optional("VAPID_SUBJECT"),
         };
     }
+
+    /// <summary>
+    /// Push may be left entirely unconfigured, but a half-configured or
+    /// malformed set is always a mistake — and one that hides itself, because
+    /// WebPushSender quietly disables sending when a value is missing and
+    /// swallows the per-send exception when one is malformed. Both states ran
+    /// unnoticed in production, so the worker refuses to start on either.
+    /// </summary>
+    public void ValidatePushConfiguration()
+    {
+        var present = new[] { VapidPublicKey, VapidPrivateKey, VapidSubject }
+            .Count(value => !string.IsNullOrWhiteSpace(value));
+        if (present == 0)
+        {
+            return; // Push is switched off deliberately.
+        }
+
+        if (present < 3)
+        {
+            throw new InvalidOperationException(
+                "Incomplete push configuration: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and " +
+                "VAPID_SUBJECT must all be set, or all be left unset to disable push.");
+        }
+
+        try
+        {
+            // Generating headers is exactly what each send does, so anything the
+            // library will reject at delivery time is rejected here instead.
+            VapidHelper.GetVapidHeaders(
+                "https://example.com", VapidSubject, VapidPublicKey, VapidPrivateKey);
+        }
+        catch (Exception ex)
+        {
+            var culprit = IsUsableSubject(VapidSubject) ? "VAPID keys are" : "VAPID_SUBJECT is";
+            throw new InvalidOperationException(
+                $"Push is configured but the {culprit} not usable: {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>Mirrors the library's rule: a mailto: address or an http(s) URL.</summary>
+    private static bool IsUsableSubject(string? subject) =>
+        subject is not null
+        && (subject.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
+            || Uri.TryCreate(subject, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps));
 
     private static string Require(string name) =>
         Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
