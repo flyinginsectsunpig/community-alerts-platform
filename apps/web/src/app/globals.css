@@ -1026,6 +1026,31 @@ input[type="range"] {
   animation: fade-in var(--speed) ease;
 }
 
+/* Closing: the backdrop clears quickly and the panel drops back the way it
+   came. `forwards` holds the end state for the moment before it unmounts, and
+   pointer-events go dead so a closing dialog can't be clicked again. */
+.panel-overlay--exiting {
+  pointer-events: none;
+  animation: fade-out var(--speed-fast) ease forwards;
+}
+
+.panel-overlay--exiting .panel {
+  animation: panel-out var(--speed) ease-in forwards;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
 .panel {
   position: relative;
   z-index: var(--z-modal);
@@ -1314,6 +1339,18 @@ input[type="range"] {
   }
 }
 
+.detail-panel--exiting {
+  pointer-events: none;
+  animation: dock-out-right var(--speed) ease-in forwards;
+}
+
+@keyframes dock-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
 .zone-panel {
   position: absolute;
   top: 84px; /* clears Leaflet's top-left zoom control */
@@ -1332,6 +1369,18 @@ input[type="range"] {
 
 @keyframes dock-in-left {
   from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+.zone-panel--exiting {
+  pointer-events: none;
+  animation: dock-out-left var(--speed) ease-in forwards;
+}
+
+@keyframes dock-out-left {
+  to {
     opacity: 0;
     transform: translateX(-20px);
   }
@@ -2110,6 +2159,13 @@ input[type="range"] {
     animation: sheet-in var(--speed-slow) var(--ease-out-expo);
   }
 
+  /* As sheets these arrived from the bottom, so they leave that way rather
+     than sliding off the side they dock to on desktop. */
+  .zone-panel--exiting,
+  .detail-panel--exiting {
+    animation: sheet-out var(--speed) ease-in forwards;
+  }
+
   .detail-panel {
     top: auto;
     max-height: 76dvh;
@@ -2131,6 +2187,13 @@ input[type="range"] {
 
 @keyframes sheet-in {
   from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@keyframes sheet-out {
+  to {
     opacity: 0;
     transform: translateY(24px);
   }

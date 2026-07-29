@@ -9,6 +9,7 @@ import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
+import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
 import WatchZonePanel from "./WatchZonePanel";
@@ -511,18 +512,22 @@ export default function Dashboard() {
             onOpenDetail={openDetail}
             onHover={setLinkedId}
           />
-          {zoneDraft && (
-            <WatchZonePanel
-              draft={zoneDraft}
-              editing={editingZone}
-              session={session}
-              onRadiusChange={handleZoneRadius}
-              onClose={closeZone}
-              onCreated={handleZoneCreated}
-              onUpdated={handleZoneUpdated}
-            />
-          )}
-          {showZonesPanel && !zoneDraft && (
+          {/* Each panel stays mounted for the length of its exit animation,
+              so closing one is as deliberate as opening it. */}
+          <Presence when={zoneDraft !== null}>
+            {zoneDraft && (
+              <WatchZonePanel
+                draft={zoneDraft}
+                editing={editingZone}
+                session={session}
+                onRadiusChange={handleZoneRadius}
+                onClose={closeZone}
+                onCreated={handleZoneCreated}
+                onUpdated={handleZoneUpdated}
+              />
+            )}
+          </Presence>
+          <Presence when={showZonesPanel && !zoneDraft}>
             <MyZonesPanel
               zones={zones}
               session={session}
@@ -531,7 +536,7 @@ export default function Dashboard() {
               onDelete={(zone) => void handleDeleteZone(zone)}
               onFocus={focusZone}
             />
-          )}
+          </Presence>
           {showHint && (
             <div className="map-hint" role="note">
               Click anywhere on the map to report an alert.
@@ -550,33 +555,39 @@ export default function Dashboard() {
               Zoom in to see police stations.
             </div>
           )}
-          {stationStats && (
-            <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
-          )}
-          {detailAlert && (
-            <AlertDetailPanel
-              alert={detailAlert}
-              session={session}
-              liveComment={liveComment}
-              onClose={() => setDetailAlertId(null)}
-              onConfirm={handleConfirm}
-              onResolve={(alertId) => void handleResolve(alertId)}
-              onRequestAuth={() => setShowAuthModal(true)}
-            />
-          )}
+          <Presence when={stationStats !== null}>
+            {stationStats && (
+              <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
+            )}
+          </Presence>
+          <Presence when={detailAlert !== null}>
+            {detailAlert && (
+              <AlertDetailPanel
+                alert={detailAlert}
+                session={session}
+                liveComment={liveComment}
+                onClose={() => setDetailAlertId(null)}
+                onConfirm={handleConfirm}
+                onResolve={(alertId) => void handleResolve(alertId)}
+                onRequestAuth={() => setShowAuthModal(true)}
+              />
+            )}
+          </Presence>
         </main>
       </div>
 
-      {panelMode === "report" && pendingPoint && (
-        <AlertForm
-          point={pendingPoint}
-          onClose={closePanel}
-          onCreated={handleAlertCreated}
-          onSwitchToZone={handleSwitchToZone}
-        />
-      )}
+      <Presence when={panelMode === "report" && pendingPoint !== null}>
+        {pendingPoint && (
+          <AlertForm
+            point={pendingPoint}
+            onClose={closePanel}
+            onCreated={handleAlertCreated}
+            onSwitchToZone={handleSwitchToZone}
+          />
+        )}
+      </Presence>
 
-      {showAuthModal && (
+      <Presence when={showAuthModal}>
         <AuthModal
           onClose={() => setShowAuthModal(false)}
           onAuthed={(authed) => {
@@ -586,38 +597,47 @@ export default function Dashboard() {
             void offerClaim();
           }}
         />
-      )}
+      </Presence>
 
-      {claimOffer && (
-        <ModalOverlay label="Add your watch zones to this account" onClose={() => setClaimOffer(null)}>
-          <div className="panel">
-            <div className="panel__header">
-              <h2>Watch zones on this device</h2>
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => setClaimOffer(null)}
-                aria-label="Close"
-              >
-                ×
-              </button>
+      <Presence when={claimOffer !== null}>
+        {claimOffer && (
+          <ModalOverlay
+            label="Add your watch zones to this account"
+            onClose={() => setClaimOffer(null)}
+          >
+            <div className="panel">
+              <div className="panel__header">
+                <h2>Watch zones on this device</h2>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setClaimOffer(null)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="panel__hint">
+                You have {claimOffer.length} watch zone{claimOffer.length === 1 ? "" : "s"} created
+                on this device. Add {claimOffer.length === 1 ? "it" : "them"} to your account so you
+                can manage {claimOffer.length === 1 ? "it" : "them"} from anywhere?
+              </p>
+              <div className="panel__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => void handleClaim()}
+                >
+                  Add to my account
+                </button>
+                <button type="button" className="btn" onClick={() => setClaimOffer(null)}>
+                  Not now
+                </button>
+              </div>
             </div>
-            <p className="panel__hint">
-              You have {claimOffer.length} watch zone{claimOffer.length === 1 ? "" : "s"} created on
-              this device. Add {claimOffer.length === 1 ? "it" : "them"} to your account so you can
-              manage {claimOffer.length === 1 ? "it" : "them"} from anywhere?
-            </p>
-            <div className="panel__actions">
-              <button type="button" className="btn btn--primary" onClick={() => void handleClaim()}>
-                Add to my account
-              </button>
-              <button type="button" className="btn" onClick={() => setClaimOffer(null)}>
-                Not now
-              </button>
-            </div>
-          </div>
-        </ModalOverlay>
-      )}
+          </ModalOverlay>
+        )}
+      </Presence>
 
       {toast && (
         <div className={`toast toast--${toast.kind}`} role="status">
