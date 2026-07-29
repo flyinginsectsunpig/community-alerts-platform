@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
@@ -19,14 +19,17 @@ import WatchZonePanel from "./WatchZonePanel";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
+import { applyFilter, EMPTY_FILTER, toggle, type AlertFilter } from "@/lib/filter";
 import type { FocusTarget } from "./AlertMap";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
 import type {
   Alert,
+  AlertCategory,
   AlertComment,
   Hotspot,
   LatLng,
   LiveEvent,
+  Severity,
   StationStats,
   StatsResponse,
   WatchZone,
@@ -84,8 +87,28 @@ export default function Dashboard() {
   // What a screen reader hears when an alert lands. CRITICAL goes to the
   // assertive region so it interrupts; everything else waits its turn.
   const [announcement, setAnnouncement] = useState<{ text: string; urgent: boolean } | null>(null);
+  const [filter, setFilter] = useState<AlertFilter>(EMPTY_FILTER);
 
   const sheet = useBottomSheet();
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // The feed and the map must always agree about what is on screen, so both
+  // read from the same filtered list.
+  const visibleAlerts = useMemo(() => applyFilter(alerts, filter), [alerts, filter]);
+
+  const toggleCategory = useCallback((category: AlertCategory) => {
+    setFilter((current) => ({ ...current, categories: toggle(current.categories, category) }));
+  }, []);
+
+  const toggleSeverity = useCallback((severity: Severity) => {
+    setFilter((current) => ({ ...current, severities: toggle(current.severities, severity) }));
+  }, []);
+
+  const setQuery = useCallback((query: string) => {
+    setFilter((current) => ({ ...current, query }));
+  }, []);
+
+  const clearFilter = useCallback(() => setFilter(EMPTY_FILTER), []);
 
   const announce = useCallback((alert: Alert) => {
     setAnnouncement({
@@ -404,6 +427,8 @@ export default function Dashboard() {
     setStationStats(stats);
   }, []);
 
+  // Deliberately resolved against the unfiltered list: narrowing the feed
+  // should not slam shut a detail panel the user is reading.
   const detailAlert = detailAlertId
     ? alerts.find((alert) => alert.id === detailAlertId) ?? null
     : null;
@@ -497,14 +522,25 @@ export default function Dashboard() {
             {...sheet.handlers}
           />
           <div className="sidebar__inner" id="sidebar-inner">
-            <StatsPanel stats={stats} loading={!statsLoaded} />
+            <StatsPanel
+              stats={stats}
+              loading={!statsLoaded}
+              filter={filter}
+              onToggleCategory={toggleCategory}
+              onToggleSeverity={toggleSeverity}
+            />
             <AlertFeed
-              alerts={alerts}
+              alerts={visibleAlerts}
+              totalCount={alerts.length}
               loading={!alertsLoaded}
               connected={connected}
               selectedId={detailAlertId}
               newIds={liveIds}
               linkedId={linkedId}
+              filter={filter}
+              searchRef={searchRef}
+              onQueryChange={setQuery}
+              onClearFilter={clearFilter}
               onSelect={openDetail}
               onHover={setLinkedId}
             />
@@ -519,7 +555,7 @@ export default function Dashboard() {
           }`}
         >
           <AlertMap
-            alerts={alerts}
+            alerts={visibleAlerts}
             hotspots={hotspots}
             showHotspots={showHotspots}
             showStations={showStations}
