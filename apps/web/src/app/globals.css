@@ -420,15 +420,28 @@ input[type="range"] {
   color: var(--muted);
 }
 
-.map-hint {
+/* Both hints can be on screen at once — the teaching hint and the station
+   zoom gate — and each used to be positioned at the same spot, so they landed
+   on top of one another. The container owns the position and stacks them. */
+.map-hints {
   position: absolute;
   top: var(--s3);
   left: 50%;
   z-index: var(--z-docked);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  max-width: calc(100% - var(--s5));
+  transform: translateX(-50%);
+  pointer-events: none; /* the map stays draggable either side of a hint */
+}
+
+.map-hint {
+  display: flex;
   align-items: center;
   gap: var(--s1);
-  max-width: calc(100% - var(--s5));
+  max-width: 100%;
   padding: 5px 6px 5px var(--s4);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -436,14 +449,26 @@ input[type="range"] {
   box-shadow: var(--shadow-2), var(--lip);
   color: var(--ink-2);
   font-size: 13px;
-  transform: translateX(-50%);
+  pointer-events: auto;
   animation: hint-in var(--speed-slow) var(--ease-out-expo);
 }
 
 @keyframes hint-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -8px);
+    transform: translateY(-8px) scale(0.96);
+  }
+}
+
+.map-hint--exiting {
+  pointer-events: none;
+  animation: hint-out var(--speed) ease-in forwards;
+}
+
+@keyframes hint-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
   }
 }
 
@@ -1247,6 +1272,18 @@ input[type="range"] {
 
 @keyframes toast-in {
   from {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.96);
+  }
+}
+
+.toast--exiting {
+  pointer-events: none;
+  animation: toast-out var(--speed) ease-in forwards;
+}
+
+@keyframes toast-out {
+  to {
     opacity: 0;
     transform: translate(-50%, 14px) scale(0.96);
   }

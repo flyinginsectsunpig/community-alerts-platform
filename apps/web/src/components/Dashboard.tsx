@@ -1,17 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import MapHint from "./MapHint";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
 import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
+import Toast, { type ToastMessage } from "./Toast";
 import WatchZonePanel from "./WatchZonePanel";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
@@ -47,11 +49,6 @@ const HINT_KEY = "communityalerts.hintDismissed";
 
 type PanelMode = "report" | null;
 
-interface Toast {
-  kind: "info" | "error";
-  message: string;
-}
-
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
@@ -71,7 +68,7 @@ export default function Dashboard() {
   const [claimOffer, setClaimOffer] = useState<WatchZone[] | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -114,10 +111,17 @@ export default function Dashboard() {
     window.localStorage.setItem(HINT_KEY, "1");
   }, []);
 
-  const showToast = useCallback((kind: Toast["kind"], message: string) => {
+  // One timer, restarted per toast. Without the reset a toast raised shortly
+  // after another was cleared by the *first* one's timer, cutting it short.
+  const toastTimer = useRef<number>();
+
+  const showToast = useCallback((kind: ToastMessage["kind"], message: string) => {
     setToast({ kind, message });
-    window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
+
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
   // Open on the user's neighbourhood when they allow it; stay on the default
   // city otherwise. Alert fetches recenter along with the map.
@@ -190,7 +194,9 @@ export default function Dashboard() {
       }
       setStatsLoaded(true);
       if (nearby.status === "rejected") {
-        setToast({ kind: "error", message: "Could not reach the alerts API" });
+        // Via showToast, so this one is on the dismiss timer like every other
+        // toast — set directly it used to sit on screen indefinitely.
+        showToast("error", "Could not reach the alerts API");
       }
     }
 
@@ -200,7 +206,7 @@ export default function Dashboard() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [center]);
+  }, [center, showToast]);
 
   const zoneActive = zoneDraft !== null;
 
@@ -537,24 +543,16 @@ export default function Dashboard() {
               onFocus={focusZone}
             />
           </Presence>
-          {showHint && (
-            <div className="map-hint" role="note">
-              Click anywhere on the map to report an alert.
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={dismissHint}
-                aria-label="Dismiss hint"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {showStations && stationsGated && (
-            <div className="map-hint" role="note">
-              Zoom in to see police stations.
-            </div>
-          )}
+          <div className="map-hints">
+            <Presence when={showHint}>
+              <MapHint onDismiss={dismissHint}>
+                Click anywhere on the map to report an alert.
+              </MapHint>
+            </Presence>
+            <Presence when={showStations && stationsGated}>
+              <MapHint>Zoom in to see police stations.</MapHint>
+            </Presence>
+          </div>
           <Presence when={stationStats !== null}>
             {stationStats && (
               <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
@@ -639,11 +637,7 @@ export default function Dashboard() {
         )}
       </Presence>
 
-      {toast && (
-        <div className={`toast toast--${toast.kind}`} role="status">
-          {toast.message}
-        </div>
-      )}
+      <Presence when={toast !== null}>{toast && <Toast toast={toast} />}</Presence>
     </div>
   );
 }
