@@ -9,6 +9,9 @@ using StackExchange.Redis;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+// Before any repository runs a query — Dapper's mapping is process-wide.
+DapperConfiguration.Register();
+
 var options = WorkerOptions.FromEnvironment();
 builder.Services.AddSingleton(options);
 
