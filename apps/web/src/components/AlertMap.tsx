@@ -74,6 +74,7 @@ interface AlertMapProps {
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
   onHover: (alertId: string | null) => void;
+  onCenterChange: (center: LatLng) => void;
 }
 
 // Leaflet only watches window resizes; the sidebar collapse resizes the
@@ -94,6 +95,27 @@ function ClickCapture({ onMapClick }: { onMapClick: (point: LatLng) => void }) {
       onMapClick({ lat: event.latlng.lat, lng: event.latlng.lng });
     },
   });
+  return null;
+}
+
+/**
+ * Reports where the map is looking, so the keyboard shortcut for a new report
+ * can place it at the centre of the view rather than wherever the page happened
+ * to load.
+ */
+function CenterWatcher({ onCenterChange }: { onCenterChange: (center: LatLng) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const report = () => {
+      const { lat, lng } = map.getCenter();
+      onCenterChange({ lat, lng });
+    };
+    report();
+    map.on("moveend", report);
+    return () => {
+      map.off("moveend", report);
+    };
+  }, [map, onCenterChange]);
   return null;
 }
 
@@ -136,6 +158,7 @@ export default function AlertMap({
   onConfirm,
   onOpenDetail,
   onHover,
+  onCenterChange,
 }: AlertMapProps) {
   return (
     <MapContainer
@@ -150,6 +173,7 @@ export default function AlertMap({
       />
       <MapResize />
       <ClickCapture onMapClick={onMapClick} />
+      <CenterWatcher onCenterChange={onCenterChange} />
       <FlyTo focus={focus} />
 
       {showStations && (

@@ -1441,6 +1441,71 @@ input[type="range"] {
 
 /* ---------- Auth & user chip ---------- */
 
+.shortcuts-hint {
+  font-size: var(--t-body);
+  font-weight: 600;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Keyboard shortcuts sheet ---------- */
+
+.shortcuts__group + .shortcuts__group {
+  margin-top: var(--s4);
+}
+
+.shortcuts__title {
+  margin: 0 0 var(--s2);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.shortcuts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcuts__row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: baseline;
+  gap: var(--s3);
+  padding: 5px 0;
+}
+
+.shortcuts__row dt {
+  display: flex;
+  gap: var(--s1);
+}
+
+.shortcuts__row dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  padding: 2px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--lip);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .user-chip {
   display: flex;
   align-items: baseline;
@@ -2405,6 +2470,11 @@ input[type="range"] {
 
   .stats__category {
     grid-template-columns: 92px 1fr 26px;
+  }
+
+  /* No keyboard to accelerate on a phone. */
+  .shortcuts-hint {
+    display: none;
   }
 }
 
