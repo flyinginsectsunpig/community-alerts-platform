@@ -47,7 +47,14 @@ export default function StatsPanel({
             <div className="skeleton stats-skeleton__row stats-skeleton__row--short" />
           </div>
         ) : (
-          <p className="feed__empty">Statistics are unavailable right now.</p>
+          // Says what still works, so a failed summary doesn't read as the
+          // whole dashboard being broken.
+          <div className="feed__empty-state">
+            <p className="feed__empty">The weekly summary could not be loaded.</p>
+            <p className="panel__hint">
+              Live alerts below are unaffected. This will fill in on the next refresh.
+            </p>
+          </div>
         )}
       </section>
     );

@@ -334,6 +334,17 @@ export default function Dashboard() {
     showToast("info", `Watch zone “${zone.name}” updated`);
   }
 
+  /**
+   * Starts a zone at the centre of the current view. Previously the only way in
+   * was: click the map, open the report form, then notice "watch this area" —
+   * so the feature was effectively hidden behind reporting an incident.
+   */
+  function startNewZone() {
+    setShowZonesPanel(false);
+    setEditingZone(null);
+    setZoneDraft({ center: mapCenter.current, radiusM: 1000 });
+  }
+
   function startEditZone(zone: WatchZone) {
     setShowZonesPanel(false);
     setEditingZone(zone);
@@ -671,6 +682,7 @@ export default function Dashboard() {
               zones={zones}
               session={session}
               onClose={() => setShowZonesPanel(false)}
+              onCreate={startNewZone}
               onEdit={startEditZone}
               onDelete={(zone) => void handleDeleteZone(zone)}
               onFocus={focusZone}

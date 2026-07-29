@@ -2200,13 +2200,151 @@ kbd {
   padding: 10px 0;
 }
 
+/* ---------- Watch zones ---------- */
+
+.zone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* A zone is a thing you own, so it gets an outline rather than being one
+   undifferentiated block in a stack separated by hairlines. */
+.zone-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zone-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.zone-card__name {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .zone-card__name:hover {
+    color: var(--accent);
+  }
+}
+
+.zone-card__radius {
+  flex-shrink: 0;
+  font-size: var(--t-micro);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.zone-card__categories {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink-2);
+}
+
+.zone-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* Destructive action reads as destructive only on approach, so the panel isn't
+   dominated by a red button sitting at rest. */
+.btn--danger {
+  color: var(--ink-2);
+}
+
+@media (hover: hover) {
+  .btn--danger:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--sev-critical) 18%, var(--surface-2));
+    border-color: var(--sev-critical);
+    color: var(--ink);
+  }
+}
+
+.zone-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.zone-skeleton__item {
+  height: 84px;
+  border-radius: var(--r-md);
+}
+
+/* Teaches what a watch zone is, rather than reporting that there are none. */
+.zone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+.zone-empty__lead {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.zone-settings {
+  border-top: 1px solid var(--grid);
+  padding-top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.zone-settings__title {
+  margin: 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.zone-setting {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 .zone-notifications {
   list-style: none;
   margin: 6px 0 0;
-  padding: 0;
+  padding: var(--s2) 0 0;
+  border-top: 1px solid var(--grid);
   font-size: var(--t-small);
+  color: var(--ink-2);
   display: grid;
   gap: 5px;
+}
+
+.zone-notifications__empty {
+  color: var(--muted);
 }
 
 /* ---------- Touch pointers ---------- */
