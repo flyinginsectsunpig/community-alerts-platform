@@ -102,3 +102,46 @@ jobs:
           az containerapp update -n ml-service      -g "$RG" --image "$REGISTRY/ml-service:$IMAGE_TAG"
           az containerapp update -n alert-processor -g "$RG" --image "$REGISTRY/alert-processor:$IMAGE_TAG"
           az containerapp update -n web             -g "$RG" --image "$REGISTRY/web:$IMAGE_TAG"
+
+      # A green build says nothing about what the image actually serves.
+      # /sw.js 404'd in production for weeks because Next's standalone output
+      # omits public/ and the Dockerfile did not copy it — every deploy passed.
+      # These paths are cheap to check and cover that whole class.
+      - name: Smoke check the deployed web app
+        run: |
+          set -euo pipefail
+          RG="${{ vars.RESOURCE_GROUP }}"
+          FQDN=$(az containerapp show -n web -g "$RG" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Checking https://$FQDN"
+
+          probe() { curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$1" || echo 000; }
+
+          # Ingress runs at min 0 replicas, so the first request after a roll
+          # may have to cold-start a container. Wait for the app to answer at
+          # all before asserting on individual assets (5 min ceiling).
+          code=000
+          for _ in $(seq 1 30); do
+            code=$(probe "https://$FQDN/")
+            if [ "$code" = "200" ]; then break; fi
+            sleep 10
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error::web never became healthy after the roll (last status $code)"
+            exit 1
+          fi
+
+          # Served from apps/web/public (sw.js, icon-maskable.svg) and from
+          # src/app route conventions (the rest) — both paths have broken before.
+          failed=0
+          for p in /sw.js /manifest.webmanifest /icon.svg /apple-icon.png /icon-maskable.svg; do
+            code=$(probe "https://$FQDN$p")
+            if [ "$code" = "200" ]; then
+              echo "  ok    $p"
+            else
+              echo "  FAIL  $p -> $code"
+              echo "::error::$p returned $code (expected 200)"
+              failed=1
+            fi
+          done
+          exit "$failed"
