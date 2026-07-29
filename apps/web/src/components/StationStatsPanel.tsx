@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
+import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import type { StationStats } from "@/lib/types";
 
 interface StationStatsPanelProps {
@@ -34,23 +35,29 @@ interface PanelModel {
 }
 
 export default function StationStatsPanel({ stats, onClose }: StationStatsPanelProps) {
+  const exiting = useExiting();
+
   // Escape closes the panel, matching AlertDetailPanel.
   useEffect(() => {
+    if (exiting) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      if (document.querySelector(".panel-overlay, .zone-panel")) return;
+      if (document.querySelector(`${OPEN_MODAL}, ${OPEN_ZONE_PANEL}`)) return;
       onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, exiting]);
 
   const model = useMemo(() => buildModel(stats), [stats]);
   const years = useMemo(() => collectYears(stats), [stats]);
   const hasData = model.rows.length > 0;
 
   return (
-    <aside className="detail-panel station-stats-panel" aria-label="Official station crime statistics">
+    <aside
+      className={`detail-panel station-stats-panel${exiting ? " detail-panel--exiting" : ""}`}
+      aria-label="Official station crime statistics"
+    >
       <div className="detail-panel__header">
         <div>
           <strong>{stats.station.name} SAPS</strong>

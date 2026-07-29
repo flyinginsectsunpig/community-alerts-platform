@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
@@ -32,18 +33,20 @@ export default function AlertDetailPanel({
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const exiting = useExiting();
 
   // Escape closes the panel, matching the modal dialogs elsewhere.
   useEffect(() => {
+    if (exiting) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       // A modal dialog or the zone editor stacked above owns Escape while open.
-      if (document.querySelector(".panel-overlay, .zone-panel")) return;
+      if (document.querySelector(`${OPEN_MODAL}, ${OPEN_ZONE_PANEL}`)) return;
       onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, exiting]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +105,10 @@ export default function AlertDetailPanel({
   }
 
   return (
-    <aside className="detail-panel" aria-label="Alert details and discussion">
+    <aside
+      className={`detail-panel${exiting ? " detail-panel--exiting" : ""}`}
+      aria-label="Alert details and discussion"
+    >
       <div className="detail-panel__header">
         <div>
           <strong>{CATEGORY_LABELS[alert.category]}</strong>
