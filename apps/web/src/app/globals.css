@@ -2441,8 +2441,8 @@ kbd {
     overflow: visible;
     /* --sheet-y is written by useBottomSheet; the fallback keeps the sheet at
        its peek height before hydration so it never covers the map. Keep the
-       176px in step with PEEK_PX in that hook. */
-    transform: translateY(var(--sheet-y, calc(88dvh - 176px)));
+       224px in step with PEEK_PX in that hook. */
+    transform: translateY(var(--sheet-y, calc(88dvh - 224px)));
   }
 
   /* Only animate when the user isn't dragging — during a drag the transform
