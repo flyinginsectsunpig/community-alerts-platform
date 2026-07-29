@@ -1,17 +1,21 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import MapHint from "./MapHint";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
+import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
 import StatsPanel from "./StatsPanel";
+import Toast, { type ToastMessage } from "./Toast";
 import WatchZonePanel from "./WatchZonePanel";
+import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
 import type { FocusTarget } from "./AlertMap";
@@ -38,14 +42,12 @@ const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const INITIAL_RADIUS_M = 10000;
 const REFRESH_INTERVAL_MS = 60_000;
 const TOAST_DURATION_MS = 4_000;
+// Long enough for the map pin's three ripples and the feed row's colour wash
+// to finish; both durations live in globals.css.
+const LIVE_HIGHLIGHT_MS = 6_000;
 const HINT_KEY = "communityalerts.hintDismissed";
 
 type PanelMode = "report" | null;
-
-interface Toast {
-  kind: "info" | "error";
-  message: string;
-}
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -66,14 +68,20 @@ export default function Dashboard() {
   const [claimOffer, setClaimOffer] = useState<WatchZone[] | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
-  const [toast, setToast] = useState<Toast | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
   const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
-  // Ids that arrived over the live stream; drives the feed's "new" animation.
+  // Ids that arrived over the live stream; drives the feed row's wash and the
+  // map pin's arrival ripple.
   const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(new Set());
+  // Hovered from either the feed or the map — the two surfaces share it, so
+  // the pairing is visible from whichever end you started at.
+  const [linkedId, setLinkedId] = useState<string | null>(null);
+
+  const sheet = useBottomSheet();
 
   const markLive = useCallback((alertId: string) => {
     setLiveIds((ids) => new Set(ids).add(alertId));
@@ -83,7 +91,7 @@ export default function Dashboard() {
         next.delete(alertId);
         return next;
       });
-    }, 2000);
+    }, LIVE_HIGHLIGHT_MS);
   }, []);
 
   // Session comes from localStorage, so it must be read client-side only.
@@ -103,10 +111,17 @@ export default function Dashboard() {
     window.localStorage.setItem(HINT_KEY, "1");
   }, []);
 
-  const showToast = useCallback((kind: Toast["kind"], message: string) => {
+  // One timer, restarted per toast. Without the reset a toast raised shortly
+  // after another was cleared by the *first* one's timer, cutting it short.
+  const toastTimer = useRef<number>();
+
+  const showToast = useCallback((kind: ToastMessage["kind"], message: string) => {
     setToast({ kind, message });
-    window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(null), TOAST_DURATION_MS);
   }, []);
+
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
 
   // Open on the user's neighbourhood when they allow it; stay on the default
   // city otherwise. Alert fetches recenter along with the map.
@@ -179,7 +194,9 @@ export default function Dashboard() {
       }
       setStatsLoaded(true);
       if (nearby.status === "rejected") {
-        setToast({ kind: "error", message: "Could not reach the alerts API" });
+        // Via showToast, so this one is on the dismiss timer like every other
+        // toast — set directly it used to sit on screen indefinitely.
+        showToast("error", "Could not reach the alerts API");
       }
     }
 
@@ -189,7 +206,7 @@ export default function Dashboard() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [center]);
+  }, [center, showToast]);
 
   const zoneActive = zoneDraft !== null;
 
@@ -377,7 +394,7 @@ export default function Dashboard() {
     : null;
 
   return (
-    <div className="dashboard">
+    <div className={`dashboard${sidebarOpen ? "" : " dashboard--rail-closed"}`}>
       <header className="topbar">
         <div className="topbar__brand">
           <button
@@ -398,30 +415,40 @@ export default function Dashboard() {
           </span>
           <h1>Community Alerts</h1>
         </div>
+        {/* Map controls and account are separate groups so that on a phone the
+            account can sit beside the brand and the controls drop to their own
+            row, instead of everything wrapping into three. */}
         <div className="topbar__controls">
-          <label className="hotspot-toggle">
-            <input
-              type="checkbox"
-              className="switch__input"
-              checked={showHotspots}
-              onChange={(event) => setShowHotspots(event.target.checked)}
-            />
-            <span className="switch" aria-hidden />
-            Hotspots
-          </label>
-          <label className="hotspot-toggle">
-            <input
-              type="checkbox"
-              className="switch__input"
-              checked={showStations}
-              onChange={(event) => setShowStations(event.target.checked)}
-            />
-            <span className="switch" aria-hidden />
-            Stations
-          </label>
+          {/* The two layer toggles are one decision, so they read as one
+              segmented control rather than two loose labels. */}
+          <div className="layer-switches">
+            <label className="hotspot-toggle">
+              <input
+                type="checkbox"
+                className="switch__input"
+                checked={showHotspots}
+                onChange={(event) => setShowHotspots(event.target.checked)}
+              />
+              <span className="switch" aria-hidden />
+              Hotspots
+            </label>
+            <label className="hotspot-toggle">
+              <input
+                type="checkbox"
+                className="switch__input"
+                checked={showStations}
+                onChange={(event) => setShowStations(event.target.checked)}
+              />
+              <span className="switch" aria-hidden />
+              Stations
+            </label>
+          </div>
           <button type="button" className="btn btn--small" onClick={openZonesPanel}>
             My zones
           </button>
+        </div>
+
+        <div className="topbar__account">
           {session ? (
             <div className="user-chip">
               <span className="user-chip__name">{session.displayName}</span>
@@ -438,19 +465,44 @@ export default function Dashboard() {
       </header>
 
       <div className="dashboard__body">
-        <aside id="sidebar" className={`sidebar${sidebarOpen ? "" : " sidebar--closed"}`}>
-          <StatsPanel stats={stats} loading={!statsLoaded} />
-          <AlertFeed
-            alerts={alerts}
-            loading={!alertsLoaded}
-            connected={connected}
-            selectedId={detailAlertId}
-            newIds={liveIds}
-            onSelect={openDetail}
+        <aside
+          id="sidebar"
+          className={`sidebar${sheet.dragging ? " sidebar--dragging" : ""}`}
+          ref={sheet.sheetRef}
+        >
+          {/* Phones only: the rail becomes a sheet the user drags between
+              peek, half and full. Hidden on desktop via CSS. */}
+          <button
+            type="button"
+            className="sheet-handle"
+            aria-label={`Alerts panel, ${sheet.snap}. Drag or press to resize.`}
+            aria-expanded={sheet.snap !== "peek"}
+            aria-controls="sidebar-inner"
+            onClick={sheet.cycle}
+            {...sheet.handlers}
           />
+          <div className="sidebar__inner" id="sidebar-inner">
+            <StatsPanel stats={stats} loading={!statsLoaded} />
+            <AlertFeed
+              alerts={alerts}
+              loading={!alertsLoaded}
+              connected={connected}
+              selectedId={detailAlertId}
+              newIds={liveIds}
+              linkedId={linkedId}
+              onSelect={openDetail}
+              onHover={setLinkedId}
+            />
+          </div>
         </aside>
 
-        <main className="map-wrap">
+        {/* A panel docked over the right of the map shifts the hints left so
+            they stay centred on what's still visible of it. */}
+        <main
+          className={`map-wrap${
+            detailAlert || stationStats ? " map-wrap--docked-right" : ""
+          }`}
+        >
           <AlertMap
             alerts={alerts}
             hotspots={hotspots}
@@ -463,23 +515,31 @@ export default function Dashboard() {
             focus={focus}
             zoneDraft={zoneDraft}
             zones={showZonesPanel && !zoneDraft ? zones : null}
+            newIds={liveIds}
+            selectedId={detailAlertId}
+            linkedId={linkedId}
             onZoneMove={handleZoneMove}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
+            onHover={setLinkedId}
           />
-          {zoneDraft && (
-            <WatchZonePanel
-              draft={zoneDraft}
-              editing={editingZone}
-              session={session}
-              onRadiusChange={handleZoneRadius}
-              onClose={closeZone}
-              onCreated={handleZoneCreated}
-              onUpdated={handleZoneUpdated}
-            />
-          )}
-          {showZonesPanel && !zoneDraft && (
+          {/* Each panel stays mounted for the length of its exit animation,
+              so closing one is as deliberate as opening it. */}
+          <Presence when={zoneDraft !== null}>
+            {zoneDraft && (
+              <WatchZonePanel
+                draft={zoneDraft}
+                editing={editingZone}
+                session={session}
+                onRadiusChange={handleZoneRadius}
+                onClose={closeZone}
+                onCreated={handleZoneCreated}
+                onUpdated={handleZoneUpdated}
+              />
+            )}
+          </Presence>
+          <Presence when={showZonesPanel && !zoneDraft}>
             <MyZonesPanel
               zones={zones}
               session={session}
@@ -488,52 +548,50 @@ export default function Dashboard() {
               onDelete={(zone) => void handleDeleteZone(zone)}
               onFocus={focusZone}
             />
-          )}
-          {showHint && (
-            <div className="map-hint" role="note">
-              Click anywhere on the map to report an alert.
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={dismissHint}
-                aria-label="Dismiss hint"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {showStations && stationsGated && (
-            <div className="map-hint" role="note">
-              Zoom in to see police stations.
-            </div>
-          )}
-          {stationStats && (
-            <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
-          )}
-          {detailAlert && (
-            <AlertDetailPanel
-              alert={detailAlert}
-              session={session}
-              liveComment={liveComment}
-              onClose={() => setDetailAlertId(null)}
-              onConfirm={handleConfirm}
-              onResolve={(alertId) => void handleResolve(alertId)}
-              onRequestAuth={() => setShowAuthModal(true)}
-            />
-          )}
+          </Presence>
+          <div className="map-hints">
+            <Presence when={showHint}>
+              <MapHint onDismiss={dismissHint}>
+                Click anywhere on the map to report an alert.
+              </MapHint>
+            </Presence>
+            <Presence when={showStations && stationsGated}>
+              <MapHint>Zoom in to see police stations.</MapHint>
+            </Presence>
+          </div>
+          <Presence when={stationStats !== null}>
+            {stationStats && (
+              <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
+            )}
+          </Presence>
+          <Presence when={detailAlert !== null}>
+            {detailAlert && (
+              <AlertDetailPanel
+                alert={detailAlert}
+                session={session}
+                liveComment={liveComment}
+                onClose={() => setDetailAlertId(null)}
+                onConfirm={handleConfirm}
+                onResolve={(alertId) => void handleResolve(alertId)}
+                onRequestAuth={() => setShowAuthModal(true)}
+              />
+            )}
+          </Presence>
         </main>
       </div>
 
-      {panelMode === "report" && pendingPoint && (
-        <AlertForm
-          point={pendingPoint}
-          onClose={closePanel}
-          onCreated={handleAlertCreated}
-          onSwitchToZone={handleSwitchToZone}
-        />
-      )}
+      <Presence when={panelMode === "report" && pendingPoint !== null}>
+        {pendingPoint && (
+          <AlertForm
+            point={pendingPoint}
+            onClose={closePanel}
+            onCreated={handleAlertCreated}
+            onSwitchToZone={handleSwitchToZone}
+          />
+        )}
+      </Presence>
 
-      {showAuthModal && (
+      <Presence when={showAuthModal}>
         <AuthModal
           onClose={() => setShowAuthModal(false)}
           onAuthed={(authed) => {
@@ -543,44 +601,49 @@ export default function Dashboard() {
             void offerClaim();
           }}
         />
-      )}
+      </Presence>
 
-      {claimOffer && (
-        <ModalOverlay label="Add your watch zones to this account" onClose={() => setClaimOffer(null)}>
-          <div className="panel">
-            <div className="panel__header">
-              <h2>Watch zones on this device</h2>
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => setClaimOffer(null)}
-                aria-label="Close"
-              >
-                ×
-              </button>
+      <Presence when={claimOffer !== null}>
+        {claimOffer && (
+          <ModalOverlay
+            label="Add your watch zones to this account"
+            onClose={() => setClaimOffer(null)}
+          >
+            <div className="panel">
+              <div className="panel__header">
+                <h2>Watch zones on this device</h2>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setClaimOffer(null)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="panel__hint">
+                You have {claimOffer.length} watch zone{claimOffer.length === 1 ? "" : "s"} created
+                on this device. Add {claimOffer.length === 1 ? "it" : "them"} to your account so you
+                can manage {claimOffer.length === 1 ? "it" : "them"} from anywhere?
+              </p>
+              <div className="panel__actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => void handleClaim()}
+                >
+                  Add to my account
+                </button>
+                <button type="button" className="btn" onClick={() => setClaimOffer(null)}>
+                  Not now
+                </button>
+              </div>
             </div>
-            <p className="panel__hint">
-              You have {claimOffer.length} watch zone{claimOffer.length === 1 ? "" : "s"} created on
-              this device. Add {claimOffer.length === 1 ? "it" : "them"} to your account so you can
-              manage {claimOffer.length === 1 ? "it" : "them"} from anywhere?
-            </p>
-            <div className="panel__actions">
-              <button type="button" className="btn btn--primary" onClick={() => void handleClaim()}>
-                Add to my account
-              </button>
-              <button type="button" className="btn" onClick={() => setClaimOffer(null)}>
-                Not now
-              </button>
-            </div>
-          </div>
-        </ModalOverlay>
-      )}
+          </ModalOverlay>
+        )}
+      </Presence>
 
-      {toast && (
-        <div className={`toast toast--${toast.kind}`} role="status">
-          {toast.message}
-        </div>
-      )}
+      <Presence when={toast !== null}>{toast && <Toast toast={toast} />}</Presence>
     </div>
   );
 }

@@ -24,7 +24,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d0d0d",
+  // Matches --page in globals.css: oklch(0.145 0.008 265).
+  themeColor: "#090a0e",
   // Lets the layout reach the display edges so the safe-area insets in
   // globals.css resolve to real values around the notch and home indicator.
   viewportFit: "cover",

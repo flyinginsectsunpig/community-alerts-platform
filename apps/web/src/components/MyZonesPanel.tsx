@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { OPEN_MODAL, useExiting } from "./Presence";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
@@ -43,6 +44,7 @@ export default function MyZonesPanel({
   const [digest, setDigest] = useState<DigestFrequency | null>(null);
   const [digestBusy, setDigestBusy] = useState(false);
   const [digestError, setDigestError] = useState<string | null>(null);
+  const exiting = useExiting();
 
   useEffect(() => {
     if (!session) return;
@@ -113,14 +115,15 @@ export default function MyZonesPanel({
 
   // Escape closes the panel, unless a modal dialog is stacked above it.
   useEffect(() => {
+    if (exiting) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      if (document.querySelector(".panel-overlay")) return;
+      if (document.querySelector(OPEN_MODAL)) return;
       onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, exiting]);
 
   async function toggleNotifications(zoneId: string) {
     if (openZoneId === zoneId) {
@@ -147,7 +150,10 @@ export default function MyZonesPanel({
   }
 
   return (
-    <aside className="zone-panel" aria-label="My watch zones">
+    <aside
+      className={`zone-panel${exiting ? " zone-panel--exiting" : ""}`}
+      aria-label="My watch zones"
+    >
       <div className="panel__header">
         <h2>My watch zones</h2>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
