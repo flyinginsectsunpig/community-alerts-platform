@@ -94,7 +94,8 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Describe what you saw (at least 10 characters)…"
-            autoFocus
+            // See AuthModal: useFocusCapture owns initial focus in dialogs.
+            data-autofocus
             rows={4}
             minLength={MIN_DESCRIPTION_LENGTH}
             maxLength={2000}

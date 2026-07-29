@@ -7,6 +7,7 @@ import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import LiveAnnouncer, { announcementFor } from "./LiveAnnouncer";
 import MapHint from "./MapHint";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
@@ -80,8 +81,21 @@ export default function Dashboard() {
   // Hovered from either the feed or the map — the two surfaces share it, so
   // the pairing is visible from whichever end you started at.
   const [linkedId, setLinkedId] = useState<string | null>(null);
+  // What a screen reader hears when an alert lands. CRITICAL goes to the
+  // assertive region so it interrupts; everything else waits its turn.
+  const [announcement, setAnnouncement] = useState<{ text: string; urgent: boolean } | null>(null);
 
   const sheet = useBottomSheet();
+
+  const announce = useCallback((alert: Alert) => {
+    setAnnouncement({
+      text: announcementFor(alert),
+      urgent: alert.severity === "CRITICAL",
+    });
+    // Cleared so that two identical alerts in a row still read as two events —
+    // a live region only speaks when its text actually changes.
+    window.setTimeout(() => setAnnouncement(null), LIVE_HIGHLIGHT_MS);
+  }, []);
 
   const markLive = useCallback((alertId: string) => {
     setLiveIds((ids) => new Set(ids).add(alertId));
@@ -166,9 +180,10 @@ export default function Dashboard() {
         } else {
           upsertAlert(event.alert);
           markLive(event.alert.id);
+          announce(event.alert);
         }
       },
-      [upsertAlert, markLive],
+      [upsertAlert, markLive, announce],
     ),
   );
 
@@ -644,6 +659,11 @@ export default function Dashboard() {
       </Presence>
 
       <Presence when={toast !== null}>{toast && <Toast toast={toast} />}</Presence>
+
+      <LiveAnnouncer
+        polite={announcement && !announcement.urgent ? announcement.text : null}
+        assertive={announcement?.urgent ? announcement.text : null}
+      />
     </div>
   );
 }
