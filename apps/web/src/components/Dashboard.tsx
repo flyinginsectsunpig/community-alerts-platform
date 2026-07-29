@@ -496,7 +496,13 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        <main className="map-wrap">
+        {/* A panel docked over the right of the map shifts the hints left so
+            they stay centred on what's still visible of it. */}
+        <main
+          className={`map-wrap${
+            detailAlert || stationStats ? " map-wrap--docked-right" : ""
+          }`}
+        >
           <AlertMap
             alerts={alerts}
             hotspots={hotspots}
