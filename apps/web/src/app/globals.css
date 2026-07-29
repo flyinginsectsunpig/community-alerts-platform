@@ -432,9 +432,25 @@ input[type="range"] {
   flex-direction: column;
   align-items: center;
   gap: var(--s2);
-  max-width: calc(100% - var(--s5));
-  transform: translateX(-50%);
+  max-width: calc(100% - var(--s5) - var(--dock-right, 0px));
+  /* Centred on the visible map, not on the container: --dock-right is set
+     while a panel is docked over the right of it. Carried in the transform so
+     the shift animates without touching layout. */
+  transform: translateX(calc(-50% - var(--dock-right, 0px) / 2));
+  /* Transform only — max-width is left to apply instantly rather than
+     animating a layout property for the sake of it. */
+  transition: transform var(--speed-slow) var(--ease-out-expo);
   pointer-events: none; /* the map stays draggable either side of a hint */
+}
+
+/* The alert-detail and station-stats panels dock over the right of the map on
+   desktop, and the hint used to run 16px underneath them — burying its own
+   dismiss button. Below 860px they become bottom sheets instead, so there is
+   nothing to dodge. */
+@media (min-width: 861px) {
+  .map-wrap--docked-right {
+    --dock-right: 396px; /* .detail-panel is 384px wide, plus its 12px gutter */
+  }
 }
 
 .map-hint {
