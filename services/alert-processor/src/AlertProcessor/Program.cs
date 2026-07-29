@@ -13,6 +13,7 @@ var builder = Host.CreateApplicationBuilder(args);
 DapperConfiguration.Register();
 
 var options = WorkerOptions.FromEnvironment();
+options.ValidatePushConfiguration();
 builder.Services.AddSingleton(options);
 
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(options.PostgresConnectionString));
