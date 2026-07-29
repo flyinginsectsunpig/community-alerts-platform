@@ -271,6 +271,7 @@ input[type="range"] {
   .sidebar {
     width: 100%;
     max-height: 45vh;
+    max-height: 45dvh;
     border-right: none;
     border-top: 1px solid var(--border);
     transition: max-height 200ms ease, padding 200ms ease;
@@ -573,9 +574,11 @@ input[type="range"] {
     border-color var(--speed-fast) ease;
 }
 
-.feed-item:hover {
-  border-color: var(--border);
-  background: var(--grid);
+@media (hover: hover) {
+  .feed-item:hover {
+    border-color: var(--border);
+    background: var(--grid);
+  }
 }
 
 .feed-item:active {
@@ -668,7 +671,9 @@ input[type="range"] {
 .panel {
   width: min(440px, 100%);
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -814,9 +819,11 @@ input[type="range"] {
     transform var(--speed-fast) ease;
 }
 
-.btn:hover:not(:disabled) {
-  border-color: var(--muted);
-  background: var(--grid);
+@media (hover: hover) {
+  .btn:hover:not(:disabled) {
+    border-color: var(--muted);
+    background: var(--grid);
+  }
 }
 
 .btn:active:not(:disabled) {
@@ -833,9 +840,11 @@ input[type="range"] {
   border-color: var(--accent-strong);
 }
 
-.btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+@media (hover: hover) {
+  .btn--primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
 }
 
 .btn--small {
@@ -857,9 +866,11 @@ input[type="range"] {
     background var(--speed-fast) ease;
 }
 
-.btn-icon:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+@media (hover: hover) {
+  .btn-icon:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+  }
 }
 
 .link-button {
@@ -873,8 +884,10 @@ input[type="range"] {
   padding: 0;
 }
 
-.link-button:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .link-button:hover {
+    text-decoration: underline;
+  }
 }
 
 .toast {
@@ -956,8 +969,10 @@ input[type="range"] {
     color var(--speed-fast) ease;
 }
 
-.auth-tab:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .auth-tab:hover {
+    color: var(--ink);
+  }
 }
 
 .auth-tab--active {
@@ -1039,6 +1054,7 @@ input[type="range"] {
    styling, centered on an otherwise empty page. */
 .standalone-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1256,8 +1272,10 @@ input[type="range"] {
   border-bottom-color: var(--grid);
 }
 
-.leaflet-bar a:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .leaflet-bar a:hover {
+    background: var(--surface-2);
+  }
 }
 
 /* Police station markers: official reference data in a neutral steel tone —
@@ -1445,9 +1463,14 @@ input[type="range"] {
   border-top: 1px solid var(--grid);
 }
 
-.station-table-details summary:hover,
 .station-table-details[open] summary {
   color: var(--ink);
+}
+
+@media (hover: hover) {
+  .station-table-details summary:hover {
+    color: var(--ink);
+  }
 }
 
 .station-table-details summary:focus-visible {
@@ -1502,4 +1525,125 @@ input[type="range"] {
   font-size: 0.85rem;
   display: grid;
   gap: 0.3rem;
+}
+
+/* ---------- Touch pointers ---------- */
+
+@media (pointer: coarse) {
+  /* iOS Safari zooms the whole page when a focused control's text is under
+     16px, and the base size here is 14px. Bumping the controls avoids that
+     without disabling pinch-zoom, which must stay available. */
+  .field input[type="text"],
+  .field input[type="email"],
+  .field input[type="password"],
+  .field select,
+  .field textarea,
+  .comment-composer textarea {
+    font-size: 16px;
+  }
+
+  /* WCAG 2.5.5 asks for 44px targets. These grow the hit area only — the
+     padding and type sizes stay as they are on desktop. */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .btn--small,
+  .auth-tab {
+    min-height: 44px;
+  }
+
+  .link-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .category-option {
+    min-height: 44px;
+  }
+
+  /* Leaflet ships 26px zoom buttons. */
+  .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+
+  /* The radius handle stays an 18px dot so it doesn't hide the map under it;
+     the pseudo-element carries the 44px drag target. Leaflet binds its drag
+     listeners to the marker element, so presses here still reach it. */
+  .zone-handle::before {
+    content: "";
+    position: absolute;
+    inset: -13px;
+  }
+}
+
+/* ---------- Small screens ---------- */
+
+/* These rules have to sit after the panel definitions above: a media query
+   adds no specificity, so an override placed earlier in the file would lose
+   the cascade to the desktop rule. */
+@media (max-width: 860px) {
+  /* The panels that dock over the map on desktop become bottom sheets, and
+     anchor to the viewport rather than .map-wrap — the map is only about half
+     the screen here, so a sheet confined to it would have no room. */
+  .zone-panel,
+  .detail-panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: auto;
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 1050; /* over the map and its hints, under modals and toasts */
+    animation: sheet-in var(--speed) var(--ease-out);
+  }
+
+  .detail-panel {
+    max-height: 70dvh;
+  }
+
+  /* Kept shallow deliberately: the sheet covers roughly the sidebar's share of
+     the screen, so the map stays visible while the radius handle is dragged. */
+  .zone-panel {
+    max-height: 45dvh;
+  }
+
+  .toast {
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (max-width: 480px) {
+  /* The four controls need more width than a phone has, so they wrap onto a
+     second row rather than being crushed. */
+  .topbar__controls {
+    flex-wrap: wrap;
+    gap: 8px 10px;
+  }
+}
+
+/* Installed to the home screen, the iOS status bar is translucent and the
+   layout runs underneath it, so the topbar has to reserve that space. */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: calc(10px + env(safe-area-inset-top));
+  }
 }
