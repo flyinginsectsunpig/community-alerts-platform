@@ -145,3 +145,44 @@ jobs:
             fi
           done
           exit "$failed"
+
+      # The web check cannot see alert-processor: it has no ingress, so a worker
+      # that crash-loops on boot still leaves the deploy green. That is a live
+      # risk now that the worker validates its push config at startup.
+      - name: Smoke check the worker
+        run: |
+          set -euo pipefail
+          RG="${{ vars.RESOURCE_GROUP }}"
+          revision=$(az containerapp revision list -n alert-processor -g "$RG" \
+            --query "sort_by([], &properties.createdTime)[-1].name" -o tsv)
+          echo "Checking revision $revision"
+
+          dump_logs() {
+            echo "--- last 60 log lines ---"
+            az containerapp logs show -n alert-processor -g "$RG" --tail 60 --format text || true
+          }
+
+          # min and max replicas are both 1, so a healthy worker reports
+          # RunningAtMaxScale rather than Running.
+          state=""
+          for _ in $(seq 1 24); do
+            state=$(az containerapp revision show -n alert-processor -g "$RG" \
+              --revision "$revision" --query "properties.runningState" -o tsv 2>/dev/null || echo Unknown)
+            case "$state" in
+              Running|RunningAtMaxScale)
+                echo "alert-processor is $state"
+                exit 0
+                ;;
+              Failed|Degraded)
+                echo "::error::alert-processor revision $revision is $state"
+                dump_logs
+                exit 1
+                ;;
+            esac
+            echo "  $state - waiting"
+            sleep 10
+          done
+
+          echo "::error::alert-processor did not start after the roll (last state: $state)"
+          dump_logs
+          exit 1
