@@ -573,9 +573,11 @@ input[type="range"] {
     border-color var(--speed-fast) ease;
 }
 
-.feed-item:hover {
-  border-color: var(--border);
-  background: var(--grid);
+@media (hover: hover) {
+  .feed-item:hover {
+    border-color: var(--border);
+    background: var(--grid);
+  }
 }
 
 .feed-item:active {
@@ -857,9 +859,11 @@ input[type="range"] {
     background var(--speed-fast) ease;
 }
 
-.btn-icon:hover {
-  color: var(--ink);
-  background: var(--surface-2);
+@media (hover: hover) {
+  .btn-icon:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+  }
 }
 
 .link-button {
@@ -873,8 +877,10 @@ input[type="range"] {
   padding: 0;
 }
 
-.link-button:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .link-button:hover {
+    text-decoration: underline;
+  }
 }
 
 .toast {
@@ -956,8 +962,10 @@ input[type="range"] {
     color var(--speed-fast) ease;
 }
 
-.auth-tab:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .auth-tab:hover {
+    color: var(--ink);
+  }
 }
 
 .auth-tab--active {
@@ -1256,8 +1264,10 @@ input[type="range"] {
   border-bottom-color: var(--grid);
 }
 
-.leaflet-bar a:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .leaflet-bar a:hover {
+    background: var(--surface-2);
+  }
 }
 
 /* Police station markers: official reference data in a neutral steel tone —
@@ -1502,4 +1512,58 @@ input[type="range"] {
   font-size: 0.85rem;
   display: grid;
   gap: 0.3rem;
+}
+
+/* ---------- Touch pointers ---------- */
+
+@media (pointer: coarse) {
+  /* iOS Safari zooms the whole page when a focused control's text is under
+     16px, and the base size here is 14px. Bumping the controls avoids that
+     without disabling pinch-zoom, which must stay available. */
+  .field input[type="text"],
+  .field input[type="email"],
+  .field input[type="password"],
+  .field select,
+  .field textarea,
+  .comment-composer textarea {
+    font-size: 16px;
+  }
+
+  /* WCAG 2.5.5 asks for 44px targets. These grow the hit area only — the
+     padding and type sizes stay as they are on desktop. */
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .btn--small,
+  .auth-tab {
+    min-height: 44px;
+  }
+
+  .link-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .category-option {
+    min-height: 44px;
+  }
+
+  /* Leaflet ships 26px zoom buttons. */
+  .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+
+  /* The radius handle stays an 18px dot so it doesn't hide the map under it;
+     the pseudo-element carries the 44px drag target. Leaflet binds its drag
+     listeners to the marker element, so presses here still reach it. */
+  .zone-handle::before {
+    content: "";
+    position: absolute;
+    inset: -13px;
+  }
 }
