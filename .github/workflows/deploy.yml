@@ -96,12 +96,35 @@ jobs:
         run: |
           set -euo pipefail
           RG="${{ vars.RESOURCE_GROUP }}"
+
+          # Azure's management API occasionally resets the connection mid-call
+          # ("Connection reset by peer"), which once left a roll half-applied:
+          # two apps updated, one lost, one never attempted. Setting an image is
+          # idempotent, and a lost response can still mean the change landed, so
+          # re-issuing the same update is always safe.
+          roll() {
+            app="$1"
+            for attempt in 1 2 3; do
+              if state=$(az containerapp update -n "$app" -g "$RG" \
+                    --image "$REGISTRY/$app:$IMAGE_TAG" \
+                    --query "properties.provisioningState" -o tsv); then
+                echo "  $app -> ${state:-applied}"
+                return 0
+              fi
+              echo "  $app attempt $attempt failed; retrying in $((attempt * 15))s"
+              sleep $((attempt * 15))
+            done
+            echo "::error::could not roll $app to $IMAGE_TAG after 3 attempts"
+            return 1
+          }
+
           # alerts-api first: it owns the schema and runs Flyway on startup,
           # so migrations land before the worker/ml pick up the new revision.
-          az containerapp update -n alerts-api      -g "$RG" --image "$REGISTRY/alerts-api:$IMAGE_TAG"
-          az containerapp update -n ml-service      -g "$RG" --image "$REGISTRY/ml-service:$IMAGE_TAG"
-          az containerapp update -n alert-processor -g "$RG" --image "$REGISTRY/alert-processor:$IMAGE_TAG"
-          az containerapp update -n web             -g "$RG" --image "$REGISTRY/web:$IMAGE_TAG"
+          # Order still matters, so these stay sequential and abort on failure.
+          roll alerts-api
+          roll ml-service
+          roll alert-processor
+          roll web
 
       # A green build says nothing about what the image actually serves.
       # /sw.js 404'd in production for weeks because Next's standalone output
