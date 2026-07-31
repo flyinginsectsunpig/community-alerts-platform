@@ -61,8 +61,22 @@ public interface AlertRepository extends JpaRepository<Alert, UUID> {
             """, nativeQuery = true)
     List<CategoryCountRow> countByCategorySince(@Param("since") Instant since);
 
+    /**
+     * Buckets by local calendar day, not UTC: "how many alerts today" has to
+     * mean the day the reader is living in, and the audience is in SAST.
+     * created_at is TIMESTAMPTZ, so AT TIME ZONE converts it to wall-clock
+     * time in that zone before truncating.
+     *
+     * The zone is duplicated in the .NET worker's identical query
+     * (PostgresRepositories.cs) and in APP_TIMEZONE in the web app's
+     * lib/format.ts. All three must agree or the bars and their labels
+     * describe different days.
+     */
     @Query(value = """
-            SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day, COUNT(*) AS cnt
+            SELECT to_char(
+                       date_trunc('day', created_at AT TIME ZONE 'Africa/Johannesburg'),
+                       'YYYY-MM-DD') AS day,
+                   COUNT(*) AS cnt
             FROM alerts WHERE created_at >= :since
             GROUP BY 1 ORDER BY 1
             """, nativeQuery = true)

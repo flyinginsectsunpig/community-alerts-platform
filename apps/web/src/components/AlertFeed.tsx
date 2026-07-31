@@ -2,10 +2,14 @@
 
 import SeverityBadge from "./SeverityBadge";
 import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { isFiltered, type AlertFilter } from "@/lib/filter";
 import type { Alert } from "@/lib/types";
 
 interface AlertFeedProps {
+  /** Already filtered — what the user should actually see. */
   alerts: Alert[];
+  /** How many there are before filtering, for the "3 of 10" summary. */
+  totalCount: number;
   loading: boolean;
   connected: boolean;
   selectedId: string | null;
@@ -13,29 +17,73 @@ interface AlertFeedProps {
   newIds: ReadonlySet<string>;
   /** Id whose map pin is hovered, so the matching row can light up too. */
   linkedId: string | null;
+  filter: AlertFilter;
+  searchRef?: React.Ref<HTMLInputElement>;
+  onQueryChange: (query: string) => void;
+  onClearFilter: () => void;
   onSelect: (alert: Alert) => void;
   onHover: (alertId: string | null) => void;
 }
 
 export default function AlertFeed({
   alerts,
+  totalCount,
   loading,
   connected,
   selectedId,
   newIds,
   linkedId,
+  filter,
+  searchRef,
+  onQueryChange,
+  onClearFilter,
   onSelect,
   onHover,
 }: AlertFeedProps) {
+  const filtered = isFiltered(filter);
+
   return (
     <section className="feed" aria-label="Live alert feed">
       <div className="feed__header">
         <h2>Live feed</h2>
-        <span className={`live-indicator${connected ? " live-indicator--on" : ""}`}>
+        {/* Losing the stream is only signalled visually by the dot going
+            still, so the state change is announced too. */}
+        <span
+          className={`live-indicator${connected ? " live-indicator--on" : ""}`}
+          role="status"
+        >
           <span className="live-indicator__dot" aria-hidden />
           {connected ? "Live" : "Reconnecting"}
+          <span className="sr-only">
+            {connected ? " — receiving alerts" : " — not receiving alerts"}
+          </span>
         </span>
       </div>
+
+      <div className="feed__search">
+        <input
+          ref={searchRef}
+          type="search"
+          className="feed__search-input"
+          placeholder="Search alerts…"
+          aria-label="Search alerts by description or category"
+          value={filter.query}
+          onChange={(event) => onQueryChange(event.target.value)}
+        />
+      </div>
+
+      {/* Only shown while something is actually narrowed, so the default view
+          carries no extra chrome. */}
+      {filtered && (
+        <div className="feed__filter-bar">
+          <span aria-live="polite">
+            Showing {alerts.length} of {totalCount}
+          </span>
+          <button type="button" className="link-button" onClick={onClearFilter}>
+            Clear filters
+          </button>
+        </div>
+      )}
 
       {loading && alerts.length === 0 ? (
         <div className="feed-skeleton" aria-hidden>
@@ -44,7 +92,28 @@ export default function AlertFeed({
           ))}
         </div>
       ) : alerts.length === 0 ? (
-        <p className="feed__empty">No alerts in this area yet. Click the map to report one.</p>
+        filtered ? (
+          <div className="feed__empty-state">
+            <p className="feed__empty">
+              {totalCount === 0
+                ? "No alerts in this area yet."
+                : `None of the ${totalCount} alerts here match this filter.`}
+            </p>
+            <button type="button" className="btn btn--small" onClick={onClearFilter}>
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <div className="feed__empty-state">
+            <p className="feed__empty">
+              Nothing reported around here yet — which is good news.
+            </p>
+            <p className="panel__hint">
+              Click anywhere on the map to report something you have seen. Reports show up here
+              instantly for everyone nearby.
+            </p>
+          </div>
+        )
       ) : (
         <ul className="feed__list fade-in">
           {alerts.map((alert) => (

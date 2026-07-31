@@ -129,10 +129,20 @@ public sealed class PostgresStatsRepository(NpgsqlDataSource dataSource) : IStat
         return await QueryAsync<CountRow>(sql, since, ct);
     }
 
+    /// <summary>
+    /// Buckets by local calendar day rather than UTC, so "today" means the day
+    /// the reader is living in. Must stay identical to countByDaySince in the
+    /// Java API's AlertRepository — this worker writes the stats:7d cache the
+    /// API serves from, so a mismatch would make the same chart change shape
+    /// depending on which service answered.
+    /// </summary>
     public async Task<IReadOnlyList<DayCount>> GetDailyCountsAsync(DateTimeOffset since, CancellationToken ct)
     {
         const string sql = """
-            SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS Day, COUNT(*) AS Count
+            SELECT to_char(
+                       date_trunc('day', created_at AT TIME ZONE 'Africa/Johannesburg'),
+                       'YYYY-MM-DD') AS Day,
+                   COUNT(*) AS Count
             FROM alerts WHERE created_at >= @since
             GROUP BY 1 ORDER BY 1
             """;
