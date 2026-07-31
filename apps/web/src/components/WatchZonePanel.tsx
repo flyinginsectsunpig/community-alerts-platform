@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { OPEN_MODAL, useExiting } from "./Presence";
+import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS } from "@/lib/format";
@@ -35,6 +36,7 @@ export default function WatchZonePanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const exiting = useExiting();
+  const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
   // Escape closes the panel, unless a modal dialog is stacked above it.
   useEffect(() => {
@@ -85,8 +87,10 @@ export default function WatchZonePanel({
 
   return (
     <aside
+      ref={panelRef}
       className={`zone-panel${exiting ? " zone-panel--exiting" : ""}`}
       aria-label={editing ? "Edit watch zone" : "Create a watch zone"}
+      tabIndex={-1}
     >
       <form onSubmit={handleSubmit} className="zone-panel__form">
         <div className="panel__header">
@@ -109,7 +113,9 @@ export default function WatchZonePanel({
             onChange={(event) => setName(event.target.value)}
             placeholder="e.g. Home, School run"
             maxLength={120}
-            autoFocus
+            // useFocusCapture owns initial focus here now; React's autoFocus
+            // fires during commit and raced it.
+            data-autofocus
             required
           />
         </label>

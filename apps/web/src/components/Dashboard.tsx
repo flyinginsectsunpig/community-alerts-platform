@@ -1,31 +1,37 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import AlertDetailPanel from "./AlertDetailPanel";
 import AlertFeed from "./AlertFeed";
 import AlertForm from "./AlertForm";
 import AuthModal from "./AuthModal";
+import LiveAnnouncer, { announcementFor } from "./LiveAnnouncer";
 import MapHint from "./MapHint";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
 import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
+import ShortcutsSheet from "./ShortcutsSheet";
 import StatsPanel from "./StatsPanel";
 import Toast, { type ToastMessage } from "./Toast";
 import WatchZonePanel from "./WatchZonePanel";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
+import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
+import { applyFilter, EMPTY_FILTER, toggle, type AlertFilter } from "@/lib/filter";
 import type { FocusTarget } from "./AlertMap";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
 import type {
   Alert,
+  AlertCategory,
   AlertComment,
   Hotspot,
   LatLng,
   LiveEvent,
+  Severity,
   StationStats,
   StatsResponse,
   WatchZone,
@@ -74,14 +80,56 @@ export default function Dashboard() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
   const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
+  // Mirrors detailAlertId for the SSE callback, which must not re-subscribe to
+  // the stream every time the open alert changes.
+  const detailAlertIdRef = useRef<string | null>(null);
   // Ids that arrived over the live stream; drives the feed row's wash and the
   // map pin's arrival ripple.
   const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(new Set());
   // Hovered from either the feed or the map — the two surfaces share it, so
   // the pairing is visible from whichever end you started at.
   const [linkedId, setLinkedId] = useState<string | null>(null);
+  // What a screen reader hears when an alert lands. CRITICAL goes to the
+  // assertive region so it interrupts; everything else waits its turn.
+  const [announcement, setAnnouncement] = useState<{ text: string; urgent: boolean } | null>(null);
+  const [filter, setFilter] = useState<AlertFilter>(EMPTY_FILTER);
+
+  detailAlertIdRef.current = detailAlertId;
 
   const sheet = useBottomSheet();
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // The feed and the map must always agree about what is on screen, so both
+  // read from the same filtered list.
+  const visibleAlerts = useMemo(() => applyFilter(alerts, filter), [alerts, filter]);
+
+  const toggleCategory = useCallback((category: AlertCategory) => {
+    setFilter((current) => ({ ...current, categories: toggle(current.categories, category) }));
+  }, []);
+
+  const toggleSeverity = useCallback((severity: Severity) => {
+    setFilter((current) => ({ ...current, severities: toggle(current.severities, severity) }));
+  }, []);
+
+  const setQuery = useCallback((query: string) => {
+    setFilter((current) => ({ ...current, query }));
+  }, []);
+
+  const clearFilter = useCallback(() => setFilter(EMPTY_FILTER), []);
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  // Where the map is currently looking, for the "report here" shortcut.
+  const mapCenter = useRef<LatLng>(DEFAULT_CENTER);
+
+  const announce = useCallback((alert: Alert) => {
+    setAnnouncement({
+      text: announcementFor(alert),
+      urgent: alert.severity === "CRITICAL",
+    });
+    // Cleared so that two identical alerts in a row still read as two events —
+    // a live region only speaks when its text actually changes.
+    window.setTimeout(() => setAnnouncement(null), LIVE_HIGHLIGHT_MS);
+  }, []);
 
   const markLive = useCallback((alertId: string) => {
     setLiveIds((ids) => new Set(ids).add(alertId));
@@ -163,12 +211,22 @@ export default function Dashboard() {
             ),
           );
           setLiveComment(event.comment);
+          // Only for the thread being read. Announcing updates to alerts the
+          // user isn't looking at would be noise, not information.
+          if (event.alertId === detailAlertIdRef.current) {
+            setAnnouncement({
+              text: `New update from ${event.comment.authorName}: ${event.comment.body}`,
+              urgent: false,
+            });
+            window.setTimeout(() => setAnnouncement(null), LIVE_HIGHLIGHT_MS);
+          }
         } else {
           upsertAlert(event.alert);
           markLive(event.alert.id);
+          announce(event.alert);
         }
       },
-      [upsertAlert, markLive],
+      [upsertAlert, markLive, announce],
     ),
   );
 
@@ -290,6 +348,17 @@ export default function Dashboard() {
     showToast("info", `Watch zone “${zone.name}” updated`);
   }
 
+  /**
+   * Starts a zone at the centre of the current view. Previously the only way in
+   * was: click the map, open the report form, then notice "watch this area" —
+   * so the feature was effectively hidden behind reporting an incident.
+   */
+  function startNewZone() {
+    setShowZonesPanel(false);
+    setEditingZone(null);
+    setZoneDraft({ center: mapCenter.current, radiusM: 1000 });
+  }
+
   function startEditZone(zone: WatchZone) {
     setShowZonesPanel(false);
     setEditingZone(zone);
@@ -389,9 +458,67 @@ export default function Dashboard() {
     setStationStats(stats);
   }, []);
 
+  // Deliberately resolved against the unfiltered list: narrowing the feed
+  // should not slam shut a detail panel the user is reading.
   const detailAlert = detailAlertId
     ? alerts.find((alert) => alert.id === detailAlertId) ?? null
     : null;
+
+  /**
+   * j/k move real DOM focus between the feed's row buttons rather than
+   * tracking a separate "highlighted" index. That gets Enter, the focus ring,
+   * and the feed-to-map hover link for free — the rows already light their pin
+   * on focus — and keeps one source of truth for where the user is.
+   */
+  const moveFeedFocus = useCallback((delta: number) => {
+    const rows = Array.from(document.querySelectorAll<HTMLButtonElement>(".feed-item"));
+    if (rows.length === 0) return;
+    const current = rows.findIndex((row) => row === document.activeElement);
+    // Nothing focused yet: j starts at the top, k at the bottom.
+    const next = current === -1 ? (delta > 0 ? 0 : rows.length - 1) : current + delta;
+    const target = rows[Math.min(rows.length - 1, Math.max(0, next))];
+    target.focus();
+    target.scrollIntoView({ block: "nearest" });
+  }, []);
+
+  const shortcuts = useMemo<ShortcutMap>(() => {
+    // Arrows are only claimed once the user is actually in the list, so they
+    // keep scrolling the page everywhere else.
+    const inFeed = () => document.activeElement?.classList.contains("feed-item") ?? false;
+    const stepIfInFeed = (delta: number) => (event: KeyboardEvent) => {
+      if (!inFeed()) return;
+      event.preventDefault();
+      moveFeedFocus(delta);
+    };
+
+    return {
+      j: () => moveFeedFocus(1),
+      k: () => moveFeedFocus(-1),
+      ArrowDown: stepIfInFeed(1),
+      ArrowUp: stepIfInFeed(-1),
+      // Reuses the map-click path, so the sign-in gate and zone-draft
+      // behaviour are identical to clicking the map yourself.
+      n: (event) => {
+        event.preventDefault();
+        handleMapClick(mapCenter.current);
+      },
+      "/": (event) => {
+        event.preventDefault();
+        searchRef.current?.focus();
+      },
+      c: () => clearFilter(),
+      "?": () => setShowShortcuts(true),
+      Escape: (event) => {
+        // Escape is allowed through while typing purely so it can back you out
+        // of the search field; every other surface owns its own Escape.
+        if (event.target !== searchRef.current) return;
+        if (filter.query) setQuery("");
+        else searchRef.current?.blur();
+      },
+    };
+  }, [moveFeedFocus, handleMapClick, clearFilter, setQuery, filter.query]);
+
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <div className={`dashboard${sidebarOpen ? "" : " dashboard--rail-closed"}`}>
@@ -446,6 +573,17 @@ export default function Dashboard() {
           <button type="button" className="btn btn--small" onClick={openZonesPanel}>
             My zones
           </button>
+          {/* Accelerators are no use if nobody knows they exist. Hidden on
+              phones, where there is no keyboard to accelerate. */}
+          <button
+            type="button"
+            className="btn-icon shortcuts-hint"
+            onClick={() => setShowShortcuts(true)}
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+          >
+            ?
+          </button>
         </div>
 
         <div className="topbar__account">
@@ -482,14 +620,25 @@ export default function Dashboard() {
             {...sheet.handlers}
           />
           <div className="sidebar__inner" id="sidebar-inner">
-            <StatsPanel stats={stats} loading={!statsLoaded} />
+            <StatsPanel
+              stats={stats}
+              loading={!statsLoaded}
+              filter={filter}
+              onToggleCategory={toggleCategory}
+              onToggleSeverity={toggleSeverity}
+            />
             <AlertFeed
-              alerts={alerts}
+              alerts={visibleAlerts}
+              totalCount={alerts.length}
               loading={!alertsLoaded}
               connected={connected}
               selectedId={detailAlertId}
               newIds={liveIds}
               linkedId={linkedId}
+              filter={filter}
+              searchRef={searchRef}
+              onQueryChange={setQuery}
+              onClearFilter={clearFilter}
               onSelect={openDetail}
               onHover={setLinkedId}
             />
@@ -504,7 +653,7 @@ export default function Dashboard() {
           }`}
         >
           <AlertMap
-            alerts={alerts}
+            alerts={visibleAlerts}
             hotspots={hotspots}
             showHotspots={showHotspots}
             showStations={showStations}
@@ -523,9 +672,24 @@ export default function Dashboard() {
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
             onHover={setLinkedId}
+            onCenterChange={(center) => {
+              mapCenter.current = center;
+            }}
           />
           {/* Each panel stays mounted for the length of its exit animation,
               so closing one is as deliberate as opening it. */}
+          {/* Docked over the map so the pin stays visible and correctable
+              while the incident is described. */}
+          <Presence when={panelMode === "report" && pendingPoint !== null}>
+            {pendingPoint && (
+              <AlertForm
+                point={pendingPoint}
+                onClose={closePanel}
+                onCreated={handleAlertCreated}
+                onSwitchToZone={handleSwitchToZone}
+              />
+            )}
+          </Presence>
           <Presence when={zoneDraft !== null}>
             {zoneDraft && (
               <WatchZonePanel
@@ -544,6 +708,7 @@ export default function Dashboard() {
               zones={zones}
               session={session}
               onClose={() => setShowZonesPanel(false)}
+              onCreate={startNewZone}
               onEdit={startEditZone}
               onDelete={(zone) => void handleDeleteZone(zone)}
               onFocus={focusZone}
@@ -580,15 +745,8 @@ export default function Dashboard() {
         </main>
       </div>
 
-      <Presence when={panelMode === "report" && pendingPoint !== null}>
-        {pendingPoint && (
-          <AlertForm
-            point={pendingPoint}
-            onClose={closePanel}
-            onCreated={handleAlertCreated}
-            onSwitchToZone={handleSwitchToZone}
-          />
-        )}
+      <Presence when={showShortcuts}>
+        <ShortcutsSheet onClose={() => setShowShortcuts(false)} />
       </Presence>
 
       <Presence when={showAuthModal}>
@@ -644,6 +802,11 @@ export default function Dashboard() {
       </Presence>
 
       <Presence when={toast !== null}>{toast && <Toast toast={toast} />}</Presence>
+
+      <LiveAnnouncer
+        polite={announcement && !announcement.urgent ? announcement.text : null}
+        assertive={announcement?.urgent ? announcement.text : null}
+      />
     </div>
   );
 }

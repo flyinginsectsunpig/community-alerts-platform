@@ -624,11 +624,50 @@ input[type="range"] {
   gap: var(--s2);
 }
 
+/* A breakdown row is also the control that filters by it, so it has to carry
+   real button affordances without becoming a chunky button. */
 .stats__category {
   display: grid;
   grid-template-columns: 104px 1fr 28px;
   align-items: center;
   gap: var(--s2);
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: 3px 5px;
+  margin: 0 -5px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--speed-fast) ease,
+    border-color var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .stats__category:hover {
+    background: var(--surface-2);
+  }
+
+  .stats__category:hover .stats__category-label {
+    color: var(--ink);
+  }
+}
+
+.stats__category--on {
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface-2));
+  border-color: var(--accent);
+}
+
+.stats__category--on .stats__category-label,
+.stats__category--on .stats__category-count {
+  color: var(--ink);
+}
+
+.stats__category--on .stats__category-bar {
+  background: var(--accent);
 }
 
 .stats__category-label {
@@ -691,6 +730,30 @@ input[type="range"] {
   font-size: var(--t-small);
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
+}
+
+.severity-chip--button {
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background var(--speed-fast) ease,
+    border-color var(--speed-fast) ease,
+    color var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .severity-chip--button:hover {
+    background: var(--surface-3);
+    color: var(--ink);
+  }
+}
+
+/* Pressed chips tint toward their own severity, so the active filter reads as
+   "showing high" rather than as a generic selected state. */
+.severity-chip--on {
+  background: color-mix(in oklab, var(--sev, var(--accent)) 18%, var(--surface-2));
+  border-color: var(--sev, var(--accent));
+  color: var(--ink);
 }
 
 /* ---------- Severity badge ---------- */
@@ -824,9 +887,67 @@ input[type="range"] {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+.feed__search {
+  flex-shrink: 0;
+}
+
+.feed__search-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--grid);
+  border-radius: var(--r-md);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 10px;
+  transition: border-color var(--speed-fast) ease, background var(--speed-fast) ease;
+}
+
+.feed__search-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .feed__search-input:hover:not(:focus) {
+    border-color: var(--border-strong);
+  }
+}
+
+.feed__search-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  background: var(--surface-3);
+}
+
+/* Only present while a filter is on, so the default feed carries no chrome. */
+.feed__filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  flex-shrink: 0;
+  font-size: var(--t-small);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .feed__empty {
   color: var(--muted);
   margin: 0;
+}
+
+/* An empty feed should say what to do next, not just report emptiness. */
+.feed__empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s2) 0;
+}
+
+.feed__empty-state .feed__empty {
+  color: var(--ink-2);
 }
 
 .feed__list {
@@ -1320,6 +1441,71 @@ input[type="range"] {
 
 /* ---------- Auth & user chip ---------- */
 
+.shortcuts-hint {
+  font-size: var(--t-body);
+  font-weight: 600;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Keyboard shortcuts sheet ---------- */
+
+.shortcuts__group + .shortcuts__group {
+  margin-top: var(--s4);
+}
+
+.shortcuts__title {
+  margin: 0 0 var(--s2);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.shortcuts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shortcuts__row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: baseline;
+  gap: var(--s3);
+  padding: 5px 0;
+}
+
+.shortcuts__row dt {
+  display: flex;
+  gap: var(--s1);
+}
+
+.shortcuts__row dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  padding: 2px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--r-sm);
+  box-shadow: var(--lip);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--t-micro);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .user-chip {
   display: flex;
   align-items: baseline;
@@ -1443,6 +1629,12 @@ input[type="range"] {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
+}
+
+/* The report form shares the zone editor's dock, but carries a select, a
+   textarea and the severity preview, so it needs a little more room. */
+.report-panel {
+  width: min(352px, calc(100% - var(--s5)));
 }
 
 .zone-handle {
@@ -2014,13 +2206,151 @@ input[type="range"] {
   padding: 10px 0;
 }
 
+/* ---------- Watch zones ---------- */
+
+.zone-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* A zone is a thing you own, so it gets an outline rather than being one
+   undifferentiated block in a stack separated by hairlines. */
+.zone-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 10px var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zone-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.zone-card__name {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .zone-card__name:hover {
+    color: var(--accent);
+  }
+}
+
+.zone-card__radius {
+  flex-shrink: 0;
+  font-size: var(--t-micro);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.zone-card__categories {
+  margin: 0;
+  font-size: var(--t-small);
+  color: var(--ink-2);
+}
+
+.zone-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+/* Destructive action reads as destructive only on approach, so the panel isn't
+   dominated by a red button sitting at rest. */
+.btn--danger {
+  color: var(--ink-2);
+}
+
+@media (hover: hover) {
+  .btn--danger:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--sev-critical) 18%, var(--surface-2));
+    border-color: var(--sev-critical);
+    color: var(--ink);
+  }
+}
+
+.zone-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.zone-skeleton__item {
+  height: 84px;
+  border-radius: var(--r-md);
+}
+
+/* Teaches what a watch zone is, rather than reporting that there are none. */
+.zone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+}
+
+.zone-empty__lead {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.zone-settings {
+  border-top: 1px solid var(--grid);
+  padding-top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.zone-settings__title {
+  margin: 0;
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.zone-setting {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 .zone-notifications {
   list-style: none;
   margin: 6px 0 0;
-  padding: 0;
+  padding: var(--s2) 0 0;
+  border-top: 1px solid var(--grid);
   font-size: var(--t-small);
+  color: var(--ink-2);
   display: grid;
   gap: 5px;
+}
+
+.zone-notifications__empty {
+  color: var(--muted);
 }
 
 /* ---------- Touch pointers ---------- */
@@ -2117,8 +2447,8 @@ input[type="range"] {
     overflow: visible;
     /* --sheet-y is written by useBottomSheet; the fallback keeps the sheet at
        its peek height before hydration so it never covers the map. Keep the
-       176px in step with PEEK_PX in that hook. */
-    transform: translateY(var(--sheet-y, calc(88dvh - 176px)));
+       224px in step with PEEK_PX in that hook. */
+    transform: translateY(var(--sheet-y, calc(88dvh - 224px)));
   }
 
   /* Only animate when the user isn't dragging — during a drag the transform
@@ -2228,6 +2558,12 @@ input[type="range"] {
     max-height: 48dvh;
   }
 
+  /* Taller than the zone editor because of the textarea, but still short
+     enough that the pin stays on screen above it. */
+  .report-panel {
+    max-height: 62dvh;
+  }
+
   .toast {
     bottom: calc(var(--s5) + env(safe-area-inset-bottom));
   }
@@ -2284,6 +2620,11 @@ input[type="range"] {
 
   .stats__category {
     grid-template-columns: 92px 1fr 26px;
+  }
+
+  /* No keyboard to accelerate on a phone. */
+  .shortcuts-hint {
+    display: none;
   }
 }
 

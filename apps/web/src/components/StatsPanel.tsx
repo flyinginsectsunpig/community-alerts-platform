@@ -8,6 +8,7 @@ import {
   SEVERITY_COLORS,
   SEVERITY_LABELS,
 } from "@/lib/format";
+import type { AlertFilter } from "@/lib/filter";
 import type { AlertCategory, Severity, StatsResponse } from "@/lib/types";
 
 const MAX_CATEGORY_ROWS = 6;
@@ -17,9 +18,19 @@ const STAGGER_MS = 34;
 interface StatsPanelProps {
   stats: StatsResponse | null;
   loading: boolean;
+  /** Drives the pressed state on the rows and chips below. */
+  filter: AlertFilter;
+  onToggleCategory: (category: AlertCategory) => void;
+  onToggleSeverity: (severity: Severity) => void;
 }
 
-export default function StatsPanel({ stats, loading }: StatsPanelProps) {
+export default function StatsPanel({
+  stats,
+  loading,
+  filter,
+  onToggleCategory,
+  onToggleSeverity,
+}: StatsPanelProps) {
   // Hooks can't sit behind the early return below, so the count-up runs on a
   // safe zero until the first payload lands.
   const total = useCountUp(stats?.stats.total ?? 0);
@@ -36,7 +47,14 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
             <div className="skeleton stats-skeleton__row stats-skeleton__row--short" />
           </div>
         ) : (
-          <p className="feed__empty">Statistics are unavailable right now.</p>
+          // Says what still works, so a failed summary doesn't read as the
+          // whole dashboard being broken.
+          <div className="feed__empty-state">
+            <p className="feed__empty">The weekly summary could not be loaded.</p>
+            <p className="panel__hint">
+              Live alerts below are unaffected. This will fill in on the next refresh.
+            </p>
+          </div>
         )}
       </section>
     );
@@ -99,40 +117,64 @@ export default function StatsPanel({ stats, loading }: StatsPanelProps) {
         ))}
       </div>
 
+      {/* These rows read as a breakdown, so they now behave like one: each is
+          a toggle that narrows the feed and the map to that category. The
+          counts stay 7-day totals from the server — the filter applies to the
+          live list, which is why the feed reports the visible count itself. */}
       {categoryRows.length > 0 && (
         <ul className="stats__categories">
-          {categoryRows.map(([category, count], index) => (
-            <li key={category} className="stats__category" title={`${count} alerts`}>
-              <span className="stats__category-label">
-                {CATEGORY_LABELS[category as AlertCategory] ?? category}
-              </span>
-              <span className="stats__category-track">
-                <span
-                  className="stats__category-bar"
-                  style={{
-                    "--fill": count / maxCategoryCount,
-                    "--bar-delay": `${index * STAGGER_MS}ms`,
-                  } as React.CSSProperties}
-                />
-              </span>
-              <span className="stats__category-count">{count}</span>
-            </li>
-          ))}
+          {categoryRows.map(([category, count], index) => {
+            const key = category as AlertCategory;
+            const label = CATEGORY_LABELS[key] ?? category;
+            const on = filter.categories.has(key);
+            return (
+              <li key={category}>
+                <button
+                  type="button"
+                  className={`stats__category${on ? " stats__category--on" : ""}`}
+                  aria-pressed={on}
+                  title={`${count} in the last 7 days — click to ${on ? "stop filtering" : "filter"}`}
+                  onClick={() => onToggleCategory(key)}
+                >
+                  <span className="stats__category-label">{label}</span>
+                  <span className="stats__category-track">
+                    <span
+                      className="stats__category-bar"
+                      style={{
+                        "--fill": count / maxCategoryCount,
+                        "--bar-delay": `${index * STAGGER_MS}ms`,
+                      } as React.CSSProperties}
+                    />
+                  </span>
+                  <span className="stats__category-count">{count}</span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {severityEntries.length > 0 && (
         <div className="stats__severities">
-          {severityEntries.map(([severity, count]) => (
-            <span key={severity} className="severity-chip">
-              <span
-                className="severity-dot"
+          {severityEntries.map(([severity, count]) => {
+            const on = filter.severities.has(severity);
+            return (
+              <button
+                key={severity}
+                type="button"
+                className={`severity-chip severity-chip--button${on ? " severity-chip--on" : ""}`}
+                aria-pressed={on}
+                title={`${count} in the last 7 days — click to ${on ? "stop filtering" : "filter"}`}
+                // On the chip rather than the dot, so the pressed background
+                // can tint toward this severity too.
                 style={{ "--sev": SEVERITY_COLORS[severity] } as React.CSSProperties}
-                aria-hidden
-              />
-              {SEVERITY_LABELS[severity]} {count}
-            </span>
-          ))}
+                onClick={() => onToggleSeverity(severity)}
+              >
+                <span className="severity-dot" aria-hidden />
+                {SEVERITY_LABELS[severity]} {count}
+              </button>
+            );
+          })}
         </div>
       )}
     </section>
