@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import ModalOverlay from "./ModalOverlay";
+import { OPEN_MODAL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
+import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import type { Alert, AlertCategory, LatLng, SeverityPreview } from "@/lib/types";
@@ -25,6 +26,21 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
   const [preview, setPreview] = useState<SeverityPreview | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const exiting = useExiting();
+  // Docked, not modal — Tab must be able to reach the map controls.
+  const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
+
+  // Escape closes the form, unless a dialog is stacked above it.
+  useEffect(() => {
+    if (exiting) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (document.querySelector(OPEN_MODAL)) return;
+      onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, exiting]);
 
   // Live AI triage: debounce the description into the severity-preview
   // endpoint so reporters see the model's read as they type.
@@ -61,8 +77,16 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
   }
 
   return (
-    <ModalOverlay label="Report an alert" onClose={onClose}>
-      <form className="panel" onSubmit={handleSubmit}>
+    // Docked beside the map rather than centred over it: this form commits a
+    // location to everyone nearby, and as a modal it covered the very pin the
+    // reporter was being asked to vouch for.
+    <aside
+      ref={panelRef}
+      className={`zone-panel report-panel${exiting ? " zone-panel--exiting" : ""}`}
+      aria-label="Report an alert"
+      tabIndex={-1}
+    >
+      <form className="zone-panel__form" onSubmit={handleSubmit}>
         <div className="panel__header">
           <h2>Report an alert</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
@@ -70,8 +94,11 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
           </button>
         </div>
 
+        {/* Replaces "Pinned at 51.48373, -0.16256". Five decimal places is
+            metre precision written in a form nobody can check; the pin itself
+            is now visible, so the useful thing to say is how to move it. */}
         <p className="panel__hint">
-          Pinned at {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+          Your pin is on the map. Click anywhere to move it.
         </p>
 
         <label className="field">
@@ -130,6 +157,6 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
           Create a watch zone here instead
         </button>
       </form>
-    </ModalOverlay>
+    </aside>
   );
 }
