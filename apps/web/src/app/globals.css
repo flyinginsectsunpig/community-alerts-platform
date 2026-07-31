@@ -1631,6 +1631,12 @@ kbd {
   gap: var(--s3);
 }
 
+/* The report form shares the zone editor's dock, but carries a select, a
+   textarea and the severity preview, so it needs a little more room. */
+.report-panel {
+  width: min(352px, calc(100% - var(--s5)));
+}
+
 .zone-handle {
   border-radius: 50%;
   background: var(--accent);
@@ -2550,6 +2556,12 @@ kbd {
 
   .zone-panel {
     max-height: 48dvh;
+  }
+
+  /* Taller than the zone editor because of the textarea, but still short
+     enough that the pin stays on screen above it. */
+  .report-panel {
+    max-height: 62dvh;
   }
 
   .toast {

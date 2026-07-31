@@ -678,6 +678,18 @@ export default function Dashboard() {
           />
           {/* Each panel stays mounted for the length of its exit animation,
               so closing one is as deliberate as opening it. */}
+          {/* Docked over the map so the pin stays visible and correctable
+              while the incident is described. */}
+          <Presence when={panelMode === "report" && pendingPoint !== null}>
+            {pendingPoint && (
+              <AlertForm
+                point={pendingPoint}
+                onClose={closePanel}
+                onCreated={handleAlertCreated}
+                onSwitchToZone={handleSwitchToZone}
+              />
+            )}
+          </Presence>
           <Presence when={zoneDraft !== null}>
             {zoneDraft && (
               <WatchZonePanel
@@ -732,17 +744,6 @@ export default function Dashboard() {
           </Presence>
         </main>
       </div>
-
-      <Presence when={panelMode === "report" && pendingPoint !== null}>
-        {pendingPoint && (
-          <AlertForm
-            point={pendingPoint}
-            onClose={closePanel}
-            onCreated={handleAlertCreated}
-            onSwitchToZone={handleSwitchToZone}
-          />
-        )}
-      </Presence>
 
       <Presence when={showShortcuts}>
         <ShortcutsSheet onClose={() => setShowShortcuts(false)} />
