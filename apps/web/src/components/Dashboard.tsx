@@ -80,6 +80,9 @@ export default function Dashboard() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [detailAlertId, setDetailAlertId] = useState<string | null>(null);
   const [liveComment, setLiveComment] = useState<AlertComment | null>(null);
+  // Mirrors detailAlertId for the SSE callback, which must not re-subscribe to
+  // the stream every time the open alert changes.
+  const detailAlertIdRef = useRef<string | null>(null);
   // Ids that arrived over the live stream; drives the feed row's wash and the
   // map pin's arrival ripple.
   const [liveIds, setLiveIds] = useState<ReadonlySet<string>>(new Set());
@@ -90,6 +93,8 @@ export default function Dashboard() {
   // assertive region so it interrupts; everything else waits its turn.
   const [announcement, setAnnouncement] = useState<{ text: string; urgent: boolean } | null>(null);
   const [filter, setFilter] = useState<AlertFilter>(EMPTY_FILTER);
+
+  detailAlertIdRef.current = detailAlertId;
 
   const sheet = useBottomSheet();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -206,6 +211,15 @@ export default function Dashboard() {
             ),
           );
           setLiveComment(event.comment);
+          // Only for the thread being read. Announcing updates to alerts the
+          // user isn't looking at would be noise, not information.
+          if (event.alertId === detailAlertIdRef.current) {
+            setAnnouncement({
+              text: `New update from ${event.comment.authorName}: ${event.comment.body}`,
+              urgent: false,
+            });
+            window.setTimeout(() => setAnnouncement(null), LIVE_HIGHLIGHT_MS);
+          }
         } else {
           upsertAlert(event.alert);
           markLive(event.alert.id);
