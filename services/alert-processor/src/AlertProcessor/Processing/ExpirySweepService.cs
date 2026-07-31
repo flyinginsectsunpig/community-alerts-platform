@@ -19,7 +19,15 @@ public sealed class ExpirySweepService(
     IConnectionMultiplexer redis,
     ILogger<ExpirySweepService> logger) : BackgroundService
 {
-    private static readonly TimeSpan SweepInterval = TimeSpan.FromMinutes(5);
+    /// <summary>
+    /// Hourly, not every five minutes. The sweep issues an UPDATE on every
+    /// tick whether or not anything is overdue, so at five-minute spacing it
+    /// kept Neon's compute awake around the clock and exhausted the monthly
+    /// quota, taking production down. Expiry is not time-critical: nearby
+    /// queries already filter expired alerts out, so the only cost of a longer
+    /// interval is a stale pin lingering on an open map for up to an hour.
+    /// </summary>
+    private static readonly TimeSpan SweepInterval = TimeSpan.FromHours(1);
     private const string LiveChannel = "alerts.live";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
