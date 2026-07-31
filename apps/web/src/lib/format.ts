@@ -69,16 +69,49 @@ export interface WeekDay {
 }
 
 /**
+ * The zone the product reports its days in.
+ *
+ * Statistics are bucketed by local calendar day, not UTC, because "how many
+ * alerts today" has to mean the day the reader is living in. The same zone is
+ * applied server-side when grouping — see countByDaySince in the Java API's
+ * AlertRepository and the matching query in the .NET worker's
+ * PostgresRepositories. All three must agree or the bars and their labels
+ * describe different days.
+ *
+ * South Africa observes no daylight saving, which is what makes the plain
+ * day-stepping below safe.
+ */
+export const APP_TIMEZONE = "Africa/Johannesburg";
+
+/** The YYYY-MM-DD calendar date at `instant`, as seen in APP_TIMEZONE. */
+function localDayKey(instant: Date): string {
+  // en-CA renders ISO-shaped dates, which is what the API's keys look like.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(instant);
+}
+
+/**
  * The API only returns days that actually have alerts, so a quiet week came
  * back as one bar stretched across the whole chart. A "last 7 days" chart has
  * to render seven slots or it isn't reporting a week — quiet days are data.
+ *
+ * `now` is injectable so the day-boundary behaviour can be tested; production
+ * callers use the default.
  */
-export function fillWeek(byDay: readonly { day: string; count: number }[]): WeekDay[] {
+export function fillWeek(
+  byDay: readonly { day: string; count: number }[],
+  now: Date = new Date(),
+): WeekDay[] {
   const counts = new Map(byDay.map((d) => [d.day, d.count]));
-  const today = new Date();
-  // Work in UTC to match dayLetter, which formats the same ISO day in UTC.
-  const end = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
-  const todayKey = new Date(end).toISOString().slice(0, 10);
+  const todayKey = localDayKey(now);
+
+  // Stepping happens on the bare calendar date rather than on the instant, so
+  // it can't be dragged back over a boundary by the reader's own offset.
+  const end = Date.parse(`${todayKey}T00:00:00Z`);
 
   return Array.from({ length: 7 }, (_, i) => {
     const key = new Date(end - (6 - i) * 86_400_000).toISOString().slice(0, 10);
