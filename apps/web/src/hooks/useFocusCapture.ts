@@ -56,8 +56,13 @@ export function useFocusCapture<T extends HTMLElement>({ active, trap }: Options
     // A panel marks its own first field with data-autofocus; otherwise the
     // first real control, falling back to the surface itself, which carries
     // tabindex={-1} so it can hold focus without joining the tab order.
+    // A surface can mark itself, not just a child: docked panels want focus on
+    // the panel so its label is announced before its contents, rather than
+    // dropped onto whatever control happens to come first (usually "close").
     const target =
-      root.querySelector<HTMLElement>("[data-autofocus]") ?? focusable(root)[0] ?? root;
+      (root.matches("[data-autofocus]") ? root : root.querySelector<HTMLElement>("[data-autofocus]")) ??
+      focusable(root)[0] ??
+      root;
 
     // After paint, so the entrance animation doesn't fight the scroll that
     // focusing can trigger.

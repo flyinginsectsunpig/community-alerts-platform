@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
+import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
@@ -34,6 +35,8 @@ export default function AlertDetailPanel({
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const exiting = useExiting();
+  // Docked, not modal: focus moves in and comes back, but Tab is free to leave.
+  const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
   // Escape closes the panel, matching the modal dialogs elsewhere.
   useEffect(() => {
@@ -106,8 +109,13 @@ export default function AlertDetailPanel({
 
   return (
     <aside
+      ref={panelRef}
       className={`detail-panel${exiting ? " detail-panel--exiting" : ""}`}
       aria-label="Alert details and discussion"
+      // Focus lands here rather than on the close button, so the panel's label
+      // and contents are read from the top. Not a modal, so Tab still leaves.
+      data-autofocus
+      tabIndex={-1}
     >
       <div className="detail-panel__header">
         <div>

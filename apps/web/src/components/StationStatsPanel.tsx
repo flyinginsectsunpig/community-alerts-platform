@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
+import { useFocusCapture } from "@/hooks/useFocusCapture";
 import type { StationStats } from "@/lib/types";
 
 interface StationStatsPanelProps {
@@ -36,6 +37,7 @@ interface PanelModel {
 
 export default function StationStatsPanel({ stats, onClose }: StationStatsPanelProps) {
   const exiting = useExiting();
+  const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
   // Escape closes the panel, matching AlertDetailPanel.
   useEffect(() => {
@@ -55,8 +57,11 @@ export default function StationStatsPanel({ stats, onClose }: StationStatsPanelP
 
   return (
     <aside
+      ref={panelRef}
       className={`detail-panel station-stats-panel${exiting ? " detail-panel--exiting" : ""}`}
       aria-label="Official station crime statistics"
+      data-autofocus
+      tabIndex={-1}
     >
       <div className="detail-panel__header">
         <div>

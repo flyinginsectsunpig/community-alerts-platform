@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { OPEN_MODAL, useExiting } from "./Presence";
+import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
@@ -47,6 +48,7 @@ export default function MyZonesPanel({
   const [digestBusy, setDigestBusy] = useState(false);
   const [digestError, setDigestError] = useState<string | null>(null);
   const exiting = useExiting();
+  const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
   useEffect(() => {
     if (!session) return;
@@ -153,8 +155,11 @@ export default function MyZonesPanel({
 
   return (
     <aside
+      ref={panelRef}
       className={`zone-panel${exiting ? " zone-panel--exiting" : ""}`}
       aria-label="My watch zones"
+      data-autofocus
+      tabIndex={-1}
     >
       <div className="panel__header">
         <h2>My watch zones</h2>
