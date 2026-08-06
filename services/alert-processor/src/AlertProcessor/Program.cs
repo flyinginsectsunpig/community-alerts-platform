@@ -16,7 +16,8 @@ var options = WorkerOptions.FromEnvironment();
 options.ValidatePushConfiguration();
 builder.Services.AddSingleton(options);
 
-builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(options.PostgresConnectionString));
+builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(
+    PostgresPooling.WithIdleLifetime(options.PostgresConnectionString)));
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     _ => ConnectionMultiplexer.Connect(options.RedisConfiguration));
 builder.Services.AddSingleton(TimeProvider.System);
