@@ -19,25 +19,13 @@ import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import type {
-  Alert,
-  AlertCategory,
-  Hotspot,
-  LatLng,
-  StationStats,
-  WatchZone,
-  ZoneDraft,
-} from "@/lib/types";
+import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
 
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
-
-// Hotspots wear violet — deliberately distinct from every severity status
-// color so density never impersonates severity.
-const HOTSPOT_COLOR = "#a376e9";
 
 // Zone drafts wear the accent: an action of yours in progress, not data.
 const ZONE_COLOR = "#24abe8";
@@ -52,8 +40,6 @@ const ZONE_HANDLE_ICON = L.divIcon({
 
 interface AlertMapProps {
   alerts: Alert[];
-  hotspots: Hotspot[];
-  showHotspots: boolean;
   showStations: boolean;
   onStationZoomGate: (gated: boolean) => void;
   onStationsError: () => void;
@@ -140,8 +126,6 @@ function FlyTo({ focus }: { focus: FocusTarget | null }) {
 
 export default function AlertMap({
   alerts,
-  hotspots,
-  showHotspots,
   showStations,
   onStationZoomGate,
   onStationsError,
@@ -183,33 +167,6 @@ export default function AlertMap({
           onOpenStats={onOpenStationStats}
         />
       )}
-
-      {showHotspots &&
-        hotspots.map((hotspot, index) => (
-          <Circle
-            key={`hotspot-${index}`}
-            center={[hotspot.centerLat, hotspot.centerLng]}
-            radius={hotspot.radiusM}
-            pathOptions={{
-              color: HOTSPOT_COLOR,
-              weight: 1,
-              // Official station baselines wear a dashed ring so they read
-              // as background statistics, not live activity.
-              dashArray: hotspot.source === "STATIONS" ? "4 6" : undefined,
-              fillColor: HOTSPOT_COLOR,
-              fillOpacity: 0.1 + 0.25 * hotspot.intensity,
-            }}
-          >
-            <Tooltip sticky>
-              {hotspot.source === "STATIONS"
-                ? `${hotspot.count} incidents last quarter (SAPS) · mostly ${hotspot.dominantCategory.toLowerCase()}`
-                : `${hotspot.count} alerts · mostly ${(
-                    CATEGORY_LABELS[hotspot.dominantCategory as AlertCategory] ??
-                    hotspot.dominantCategory
-                  ).toLowerCase()}`}
-            </Tooltip>
-          </Circle>
-        ))}
 
       {alerts.map((alert) => (
         <Marker

@@ -41,26 +41,6 @@ export interface CreateAlertInput {
   lng: number;
 }
 
-export interface Hotspot {
-  centerLat: number;
-  centerLng: number;
-  radiusM: number;
-  count: number;
-  /** An AlertCategory name for REPORTS; raw SAPS category text for STATIONS. */
-  dominantCategory: string;
-  intensity: number;
-  /** Live report cluster, or official SAPS station baseline. */
-  source: "REPORTS" | "STATIONS";
-}
-
-export interface HotspotsResponse {
-  hotspots: Hotspot[];
-  windowHours: number;
-  sampleSize: number;
-  stationSampleSize: number;
-  generatedAt: string;
-}
-
 export interface DayCount {
   day: string;
   count: number;
@@ -81,7 +61,8 @@ export interface StatsResponse {
 
 export interface SeverityPreview {
   severity: Severity;
-  riskScore: number;
+  /** Null when the model abstained: no recognisable detail, so no estimate. */
+  riskScore: number | null;
   modelVersion: string;
 }
 

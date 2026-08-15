@@ -18,7 +18,7 @@ import pika
 import pika.exceptions
 
 from ..config import Settings
-from ..models.severity import SeverityModel
+from ..models.severity import ABSTAIN, SeverityModel
 
 log = logging.getLogger(__name__)
 
@@ -98,6 +98,19 @@ class AlertScoringConsumer(threading.Thread):
         try:
             payload = json.loads(body)
             prediction = self._model.predict(payload["description"])
+            if prediction.severity == ABSTAIN:
+                # Nothing recognisable in the description. There is no score to
+                # report, and a null riskScore cannot go on the wire — it is a
+                # non-nullable double in both the Java API and the .NET worker.
+                # Acked rather than dead-lettered: an unscorable report is a
+                # valid outcome, not a processing failure. The alert keeps the
+                # UNSCORED severity and NULL risk_score it was created with.
+                channel.basic_ack(method.delivery_tag)
+                log.info(
+                    "Abstained on alert %s: no recognised vocabulary in description",
+                    payload["alertId"],
+                )
+                return
             event = {
                 "alertId": payload["alertId"],
                 "severity": prediction.severity,
