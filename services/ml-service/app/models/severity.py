@@ -11,6 +11,14 @@ consumers (map colouring, the .NET escalation rules) can reason about them:
     MEDIUM   0.35 - 0.49
     HIGH     0.60 - 0.74
     CRITICAL 0.85 - 0.99
+
+The model abstains (ABSTAIN, risk None) when the vectoriser recognises nothing
+in the text. Without that guard an all-zero feature vector ranks the class
+intercepts instead of the text, which made every unrecognised report — keyboard
+mash, but equally every non-English one — come back HIGH at a fabricated risk
+of 0.636 while true confidence was 0.259, barely above the 0.25 floor for four
+classes. The band floors hide that: real confidence 0.25->1.0 compresses into
+0.636->0.74, so a guess is indistinguishable from a certainty.
 """
 
 from __future__ import annotations
@@ -23,6 +31,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 LABELS = ("LOW", "MEDIUM", "HIGH", "CRITICAL")
+
+# Returned when the vectoriser recognises nothing in the text, so the model has
+# no evidence to score on. Mirrors the DB default and the Severity union in
+# apps/web/src/lib/types.ts.
+ABSTAIN = "UNSCORED"
 
 _CRITICAL_PATTERN = re.compile(
     r"\b("
@@ -105,7 +118,10 @@ _SEED_DATA: list[tuple[str, str]] = [
 @dataclass(frozen=True)
 class SeverityPrediction:
     severity: str
-    risk_score: float
+    #: None when the model abstained — there is no score, as distinct from a
+    #: low one. Callers must not put this on the wire: riskScore is a
+    #: non-nullable double in both the Java API and the .NET worker.
+    risk_score: float | None
     model_version: str
 
 
@@ -127,12 +143,21 @@ class SeverityModel:
             raise ValueError("text must not be empty")
         cleaned = " ".join(text.split())
 
-        probabilities = self._pipeline.predict_proba([cleaned])[0]
-        classes = list(self._pipeline.classes_)
+        # Vectorise once so the abstention check can inspect the same features
+        # the classifier scores.
+        features = self._pipeline["tfidf"].transform([cleaned])
+        classifier = self._pipeline["clf"]
+        probabilities = classifier.predict_proba(features)[0]
+        classes = list(classifier.classes_)
 
+        # The keyword override is checked first and deliberately outranks
+        # abstention: a weapon word must still escalate inside a sentence the
+        # vectoriser otherwise knows nothing about.
         if _CRITICAL_PATTERN.search(cleaned):
             severity = "CRITICAL"
             confidence = max(probabilities[classes.index("CRITICAL")], 0.75)
+        elif features.nnz == 0:
+            return SeverityPrediction(ABSTAIN, None, self._model_version)
         else:
             best = int(probabilities.argmax())
             severity = classes[best]

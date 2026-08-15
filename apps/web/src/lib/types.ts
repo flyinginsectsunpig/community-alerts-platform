@@ -61,7 +61,8 @@ export interface StatsResponse {
 
 export interface SeverityPreview {
   severity: Severity;
-  riskScore: number;
+  /** Null when the model abstained: no recognisable detail, so no estimate. */
+  riskScore: number | null;
   modelVersion: string;
 }
 
