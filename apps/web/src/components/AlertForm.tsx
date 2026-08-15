@@ -133,8 +133,20 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
         {preview && (
           <div className="ai-preview">
             <span className="ai-preview__label">AI severity estimate</span>
-            <SeverityBadge severity={preview.severity} />
-            <span className="ai-preview__risk">risk {(preview.riskScore * 100).toFixed(0)}%</span>
+            {/* An abstention is not a zero. Saying "risk 0%" for a description
+                the model could not read would be worse than saying nothing. */}
+            {preview.riskScore === null ? (
+              <span className="ai-preview__abstained">
+                No estimate — not enough recognisable detail
+              </span>
+            ) : (
+              <>
+                <SeverityBadge severity={preview.severity} />
+                <span className="ai-preview__risk">
+                  risk {(preview.riskScore * 100).toFixed(0)}%
+                </span>
+              </>
+            )}
           </div>
         )}
 

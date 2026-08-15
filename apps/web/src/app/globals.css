@@ -1361,6 +1361,13 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
+/* Muted, not alarming: an abstention is the model declining to guess, which is
+   informational — the report is still perfectly submittable. */
+.ai-preview__abstained {
+  font-size: var(--t-micro);
+  color: var(--muted);
+}
+
 .form-error {
   margin: 0;
   color: var(--sev-critical);
