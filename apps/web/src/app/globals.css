@@ -2,7 +2,7 @@
 
    Colour strategy is deliberately Restrained: the chrome is a near-monochrome
    cool ink so that the ONLY saturated colour on screen is information —
-   severity, hotspot density, and your own watch zones. The primary action is a
+   severity, station crime density, and your own watch zones. The primary action is a
    white fill rather than a brand hue, which keeps the entire hue circle free
    for data and stops "primary blue" competing with "low severity blue".
 
@@ -42,7 +42,6 @@
   --sev-critical: oklch(0.66 0.21 25);
 
   /* ---- Other data hues ---- */
-  --hotspot: oklch(0.66 0.17 300);
   --good: oklch(0.72 0.15 150);
   --station: oklch(0.72 0.04 245);
 
@@ -286,7 +285,7 @@ input[type="range"] {
   border-radius: var(--r-md);
 }
 
-.hotspot-toggle {
+.layer-toggle {
   position: relative;
   display: flex;
   align-items: center;
@@ -303,7 +302,7 @@ input[type="range"] {
 }
 
 @media (hover: hover) {
-  .hotspot-toggle:hover {
+  .layer-toggle:hover {
     background: var(--surface-3);
     color: var(--ink);
   }
@@ -2389,7 +2388,7 @@ kbd {
     min-height: 44px;
   }
 
-  .hotspot-toggle {
+  .layer-toggle {
     min-height: 44px;
   }
 
