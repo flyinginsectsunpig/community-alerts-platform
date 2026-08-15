@@ -8,7 +8,6 @@ import type {
   CreateAlertInput,
   CreateWatchZoneInput,
   DigestFrequency,
-  HotspotsResponse,
   LoginInput,
   MapBounds,
   PoliceStation,
@@ -101,10 +100,6 @@ export const api = {
 
   fetchStats(): Promise<StatsResponse> {
     return request<StatsResponse>("/api/v1/stats/summary");
-  },
-
-  fetchHotspots(windowHours = 168): Promise<HotspotsResponse> {
-    return request<HotspotsResponse>(`/api/v1/hotspots?windowHours=${windowHours}`);
   },
 
   createWatchZone(input: CreateWatchZoneInput): Promise<WatchZone> {

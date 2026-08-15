@@ -28,7 +28,6 @@ import type {
   Alert,
   AlertCategory,
   AlertComment,
-  Hotspot,
   LatLng,
   LiveEvent,
   Severity,
@@ -58,10 +57,8 @@ type PanelMode = "report" | null;
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
-  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
-  const [showHotspots, setShowHotspots] = useState(true);
   const [showStations, setShowStations] = useState(false);
   const [stationsGated, setStationsGated] = useState(false);
   const [stationStats, setStationStats] = useState<StationStats | null>(null);
@@ -234,9 +231,8 @@ export default function Dashboard() {
     let cancelled = false;
 
     async function loadEverything() {
-      const [nearby, spots, summary] = await Promise.allSettled([
+      const [nearby, summary] = await Promise.allSettled([
         api.fetchNearby(center.lat, center.lng, INITIAL_RADIUS_M),
-        api.fetchHotspots(),
         api.fetchStats(),
       ]);
       if (cancelled) return;
@@ -244,9 +240,6 @@ export default function Dashboard() {
         setAlerts(nearby.value);
       }
       setAlertsLoaded(true);
-      if (spots.status === "fulfilled") {
-        setHotspots(spots.value.hotspots);
-      }
       if (summary.status === "fulfilled") {
         setStats(summary.value);
       }
@@ -546,20 +539,10 @@ export default function Dashboard() {
             account can sit beside the brand and the controls drop to their own
             row, instead of everything wrapping into three. */}
         <div className="topbar__controls">
-          {/* The two layer toggles are one decision, so they read as one
-              segmented control rather than two loose labels. */}
+          {/* Keeps the map's layer controls in one bordered group, so further
+              layers land beside Stations instead of loose in the topbar. */}
           <div className="layer-switches">
-            <label className="hotspot-toggle">
-              <input
-                type="checkbox"
-                className="switch__input"
-                checked={showHotspots}
-                onChange={(event) => setShowHotspots(event.target.checked)}
-              />
-              <span className="switch" aria-hidden />
-              Hotspots
-            </label>
-            <label className="hotspot-toggle">
+            <label className="layer-toggle">
               <input
                 type="checkbox"
                 className="switch__input"
@@ -654,8 +637,6 @@ export default function Dashboard() {
         >
           <AlertMap
             alerts={visibleAlerts}
-            hotspots={hotspots}
-            showHotspots={showHotspots}
             showStations={showStations}
             onStationZoomGate={setStationsGated}
             onStationsError={handleStationsError}
