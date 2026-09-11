@@ -87,6 +87,7 @@ services:
         # *browser* uses, so it points at the host-mapped API port.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+        NEXT_PUBLIC_CARTO_BASEMAP_KEY: ${NEXT_PUBLIC_CARTO_BASEMAP_KEY}
     ports:
       - "3000:3000"
     depends_on:

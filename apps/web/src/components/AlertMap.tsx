@@ -32,6 +32,15 @@ import type {
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
 
+// CARTO's raster basemaps require an API key; unkeyed tiles come back stamped
+// with an "API key required" watermark. Left unset the map still works, so a
+// checkout without the key in .env degrades to the watermark rather than a
+// blank map.
+const BASEMAP_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY ?? "";
+const BASEMAP_URL =
+  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" +
+  (BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "");
+
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
 
@@ -168,7 +177,7 @@ export default function AlertMap({
       scrollWheelZoom
     >
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        url={BASEMAP_URL}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
       <MapResize />
