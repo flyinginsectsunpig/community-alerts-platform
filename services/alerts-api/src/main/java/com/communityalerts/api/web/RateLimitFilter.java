@@ -1,7 +1,7 @@
 package com.communityalerts.api.web;
 
 import com.communityalerts.api.auth.AuthContext;
-import com.communityalerts.api.support.ClientFingerprint;
+import com.communityalerts.api.support.ClientIp;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,10 +65,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String window = String.valueOf(Instant.now().getEpochSecond() / 60);
         // Signed-in traffic is limited per account (stable across devices);
-        // anonymous traffic falls back to the client fingerprint.
+        // anonymous traffic falls back to the calling address. Deliberately not
+        // the client fingerprint: that header is chosen by the caller, so
+        // rotating it per request shed the limit entirely — including on
+        // /api/v1/auth/, where this is the only brute-force control.
         String principal = AuthContext.optional(request)
                 .map(user -> "u-" + user.id())
-                .orElseGet(() -> ClientFingerprint.of(request));
+                .orElseGet(() -> "ip-" + ClientIp.of(request));
         String key = "rl:" + principal + ":" + window;
 
         try {
