@@ -15,6 +15,9 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Public VAPID key for Web Push subscriptions; empty disables the opt-in UI.
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
+# CARTO basemap key; empty just means watermarked tiles.
+ARG NEXT_PUBLIC_CARTO_BASEMAP_KEY=
+ENV NEXT_PUBLIC_CARTO_BASEMAP_KEY=$NEXT_PUBLIC_CARTO_BASEMAP_KEY
 RUN npm run build
 
 # ---- Runtime ----
