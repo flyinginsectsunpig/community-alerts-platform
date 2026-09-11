@@ -1,6 +1,7 @@
 package com.communityalerts.api.web;
 
 import com.communityalerts.api.auth.AuthContext;
+import com.communityalerts.api.auth.CredentialThrottle;
 import com.communityalerts.api.domain.DigestFrequency;
 import com.communityalerts.api.dto.AuthResponse;
 import com.communityalerts.api.dto.LoginRequest;
@@ -9,6 +10,7 @@ import com.communityalerts.api.dto.SignupRequest;
 import com.communityalerts.api.service.AuthService;
 import com.communityalerts.api.service.PasswordResetService;
 import com.communityalerts.api.service.ProfileService;
+import com.communityalerts.api.support.ClientIp;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -31,13 +33,16 @@ public class AuthController {
     private final AuthService authService;
     private final ProfileService profileService;
     private final PasswordResetService passwordResetService;
+    private final CredentialThrottle credentialThrottle;
 
     public AuthController(AuthService authService,
                           ProfileService profileService,
-                          PasswordResetService passwordResetService) {
+                          PasswordResetService passwordResetService,
+                          CredentialThrottle credentialThrottle) {
         this.authService = authService;
         this.profileService = profileService;
         this.passwordResetService = passwordResetService;
+        this.credentialThrottle = credentialThrottle;
     }
 
     @PostMapping("/signup")
@@ -45,9 +50,15 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(request));
     }
 
+    /**
+     * Throttled on failures rather than attempts, so a correct password costs
+     * nothing to the address it came from. See {@link CredentialThrottle}.
+     */
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public AuthResponse login(@Valid @RequestBody LoginRequest request,
+                              HttpServletRequest httpRequest) {
+        return credentialThrottle.guard(
+                request.email(), ClientIp.of(httpRequest), () -> authService.login(request));
     }
 
     public record ForgotPasswordRequest(@NotBlank @Email @Size(max = 254) String email) {

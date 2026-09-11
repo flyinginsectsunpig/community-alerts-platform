@@ -5,6 +5,7 @@ import com.communityalerts.api.error.ConflictException;
 import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.error.ServiceUnavailableException;
+import com.communityalerts.api.error.TooManyRequestsException;
 import com.communityalerts.api.error.UnauthorizedException;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -49,6 +50,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ProblemDetail handleBadRequest(BadRequestException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ProblemDetail handleTooManyRequests(TooManyRequestsException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, e.getMessage());
     }
 
     @ExceptionHandler(ServiceUnavailableException.class)
