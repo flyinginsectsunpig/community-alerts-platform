@@ -14,6 +14,7 @@ DapperConfiguration.Register();
 
 var options = WorkerOptions.FromEnvironment();
 options.ValidatePushConfiguration();
+options.ValidateStatsCacheTtl();
 builder.Services.AddSingleton(options);
 
 builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(
