@@ -22,6 +22,28 @@ public sealed record WorkerOptions
     public string? VapidPublicKey { get; init; }
     public string? VapidPrivateKey { get; init; }
     public string? VapidSubject { get; init; }
+    /// <summary>
+    /// How long the <c>stats:7d</c> snapshot stays servable. Keep in step with
+    /// the API's <c>STATS_CACHE_TTL_SECONDS</c>; either service may write it.
+    /// </summary>
+    public TimeSpan StatsCacheTtl { get; init; } = DefaultStatsCacheTtl;
+
+    public static readonly TimeSpan DefaultStatsCacheTtl = TimeSpan.FromMinutes(15);
+
+    /// <summary>
+    /// Redis treats a non-positive expiry as no expiry at all, which is exactly
+    /// the state that left the dashboard serving a 36-day-old snapshot, so it
+    /// is refused at startup rather than discovered weeks later.
+    /// </summary>
+    public void ValidateStatsCacheTtl()
+    {
+        if (StatsCacheTtl <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException(
+                $"STATS_CACHE_TTL_SECONDS must be greater than zero (got {StatsCacheTtl.TotalSeconds}); " +
+                "a non-positive lifetime means the stats snapshot would never expire.");
+        }
+    }
 
     /// <summary>Resend sandbox sender; verified-domain senders go in EMAIL_FROM.</summary>
     public const string DefaultEmailFrom = "Community Alerts <onboarding@resend.dev>";
@@ -51,6 +73,7 @@ public sealed record WorkerOptions
             VapidPublicKey = Optional("VAPID_PUBLIC_KEY"),
             VapidPrivateKey = Optional("VAPID_PRIVATE_KEY"),
             VapidSubject = Optional("VAPID_SUBJECT"),
+            StatsCacheTtl = ReadSeconds("STATS_CACHE_TTL_SECONDS", DefaultStatsCacheTtl),
         };
     }
 
@@ -106,6 +129,11 @@ public sealed record WorkerOptions
 
     private static string? Optional(string name) =>
         Environment.GetEnvironmentVariable(name) is { Length: > 0 } value ? value : null;
+
+    private static TimeSpan ReadSeconds(string name, TimeSpan defaultValue) =>
+        Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
+            ? TimeSpan.FromSeconds(int.Parse(value))
+            : defaultValue;
 
     private static bool ReadBool(string name, bool defaultValue) =>
         Environment.GetEnvironmentVariable(name) is { Length: > 0 } value
