@@ -17,6 +17,7 @@ import {
   snapToCircle,
   startPull,
   resetToCircle,
+  saveBlockReason,
   translateShape,
   validateOutline,
   zonePayload,
@@ -512,5 +513,28 @@ describe("penDownAction", () => {
   it("prefers finishing when the end of the line is also near the start", () => {
     const loop = [[px(0, 0), px(100, 0), px(100, 100), px(10, 10)]];
     expect(penDownAction(loop, toPx, { x: 5, y: 5 })).toBe("finish");
+  });
+});
+
+describe("saveBlockReason", () => {
+  it("blocks saving while a freehand line is unfinished, whatever else is wrong", () => {
+    expect(saveBlockReason({ mode: "freehand", hasPieces: true, shapeError: null })).toBe("Finish your shape first");
+    expect(saveBlockReason({ mode: "freehand", hasPieces: true, shapeError: "A drawn zone's edges must not cross" })).toBe(
+      "Finish your shape first",
+    );
+  });
+
+  it("lets a freehand zone with nothing drawn on the go save", () => {
+    expect(saveBlockReason({ mode: "freehand", hasPieces: false, shapeError: null })).toBeNull();
+  });
+
+  it("ignores leftover pieces in pull mode", () => {
+    expect(saveBlockReason({ mode: "pull", hasPieces: true, shapeError: null })).toBeNull();
+  });
+
+  it("otherwise reports the shape's own error", () => {
+    expect(saveBlockReason({ mode: "pull", hasPieces: false, shapeError: "A drawn zone needs at least 3 points" })).toBe(
+      "A drawn zone needs at least 3 points",
+    );
   });
 });

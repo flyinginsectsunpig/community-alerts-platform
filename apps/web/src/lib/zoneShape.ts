@@ -1,4 +1,4 @@
-import type { LatLng, ZoneDraft, ZoneGeometryInput, ZoneShape } from "./types";
+import type { LatLng, ZoneDraft, ZoneGeometryInput, ZoneMode, ZoneShape } from "./types";
 
 /** Angular step between the points that approximate the circle's arcs. */
 export const ARC_STEP_DEG = 5;
@@ -336,6 +336,29 @@ export function penDownAction(
     return "finish";
   }
   return near(all[all.length - 1], FREEHAND_JOIN_PX) ? "start" : "stray";
+}
+
+/** What Save says while a freehand line is still being drawn. */
+export const FINISH_SHAPE_FIRST = "Finish your shape first";
+
+/**
+ * Why the draft can't be saved right now, or null if it can. An unfinished
+ * freehand line comes first: saving then would keep the old circle or shape
+ * and throw the line away.
+ */
+export function saveBlockReason({
+  mode,
+  hasPieces,
+  shapeError,
+}: {
+  mode: ZoneMode;
+  hasPieces: boolean;
+  shapeError: string | null;
+}): string | null {
+  if (mode === "freehand" && hasPieces) {
+    return FINISH_SHAPE_FIRST;
+  }
+  return shapeError;
 }
 
 // --- saving and resetting --------------------------------------------------
