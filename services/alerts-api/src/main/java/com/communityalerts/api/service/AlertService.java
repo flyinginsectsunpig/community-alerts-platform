@@ -10,6 +10,7 @@ import com.communityalerts.api.domain.AlertStatus;
 import com.communityalerts.api.domain.Severity;
 import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
+import com.communityalerts.api.error.BadRequestException;
 import com.communityalerts.api.error.ConflictException;
 import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
@@ -70,12 +71,18 @@ public class AlertService {
 
     @Transactional
     public AlertResponse create(CreateAlertRequest request, String reporterFingerprint, AuthUser reporter) {
+        boolean ongoing = Boolean.TRUE.equals(request.ongoing());
+        if (ongoing && !request.category().canBeOngoing()) {
+            throw new BadRequestException("Only assault, hazard and other reports can be marked as happening right now");
+        }
+
         Alert alert = new Alert();
         alert.setId(UUID.randomUUID());
         alert.setCategory(request.category());
         alert.setDescription(request.description().trim());
         alert.setLat(request.lat());
         alert.setLng(request.lng());
+        alert.setOngoing(ongoing);
         alert.setReporterFingerprint(reporterFingerprint);
         alert.setReportedByUserId(reporter.id());
         alert.setExpiresAt(Instant.now().plus(lifecycleProperties.ttlFor(request.category())));
