@@ -14,6 +14,9 @@ const M_PER_DEG = (EARTH_RADIUS_M * Math.PI) / 180;
 const MIN_SIMPLIFY_TOLERANCE_M = 5;
 const SIMPLIFY_TOLERANCE_FRACTION = 0.005;
 
+/** A pull this close to the circle is on it: the rounding of a snapped grab must not dent it. */
+const ON_CIRCLE_TOLERANCE_M = 0.001;
+
 const MAX_CIRCLE_RADIUS_M = 10_000;
 const RADIUS_STEP_M = 100;
 
@@ -70,7 +73,13 @@ function pulledRing(circle: { center: LatLng; radiusM: number }, pulls: LatLng[]
     const distance = Math.hypot(x, y);
     return {
       theta: toDeg(Math.atan2(y, x)),
-      alpha: distance > r ? toDeg(Math.acos(r / distance)) : INWARD_SPAN_DEG,
+      // on the circle the tangent branch gives acos(1) = 0: no cone, no dent
+      alpha:
+        Math.abs(distance - r) <= ON_CIRCLE_TOLERANCE_M
+          ? 0
+          : distance > r
+            ? toDeg(Math.acos(r / distance))
+            : INWARD_SPAN_DEG,
     };
   });
 
@@ -94,14 +103,36 @@ function pulledRing(circle: { center: LatLng; radiusM: number }, pulls: LatLng[]
 
     const arcStart = current.theta + current.alpha;
     const arcEnd = current.theta + span - next.alpha;
-    emit(onCircle(arcStart), i);
+    // a pull on the circle is its own tangent point; a copy of it would be a zero-length edge
+    if (current.alpha > 0) {
+      emit(onCircle(arcStart), i);
+    }
     for (let a = arcStart + ARC_STEP_DEG; a < arcEnd - 1e-9; a += ARC_STEP_DEG) {
       emit(onCircle(a), i);
     }
-    emit(onCircle(arcEnd), i);
+    if (next.alpha > 0) {
+      emit(onCircle(arcEnd), i);
+    }
   });
 
   return { points, gap };
+}
+
+/** The plain circle as a ring, a point every `ARC_STEP_DEG`. */
+export function circleOutline(center: LatLng, radiusM: number): LatLng[] {
+  const { toLatLng } = projection(center);
+  return Array.from({ length: 360 / ARC_STEP_DEG }, (_, i) => {
+    const angle = toRad(i * ARC_STEP_DEG);
+    return toLatLng({ x: radiusM * Math.cos(angle), y: radiusM * Math.sin(angle) });
+  });
+}
+
+/** `p` moved along its bearing from the centre onto the circle. */
+export function snapToCircle(center: LatLng, radiusM: number, p: LatLng): LatLng {
+  const { toXy, toLatLng } = projection(center);
+  const { x, y } = toXy(p);
+  const angle = Math.atan2(y, x);
+  return toLatLng({ x: radiusM * Math.cos(angle), y: radiusM * Math.sin(angle) });
 }
 
 export function startPull(center: LatLng, radiusM: number, grab: LatLng): ZoneShape {

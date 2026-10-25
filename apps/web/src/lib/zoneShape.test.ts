@@ -4,6 +4,7 @@ import type { LatLng, ZoneDraft, ZoneShape } from "./types";
 import {
   areaKm2,
   centroid,
+  circleOutline,
   freehandShape,
   handles,
   insertPointAt,
@@ -11,6 +12,7 @@ import {
   nearestSegment,
   outline,
   removeHandle,
+  snapToCircle,
   startPull,
   resetToCircle,
   translateShape,
@@ -89,6 +91,22 @@ describe("outline", () => {
     }
   });
 
+  it("a pull exactly on the circle leaves no dent", () => {
+    for (const bearing of [0, 37, 90, 200, 333]) {
+      const b = (bearing * Math.PI) / 180;
+      const ring = outline(pulled([at(RADIUS_M * Math.sin(b), RADIUS_M * Math.cos(b))]));
+
+      expect(ring.every((p) => Math.abs(distanceM(p) - RADIUS_M) < 1)).toBe(true);
+      // a 5° arc step bows in by 0.95 m; a chord across the cone would bow in far more
+      const midpoints = ring.map((p, i) => {
+        const q = ring[(i + 1) % ring.length];
+        return { lat: (p.lat + q.lat) / 2, lng: (p.lng + q.lng) / 2 };
+      });
+      expect(midpoints.every((p) => Math.abs(distanceM(p) - RADIUS_M) < 1)).toBe(true);
+      expect(validateOutline(ring)).toBeNull();
+    }
+  });
+
   it("neighbouring pulls with overlapping cones join straight", () => {
     const a = at(3000, 0);
     const b = at(3000 * Math.cos(Math.PI / 9), 3000 * Math.sin(Math.PI / 9));
@@ -103,6 +121,23 @@ describe("outline", () => {
     const pts = square(1000);
     const shape: ZoneShape = { kind: "freehand", points: pts.map((p) => ({ at: p, handle: false })) };
     expect(outline(shape)).toEqual(pts);
+  });
+});
+
+describe("circle", () => {
+  it("circleOutline rings the circle with a point every 5°", () => {
+    const ring = circleOutline(CENTER, RADIUS_M);
+    expect(ring).toHaveLength(72);
+    expect(ring.every((p) => Math.abs(distanceM(p) - RADIUS_M) < 1e-6)).toBe(true);
+    expect(Math.abs(bearingDeg(ring[1]) - bearingDeg(ring[0]) + 360) % 360).toBeCloseTo(355, 6);
+  });
+
+  it("snapToCircle moves a point onto the circle along its bearing", () => {
+    for (const p of [at(400, 300), at(-900, 1200)]) {
+      const snapped = snapToCircle(CENTER, RADIUS_M, p);
+      expect(Math.abs(distanceM(snapped) - RADIUS_M)).toBeLessThan(1e-6);
+      expect(bearingDeg(snapped)).toBeCloseTo(bearingDeg(p), 9);
+    }
   });
 });
 
