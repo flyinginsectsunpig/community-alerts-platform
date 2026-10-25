@@ -1,14 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { OPEN_MODAL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS } from "@/lib/format";
-import type { AlertCategory, WatchZone, ZoneDraft } from "@/lib/types";
+import type { AlertCategory, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
 import { ALERT_CATEGORIES } from "@/lib/types";
+import { outline, validateOutline, zonePayload } from "@/lib/zoneShape";
+
+const HINTS: Record<ZoneMode, string> = {
+  pull: "Drag the pin to move the zone. Grab its edge to pull it into shape.",
+  freehand:
+    "Draw round your area. Let go to zoom or move the map, then carry on from the end of your line.",
+};
+
+const MODES: { mode: ZoneMode; label: string }[] = [
+  { mode: "pull", label: "Pull to shape" },
+  { mode: "freehand", label: "Freehand" },
+];
 
 interface WatchZonePanelProps {
   /** Live draft shown on the map; the panel is docked so both stay visible. */
@@ -16,7 +28,10 @@ interface WatchZonePanelProps {
   /** When set, the panel edits this zone instead of creating a new one. */
   editing?: WatchZone | null;
   session?: AuthSession | null;
+  mode: ZoneMode;
+  onModeChange: (mode: ZoneMode) => void;
   onRadiusChange: (radiusM: number) => void;
+  onResetToCircle: () => void;
   onClose: () => void;
   onCreated: (zone: WatchZone) => void;
   onUpdated?: (zone: WatchZone) => void;
@@ -26,7 +41,10 @@ export default function WatchZonePanel({
   draft,
   editing = null,
   session = null,
+  mode,
+  onModeChange,
   onRadiusChange,
+  onResetToCircle,
   onClose,
   onCreated,
   onUpdated,
@@ -35,6 +53,10 @@ export default function WatchZonePanel({
   const [categories, setCategories] = useState<AlertCategory[]>(editing?.categories ?? []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shapeError = useMemo(
+    () => (draft.shape ? validateOutline(outline(draft.shape)) : null),
+    [draft.shape],
+  );
   const exiting = useExiting();
   const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
@@ -62,13 +84,7 @@ export default function WatchZonePanel({
     event.preventDefault();
     setError(null);
     setSubmitting(true);
-    const payload = {
-      name: name.trim(),
-      centerLat: draft.center.lat,
-      centerLng: draft.center.lng,
-      radiusM: draft.radiusM,
-      categories,
-    };
+    const payload = { name: name.trim(), categories, ...zonePayload(draft) };
     try {
       if (editing && onUpdated) {
         onUpdated(await api.updateWatchZone(editing.id, payload));
@@ -100,10 +116,22 @@ export default function WatchZonePanel({
           </button>
         </div>
 
-        <p className="panel__hint">
-          Drag the pin or click the map to move the zone. You&apos;ll get notified about alerts
-          inside the circle.
-        </p>
+        <div className="mode-switch" role="group" aria-label="How to shape the zone">
+          {MODES.map(({ mode: option, label }) => (
+            <button
+              key={option}
+              type="button"
+              className="mode-switch__option"
+              aria-pressed={mode === option}
+              onClick={() => onModeChange(option)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <p className="panel__hint">{HINTS[mode]}</p>
+        {shapeError && <p className="form-error">{shapeError}</p>}
 
         <label className="field">
           <span>Zone name</span>
@@ -120,17 +148,23 @@ export default function WatchZonePanel({
           />
         </label>
 
-        <label className="field">
-          <span>Radius — {(draft.radiusM / 1000).toFixed(1)} km</span>
-          <input
-            type="range"
-            min={100}
-            max={10000}
-            step={100}
-            value={draft.radiusM}
-            onChange={(event) => onRadiusChange(Number(event.target.value))}
-          />
-        </label>
+        {draft.shape ? (
+          <button type="button" className="btn btn--small" onClick={onResetToCircle}>
+            Reset to circle
+          </button>
+        ) : (
+          <label className="field">
+            <span>Radius — {(draft.radiusM / 1000).toFixed(1)} km</span>
+            <input
+              type="range"
+              min={100}
+              max={10000}
+              step={100}
+              value={draft.radiusM}
+              onChange={(event) => onRadiusChange(Number(event.target.value))}
+            />
+          </label>
+        )}
 
         <fieldset className="field">
           <legend>Categories (none selected = all)</legend>
@@ -151,7 +185,7 @@ export default function WatchZonePanel({
         {error && <p className="form-error">{error}</p>}
 
         <div className="panel__actions">
-          <button type="submit" className="btn btn--primary" disabled={submitting}>
+          <button type="submit" className="btn btn--primary" disabled={submitting || shapeError !== null}>
             {submitting ? "Saving…" : editing ? "Save changes" : "Create watch zone"}
           </button>
           <button type="button" className="btn" onClick={onClose}>

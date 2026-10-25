@@ -2669,3 +2669,38 @@ kbd {
     outline-offset: 2px;
   }
 }
+
+/* Pull to shape / Freehand: two options, one pressed, like the layer toggles. */
+.mode-switch {
+  display: flex;
+  gap: var(--s1);
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.mode-switch__option {
+  flex: 1;
+  padding: 6px var(--s2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--speed-fast) ease, color var(--speed-fast) ease;
+}
+
+.mode-switch__option[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .mode-switch__option:hover {
+    color: var(--ink);
+  }
+}

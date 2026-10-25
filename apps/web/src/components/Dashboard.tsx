@@ -21,6 +21,7 @@ import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
+import { resetToCircle } from "@/lib/zoneShape";
 import { applyFilter, EMPTY_FILTER, toggle, type AlertFilter } from "@/lib/filter";
 import type { FocusTarget } from "./AlertMap";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
@@ -35,6 +36,7 @@ import type {
   StatsResponse,
   WatchZone,
   ZoneDraft,
+  ZoneMode,
 } from "@/lib/types";
 
 // Leaflet touches `window`, so the map only ever renders client-side.
@@ -65,6 +67,7 @@ export default function Dashboard() {
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [zoneDraft, setZoneDraft] = useState<ZoneDraft | null>(null);
+  const [zoneMode, setZoneMode] = useState<ZoneMode>("pull");
   const [zones, setZones] = useState<WatchZone[] | null>(null);
   const [showZonesPanel, setShowZonesPanel] = useState(false);
   const [editingZone, setEditingZone] = useState<WatchZone | null>(null);
@@ -296,13 +299,18 @@ export default function Dashboard() {
     setZoneDraft((draft) => (draft ? { ...draft, radiusM } : draft));
   }, []);
 
+  const handleResetToCircle = useCallback(() => {
+    setZoneDraft((draft) => (draft ? resetToCircle(draft, editingZone?.radiusM) : draft));
+  }, [editingZone]);
+
   const handleZoneMove = useCallback((center: LatLng) => {
     setZoneDraft((draft) => (draft ? { ...draft, center } : draft));
   }, []);
 
   function handleSwitchToZone() {
     if (!pendingPoint) return;
-    setZoneDraft({ center: pendingPoint, radiusM: 1000 });
+    setZoneMode("pull");
+    setZoneDraft({ center: pendingPoint, radiusM: 1000, shape: null });
     closePanel();
   }
 
@@ -349,13 +357,19 @@ export default function Dashboard() {
   function startNewZone() {
     setShowZonesPanel(false);
     setEditingZone(null);
-    setZoneDraft({ center: mapCenter.current, radiusM: 1000 });
+    setZoneMode("pull");
+    setZoneDraft({ center: mapCenter.current, radiusM: 1000, shape: null });
   }
 
   function startEditZone(zone: WatchZone) {
     setShowZonesPanel(false);
     setEditingZone(zone);
-    setZoneDraft({ center: { lat: zone.centerLat, lng: zone.centerLng }, radiusM: zone.radiusM });
+    setZoneMode(zone.shape?.kind === "freehand" ? "freehand" : "pull");
+    setZoneDraft({
+      center: { lat: zone.centerLat, lng: zone.centerLng },
+      radiusM: zone.radiusM,
+      shape: zone.shape,
+    });
     setFocus({ lat: zone.centerLat, lng: zone.centerLng });
   }
 
@@ -644,6 +658,7 @@ export default function Dashboard() {
             pendingPoint={pendingPoint}
             focus={focus}
             zoneDraft={zoneDraft}
+            zoneMode={zoneMode}
             zones={showZonesPanel && !zoneDraft ? zones : null}
             newIds={liveIds}
             selectedId={detailAlertId}
@@ -677,7 +692,10 @@ export default function Dashboard() {
                 draft={zoneDraft}
                 editing={editingZone}
                 session={session}
+                mode={zoneMode}
+                onModeChange={setZoneMode}
                 onRadiusChange={handleZoneRadius}
+                onResetToCircle={handleResetToCircle}
                 onClose={closeZone}
                 onCreated={handleZoneCreated}
                 onUpdated={handleZoneUpdated}

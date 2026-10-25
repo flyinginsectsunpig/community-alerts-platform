@@ -7,6 +7,7 @@ import {
   CircleMarker,
   MapContainer,
   Marker,
+  Polygon,
   Popup,
   TileLayer,
   Tooltip,
@@ -19,7 +20,7 @@ import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
+import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -56,6 +57,8 @@ interface AlertMapProps {
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
+  /** How the draft is being reshaped; the map starts acting on it with the pull and freehand tools. */
+  zoneMode: ZoneMode;
   /** Saved zones to display (My Zones panel open); null hides them. */
   zones: WatchZone[] | null;
   /** Ids that just arrived over the live stream — their pins ripple. */
@@ -248,21 +251,32 @@ export default function AlertMap({
         />
       )}
 
-      {zones?.map((zone) => (
-        <Circle
-          key={zone.id}
-          center={[zone.centerLat, zone.centerLng]}
-          radius={zone.radiusM}
-          pathOptions={{
-            color: ZONE_COLOR,
-            weight: 2,
-            fillColor: ZONE_COLOR,
-            fillOpacity: 0.06,
-          }}
-        >
-          <Tooltip sticky>{zone.name}</Tooltip>
-        </Circle>
-      ))}
+      {zones?.map((zone) => {
+        const pathOptions = {
+          color: ZONE_COLOR,
+          weight: 2,
+          fillColor: ZONE_COLOR,
+          fillOpacity: 0.06,
+        };
+        return zone.polygon ? (
+          <Polygon
+            key={zone.id}
+            positions={zone.polygon.map((p) => [p.lat, p.lng] as [number, number])}
+            pathOptions={pathOptions}
+          >
+            <Tooltip sticky>{zone.name}</Tooltip>
+          </Polygon>
+        ) : (
+          <Circle
+            key={zone.id}
+            center={[zone.centerLat, zone.centerLng]}
+            radius={zone.radiusM}
+            pathOptions={pathOptions}
+          >
+            <Tooltip sticky>{zone.name}</Tooltip>
+          </Circle>
+        );
+      })}
 
       {zoneDraft && (
         <>
