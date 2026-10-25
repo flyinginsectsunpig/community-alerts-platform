@@ -11,11 +11,13 @@ public class NotificationDispatcherTests
     private sealed class CountingNotificationRepository(int insertResult = 1) : INotificationRepository
     {
         public int Inserted { get; private set; }
+        public List<string> Messages { get; } = [];
 
         public Task<int> InsertAsync(
             Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct)
         {
             Inserted += insertResult;
+            Messages.Add(message);
             return Task.FromResult(insertResult);
         }
     }
@@ -81,6 +83,15 @@ public class NotificationDispatcherTests
         new WatchZone(Guid.NewGuid(), "Home", null, 51.5074, -0.1278, 1000, []),
         250.0);
 
+    private static ZoneMatch DrawnMatch() => new(
+        new WatchZone(
+            Guid.NewGuid(), "Home", null, 51.5074, -0.1278, 1000, [],
+            [new GeoPoint(51.50, -0.13), new GeoPoint(51.51, -0.12), new GeoPoint(51.50, -0.11)]),
+        250.0);
+
+    private static AlertScoredEvent Scored() => new(
+        Guid.NewGuid(), "HIGH", 0.87, "v1", "THEFT", 51.5074, -0.1278, DateTimeOffset.UtcNow);
+
     private static PushSubscriptionRow Subscription(string endpoint) =>
         new(1, endpoint, "p256dh", "auth");
 
@@ -127,6 +138,58 @@ public class NotificationDispatcherTests
         Assert.Equal(1, repository.Inserted);
         Assert.Equal(0, subscriptions.Queries);
         Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task CircleZoneMatchKeepsDistanceWording()
+    {
+        var repository = new CountingNotificationRepository();
+
+        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+            .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
+
+        Assert.Equal(
+            ["New theft report 250 m from your watch zone 'Home'."],
+            repository.Messages);
+    }
+
+    [Fact]
+    public async Task CircleZoneEscalationKeepsDistanceWording()
+    {
+        var repository = new CountingNotificationRepository();
+
+        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+            .DispatchEscalationsAsync(Scored(), [Match()], CancellationToken.None);
+
+        Assert.Equal(
+            ["HIGH severity theft alert 250 m from your watch zone 'Home' (risk score 0.87)."],
+            repository.Messages);
+    }
+
+    [Fact]
+    public async Task DrawnZoneMatchSaysInside()
+    {
+        var repository = new CountingNotificationRepository();
+
+        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+            .DispatchZoneMatchesAsync(Created(), [DrawnMatch()], CancellationToken.None);
+
+        Assert.Equal(
+            ["New theft report inside your watch zone 'Home'."],
+            repository.Messages);
+    }
+
+    [Fact]
+    public async Task DrawnZoneEscalationSaysInside()
+    {
+        var repository = new CountingNotificationRepository();
+
+        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+            .DispatchEscalationsAsync(Scored(), [DrawnMatch()], CancellationToken.None);
+
+        Assert.Equal(
+            ["HIGH severity theft alert inside your watch zone 'Home' (risk score 0.87)."],
+            repository.Messages);
     }
 
     [Fact]
