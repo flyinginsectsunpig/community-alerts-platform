@@ -3,6 +3,8 @@ package com.communityalerts.api.dto;
 import com.communityalerts.api.domain.AlertCategory;
 import com.communityalerts.api.domain.WatchZone;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -16,6 +18,8 @@ public record WatchZoneResponse(
         double centerLng,
         int radiusM,
         List<AlertCategory> categories,
+        List<ZonePoint> polygon,
+        JsonNode shape,
         Instant createdAt) {
 
     public static WatchZoneResponse from(WatchZone zone) {
@@ -33,6 +37,8 @@ public record WatchZoneResponse(
                 zone.getCenterLng(),
                 zone.getRadiusM(),
                 categories,
+                zone.getPolygon(),
+                zone.getShape(),
                 zone.getCreatedAt());
     }
 }
