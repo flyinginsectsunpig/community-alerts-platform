@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public record CreateWatchZoneRequest(
         /* null or empty means subscribe to all categories */
         List<AlertCategory> categories,
         /* drawn outline; null for a circle. Sent together with shape. */
-        @Size(max = 500) List<@Valid ZonePoint> polygon,
+        @Size(max = 500, message = "A drawn zone can have at most 500 points") List<@NotNull @Valid ZonePoint> polygon,
         /* client-owned shape description, opaque to the API; null for a circle */
         JsonNode shape) {
 }
