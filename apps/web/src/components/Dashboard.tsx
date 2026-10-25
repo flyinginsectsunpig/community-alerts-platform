@@ -364,7 +364,7 @@ export default function Dashboard() {
   function startEditZone(zone: WatchZone) {
     setShowZonesPanel(false);
     setEditingZone(zone);
-    setZoneMode(zone.shape?.kind === "freehand" ? "freehand" : "pull");
+    setZoneMode("pull");
     setZoneDraft({
       center: { lat: zone.centerLat, lng: zone.centerLng },
       radiusM: zone.radiusM,
