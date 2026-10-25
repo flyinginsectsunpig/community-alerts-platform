@@ -301,6 +301,43 @@ export function freehandShape(pieces: LatLng[][]): ZoneShape {
   return { kind: "freehand", points: kept.map((i) => ({ at: all[i], handle: false })) };
 }
 
+/** A press this close (screen px) to the end of the line carries it on. */
+export const FREEHAND_JOIN_PX = 30;
+/** A press this close (screen px) to the first point closes the shape. */
+export const FREEHAND_CLOSE_PX = 15;
+/** A drawn stroke adds a point only once the pointer has moved this far (screen px). */
+export const FREEHAND_STEP_PX = 3;
+
+/** Whether the pieces drawn so far hold enough points to make a shape. */
+export function canFinishPieces(pieces: LatLng[][]): boolean {
+  return pieces.reduce((total, piece) => total + piece.length, 0) >= MIN_POINTS;
+}
+
+/**
+ * What a press with the pen down does: "finish" the shape (on its first point,
+ * once it could be one), "start" a piece (anywhere for the first, else close to
+ * the end of the last), or nothing for a "stray" press. `toPx` maps a point to
+ * screen pixels; `pointer` is in the same space.
+ */
+export function penDownAction(
+  pieces: LatLng[][],
+  toPx: (p: LatLng) => Xy,
+  pointer: Xy,
+): "start" | "finish" | "stray" {
+  const all = pieces.flat();
+  if (all.length === 0) {
+    return "start";
+  }
+  const near = (p: LatLng, px: number) => {
+    const at = toPx(p);
+    return Math.hypot(at.x - pointer.x, at.y - pointer.y) <= px;
+  };
+  if (canFinishPieces(pieces) && near(all[0], FREEHAND_CLOSE_PX)) {
+    return "finish";
+  }
+  return near(all[all.length - 1], FREEHAND_JOIN_PX) ? "start" : "stray";
+}
+
 // --- saving and resetting --------------------------------------------------
 
 /** The geometry fields the API expects for this draft: a circle, or an outline with its shape. */

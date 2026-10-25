@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { LatLng, ZoneDraft, ZoneShape } from "./types";
 import {
   areaKm2,
+  canFinishPieces,
   centroid,
   circleOutline,
   freehandShape,
@@ -10,6 +11,7 @@ import {
   insertPointAt,
   moveHandle,
   nearestSegment,
+  penDownAction,
   outline,
   removeHandle,
   snapToCircle,
@@ -464,5 +466,51 @@ describe("resetToCircle", () => {
     expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 4960).radiusM).toBe(5000);
     expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 10_000).radiusM).toBe(10_000);
     expect(resetToCircle({ center: CENTER, radiusM: 12_345, shape }).radiusM).toBe(10_000);
+  });
+});
+
+describe("canFinishPieces", () => {
+  it("needs three points in total, across however many pieces", () => {
+    expect(canFinishPieces([])).toBe(false);
+    expect(canFinishPieces([[at(0, 0), at(10, 0)]])).toBe(false);
+    expect(canFinishPieces([[at(0, 0), at(10, 0)], [at(20, 0)]])).toBe(true);
+    expect(canFinishPieces([[at(0, 0), at(10, 0), at(20, 0)]])).toBe(true);
+  });
+});
+
+describe("penDownAction", () => {
+  // Treat a point's lng/lat as screen x/y so the distances in the test are pixels.
+  const toPx = (p: LatLng) => ({ x: p.lng, y: p.lat });
+  const px = (x: number, y: number): LatLng => ({ lat: y, lng: x });
+  const stroke = [[px(0, 0), px(100, 0), px(100, 100)]];
+
+  it("starts the first piece anywhere", () => {
+    expect(penDownAction([], toPx, { x: 500, y: 500 })).toBe("start");
+  });
+
+  it("continues from within 30px of the end of the last piece", () => {
+    expect(penDownAction(stroke, toPx, { x: 100, y: 130 })).toBe("start");
+    expect(penDownAction(stroke, toPx, { x: 100, y: 131 })).toBe("stray");
+  });
+
+  it("measures from the end of the last piece, not an earlier one", () => {
+    const pieces = [[px(0, 0), px(10, 0)], [px(200, 200), px(300, 200)]];
+    expect(penDownAction(pieces, toPx, { x: 300, y: 220 })).toBe("start");
+    expect(penDownAction(pieces, toPx, { x: 10, y: 40 })).toBe("stray");
+  });
+
+  it("finishes within 15px of the very first point once there are three points", () => {
+    expect(penDownAction(stroke, toPx, { x: 10, y: 10 })).toBe("finish");
+    expect(penDownAction(stroke, toPx, { x: 0, y: 16 })).toBe("stray");
+  });
+
+  it("does not finish a line of fewer than three points, even near its start", () => {
+    const short = [[px(0, 0), px(5, 0)]];
+    expect(penDownAction(short, toPx, { x: 2, y: 2 })).toBe("start");
+  });
+
+  it("prefers finishing when the end of the line is also near the start", () => {
+    const loop = [[px(0, 0), px(100, 0), px(100, 100), px(10, 10)]];
+    expect(penDownAction(loop, toPx, { x: 5, y: 5 })).toBe("finish");
   });
 });

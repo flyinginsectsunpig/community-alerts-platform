@@ -17,9 +17,16 @@ const HINTS: Record<ZoneMode, string> = {
     "Draw round your area. Let go to zoom or move the map, then carry on from the end of your line.",
 };
 
+const START_FROM_END_HINT = "Start from the end of your line";
+
 const MODES: { mode: ZoneMode; label: string }[] = [
   { mode: "pull", label: "Pull to shape" },
   { mode: "freehand", label: "Freehand" },
+];
+
+const PENS = [
+  { down: true, label: "Draw" },
+  { down: false, label: "Move map" },
 ];
 
 interface WatchZonePanelProps {
@@ -30,6 +37,18 @@ interface WatchZonePanelProps {
   session?: AuthSession | null;
   mode: ZoneMode;
   onModeChange: (mode: ZoneMode) => void;
+  /** Freehand: whether a press on the map draws (true) or moves the map (false). */
+  penDown: boolean;
+  onPenToggle: () => void;
+  onUndoPiece: () => void;
+  onClearPieces: () => void;
+  onFinishFreehand: () => void;
+  /** Freehand: there are enough points drawn to make a shape. */
+  canFinish: boolean;
+  /** Freehand: there is a drawn piece to undo or clear. */
+  hasPieces: boolean;
+  /** Freehand: the last press with the pen down was too far from the end of the line. */
+  startedAwayFromEnd: boolean;
   onRadiusChange: (radiusM: number) => void;
   onResetToCircle: () => void;
   onClose: () => void;
@@ -43,6 +62,14 @@ export default function WatchZonePanel({
   session = null,
   mode,
   onModeChange,
+  penDown,
+  onPenToggle,
+  onUndoPiece,
+  onClearPieces,
+  onFinishFreehand,
+  canFinish,
+  hasPieces,
+  startedAwayFromEnd,
   onRadiusChange,
   onResetToCircle,
   onClose,
@@ -130,7 +157,43 @@ export default function WatchZonePanel({
           ))}
         </div>
 
-        <p className="panel__hint">{HINTS[mode]}</p>
+        {mode === "freehand" && (
+          <>
+            <div className="mode-switch" role="group" aria-label="What a drag on the map does">
+              {PENS.map(({ down, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="mode-switch__option"
+                  aria-pressed={penDown === down}
+                  onClick={() => penDown !== down && onPenToggle()}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="panel__actions">
+              <button type="button" className="btn btn--small" onClick={onUndoPiece} disabled={!hasPieces}>
+                Undo
+              </button>
+              <button type="button" className="btn btn--small" onClick={onClearPieces} disabled={!hasPieces}>
+                Clear
+              </button>
+              <button
+                type="button"
+                className="btn btn--small btn--primary"
+                onClick={onFinishFreehand}
+                disabled={!canFinish}
+              >
+                Finish shape
+              </button>
+            </div>
+          </>
+        )}
+
+        <p className="panel__hint">
+          {mode === "freehand" && startedAwayFromEnd ? START_FROM_END_HINT : HINTS[mode]}
+        </p>
         {shapeError && <p className="form-error">{shapeError}</p>}
 
         <label className="field">
