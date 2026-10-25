@@ -3,9 +3,9 @@ package com.communityalerts.api.dto;
 import com.communityalerts.api.domain.DigestFrequency;
 import com.communityalerts.api.domain.User;
 
-public record ProfileResponse(DigestFrequency digestFrequency) {
+public record ProfileResponse(DigestFrequency digestFrequency, Integer dangerReachM) {
 
     public static ProfileResponse from(User user) {
-        return new ProfileResponse(user.getDigestFrequency());
+        return new ProfileResponse(user.getDigestFrequency(), user.getDangerReachM());
     }
 }
