@@ -1,3 +1,4 @@
+using System.Globalization;
 using AlertProcessor.Data;
 using AlertProcessor.Domain;
 using AlertProcessor.Notifications;
@@ -156,14 +157,24 @@ public class NotificationDispatcherTests
     [Fact]
     public async Task CircleZoneEscalationKeepsDistanceWording()
     {
-        var repository = new CountingNotificationRepository();
+        // the message embeds the risk score, so "0.87" needs a decimal point
+        var (culture, uiCulture) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
+        try
+        {
+            var repository = new CountingNotificationRepository();
 
-        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
-            .DispatchEscalationsAsync(Scored(), [Match()], CancellationToken.None);
+            await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+                .DispatchEscalationsAsync(Scored(), [Match()], CancellationToken.None);
 
-        Assert.Equal(
-            ["HIGH severity theft alert 250 m from your watch zone 'Home' (risk score 0.87)."],
-            repository.Messages);
+            Assert.Equal(
+                ["HIGH severity theft alert 250 m from your watch zone 'Home' (risk score 0.87)."],
+                repository.Messages);
+        }
+        finally
+        {
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (culture, uiCulture);
+        }
     }
 
     [Fact]
@@ -182,14 +193,24 @@ public class NotificationDispatcherTests
     [Fact]
     public async Task DrawnZoneEscalationSaysInside()
     {
-        var repository = new CountingNotificationRepository();
+        // the message embeds the risk score, so "0.87" needs a decimal point
+        var (culture, uiCulture) = (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture);
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
+        try
+        {
+            var repository = new CountingNotificationRepository();
 
-        await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
-            .DispatchEscalationsAsync(Scored(), [DrawnMatch()], CancellationToken.None);
+            await Dispatcher(repository, new FakePushSubscriptions(), new RecordingPushSender())
+                .DispatchEscalationsAsync(Scored(), [DrawnMatch()], CancellationToken.None);
 
-        Assert.Equal(
-            ["HIGH severity theft alert inside your watch zone 'Home' (risk score 0.87)."],
-            repository.Messages);
+            Assert.Equal(
+                ["HIGH severity theft alert inside your watch zone 'Home' (risk score 0.87)."],
+                repository.Messages);
+        }
+        finally
+        {
+            (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (culture, uiCulture);
+        }
     }
 
     [Fact]
