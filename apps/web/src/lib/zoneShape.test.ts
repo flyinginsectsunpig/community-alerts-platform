@@ -403,7 +403,8 @@ describe("resetToCircle", () => {
   it("keeps the circle of a pulled shape", () => {
     const shape = startPull(CENTER, RADIUS_M, at(2000, 0));
 
-    expect(resetToCircle({ center: CENTER, radiusM: RADIUS_M, shape })).toEqual({
+    // the draft's own centre and radius differ: the shape's circle must win
+    expect(resetToCircle({ center: at(300, 300), radiusM: 4000, shape })).toEqual({
       center: CENTER,
       radiusM: RADIUS_M,
       shape: null,
