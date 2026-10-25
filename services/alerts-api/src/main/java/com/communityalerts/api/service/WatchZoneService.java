@@ -12,6 +12,7 @@ import com.communityalerts.api.repository.PushSubscriptionRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
 import com.communityalerts.api.support.ZoneGeometry;
 import com.communityalerts.api.support.ZoneOwner;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,11 +69,13 @@ public class WatchZoneService {
     }
 
     private static void applyGeometry(WatchZone zone, CreateWatchZoneRequest request) {
-        if ((request.polygon() == null) != (request.shape() == null)) {
+        // An explicit JSON null deserializes to NullNode, not Java null; treat both as absent.
+        JsonNode shape = request.shape() == null || request.shape().isNull() ? null : request.shape();
+        if ((request.polygon() == null) != (shape == null)) {
             throw new BadRequestException("polygon and shape must be sent together");
         }
         if (request.polygon() != null) {
-            if (request.shape().toString().length() > MAX_SHAPE_CHARS) {
+            if (shape.toString().length() > MAX_SHAPE_CHARS) {
                 throw new BadRequestException("shape is too large");
             }
             // The client's centre and radius are ignored: the outline is the source of truth.
@@ -90,7 +93,7 @@ public class WatchZoneService {
         }
         // Reassigned unconditionally so editing a drawn zone back to a circle clears the outline.
         zone.setPolygon(request.polygon());
-        zone.setShape(request.shape());
+        zone.setShape(shape);
     }
 
     @Transactional
