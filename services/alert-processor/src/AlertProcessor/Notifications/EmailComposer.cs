@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace AlertProcessor.Notifications;
 
 /// <summary>
@@ -11,5 +13,7 @@ public static class EmailComposer
         category.Replace('_', ' ').ToLowerInvariant();
 
     internal static string FormatDistance(double meters) =>
-        meters < 1000 ? $"{Math.Round(meters)} m" : $"{meters / 1000.0:0.0} km";
+        meters < 1000
+            ? string.Create(CultureInfo.InvariantCulture, $"{Math.Round(meters)} m")
+            : string.Create(CultureInfo.InvariantCulture, $"{meters / 1000.0:0.0} km");
 }

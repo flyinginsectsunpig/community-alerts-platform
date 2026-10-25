@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using AlertProcessor.Domain;
@@ -19,9 +20,9 @@ public static class DigestComposer
             .Select(recipient =>
             {
                 var count = recipient.Count();
-                var subject =
+                var subject = string.Create(CultureInfo.InvariantCulture,
                     $"Community Alerts: {count} notification{(count == 1 ? "" : "s")} " +
-                    $"in your zones this {periodLabel}";
+                    $"in your zones this {periodLabel}");
 
                 var html = new StringBuilder();
                 html.Append($"<h2>Your watch zones this {WebUtility.HtmlEncode(periodLabel)}</h2>");
@@ -30,7 +31,7 @@ public static class DigestComposer
                     html.Append($"<h3>{WebUtility.HtmlEncode(zone.Key)}</h3><ul>");
                     foreach (var row in zone)
                     {
-                        html.Append(
+                        html.Append(CultureInfo.InvariantCulture,
                             $"<li>{WebUtility.HtmlEncode(row.Message)} " +
                             $"<small>({row.CreatedAt:yyyy-MM-dd HH:mm} UTC)</small></li>");
                     }

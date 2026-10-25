@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using AlertProcessor.Data;
 using AlertProcessor.Domain;
@@ -53,10 +54,10 @@ public sealed class NotificationDispatcher(
     {
         foreach (var match in matches)
         {
-            var message =
+            var message = string.Create(CultureInfo.InvariantCulture,
                 $"{alert.Severity} severity {EmailComposer.Humanize(alert.Category)} alert " +
                 $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}' " +
-                $"(risk score {alert.RiskScore:0.00}).";
+                $"(risk score {alert.RiskScore:0.00}).");
 
             var inserted = await notificationRepository.InsertAsync(
                 match.Zone.Id, alert.AlertId, KindEscalation, message, ct);
@@ -102,9 +103,10 @@ public sealed class NotificationDispatcher(
         {
             var payload = new
             {
-                text = $":rotating_light: {alert.Severity} alert {alert.AlertId} " +
-                       $"({EmailComposer.Humanize(alert.Category)}, risk {alert.RiskScore:0.00}) " +
-                       $"at {alert.Lat:0.#####},{alert.Lng:0.#####} — {zonesNotified} watch zone(s) notified.",
+                text = string.Create(CultureInfo.InvariantCulture,
+                    $":rotating_light: {alert.Severity} alert {alert.AlertId} " +
+                    $"({EmailComposer.Humanize(alert.Category)}, risk {alert.RiskScore:0.00}) " +
+                    $"at {alert.Lat:0.#####},{alert.Lng:0.#####} — {zonesNotified} watch zone(s) notified."),
             };
             using var response = await httpClient.PostAsJsonAsync(options.NotificationWebhookUrl, payload, ct);
             if (!response.IsSuccessStatusCode)
