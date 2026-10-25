@@ -304,7 +304,8 @@ export default function ZoneShapeEditor({
   /**
    * Moves handle `index` of `shape` with the pointer until it's released. A
    * press held still for `LONG_PRESS_MS` calls `onLongPress` instead. `created`
-   * says the press already changed the shape, so even a tap must not click the map.
+   * says the press already added a point to `base`: even a tap must not click
+   * the map, and a tap that never drags it is undone back to `base`.
    */
   function drag(
     down: PointerEvent,
@@ -341,6 +342,9 @@ export default function ZoneShapeEditor({
     const up = (event: PointerEvent) => {
       if (event.pointerId !== down.pointerId) return;
       end();
+      // A tap on the edge that never became a drag takes its new point back:
+      // a plain circle must not turn into a drawn zone by being touched.
+      if (created && !moved && !held) onChangeRef.current(base);
       if (moved || held || created) swallowNextClick();
     };
     function end() {
