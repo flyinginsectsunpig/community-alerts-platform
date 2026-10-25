@@ -9,7 +9,7 @@ import type { AuthSession } from "@/lib/auth";
 import { CATEGORY_LABELS } from "@/lib/format";
 import type { AlertCategory, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
 import { ALERT_CATEGORIES } from "@/lib/types";
-import { outline, validateOutline, zonePayload } from "@/lib/zoneShape";
+import { FINISH_SHAPE_FIRST, outline, saveBlockReason, validateOutline, zonePayload } from "@/lib/zoneShape";
 
 const HINTS: Record<ZoneMode, string> = {
   pull: "Drag the pin to move the zone. Grab its edge to pull it into shape.",
@@ -84,6 +84,7 @@ export default function WatchZonePanel({
     () => (draft.shape ? validateOutline(outline(draft.shape)) : null),
     [draft.shape],
   );
+  const blockReason = saveBlockReason({ mode, hasPieces, shapeError });
   const exiting = useExiting();
   const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
@@ -247,8 +248,10 @@ export default function WatchZonePanel({
 
         {error && <p className="form-error">{error}</p>}
 
+        {blockReason === FINISH_SHAPE_FIRST && <p className="panel__hint">{blockReason}</p>}
+
         <div className="panel__actions">
-          <button type="submit" className="btn btn--primary" disabled={submitting || shapeError !== null}>
+          <button type="submit" className="btn btn--primary" disabled={submitting || blockReason !== null}>
             {submitting ? "Saving…" : editing ? "Save changes" : "Create watch zone"}
           </button>
           <button type="button" className="btn" onClick={onClose}>
