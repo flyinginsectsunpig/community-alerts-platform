@@ -12,6 +12,7 @@ import com.communityalerts.api.repository.WatchZoneRepository;
 import com.communityalerts.api.support.ZoneOwner;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -389,5 +390,30 @@ class WatchZoneServiceTest {
         assertThat(zone.getCenterLat()).isEqualTo(52.0);
         assertThat(zone.getCenterLng()).isEqualTo(-1.0);
         assertThat(zone.getRadiusM()).isEqualTo(3000);
+    }
+
+    @Test
+    @DisplayName("an explicit JSON null shape on a circle request counts as absent")
+    void circleRequestWithNullNodeShapeIsACircle() {
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                "Home", null, 52.0, -1.0, 3000, List.of(), null, NullNode.getInstance());
+
+        watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
+
+        ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
+        verify(watchZoneRepository).save(captor.capture());
+        assertThat(captor.getValue().getPolygon()).isNull();
+        assertThat(captor.getValue().getShape()).isNull();
+        assertThat(captor.getValue().getRadiusM()).isEqualTo(3000);
+    }
+
+    @Test
+    @DisplayName("a polygon with an explicit JSON null shape is rejected")
+    void rejectsPolygonWithNullNodeShape() {
+        assertThatThrownBy(() -> watchZoneService.create(
+                        drawnRequest(square(), NullNode.getInstance()), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("polygon and shape must be sent together");
     }
 }
