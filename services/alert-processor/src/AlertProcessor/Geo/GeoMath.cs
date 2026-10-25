@@ -1,3 +1,5 @@
+using AlertProcessor.Domain;
+
 namespace AlertProcessor.Geo;
 
 public static class GeoMath
@@ -16,6 +18,30 @@ public static class GeoMath
 
         var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
         return EarthRadiusMeters * c;
+    }
+
+    /// <summary>
+    /// Ray-casting point-in-polygon test on (lng, lat) treated as planar x/y,
+    /// which is accurate at watch-zone scale (at most 10 km across).
+    /// </summary>
+    public static bool ContainsPoint(IReadOnlyList<GeoPoint> polygon, double lat, double lng)
+    {
+        ArgumentNullException.ThrowIfNull(polygon);
+
+        var inside = false;
+        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+        {
+            var a = polygon[i];
+            var b = polygon[j];
+            var crosses = (a.Lat > lat) != (b.Lat > lat)
+                          && lng < (b.Lng - a.Lng) * (lat - a.Lat) / (b.Lat - a.Lat) + a.Lng;
+            if (crosses)
+            {
+                inside = !inside;
+            }
+        }
+
+        return inside;
     }
 
     private static double ToRadians(double degrees) => degrees * Math.PI / 180.0;

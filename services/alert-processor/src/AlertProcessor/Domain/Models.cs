@@ -1,5 +1,13 @@
 namespace AlertProcessor.Domain;
 
+/// <summary>A vertex of a drawn watch zone outline.</summary>
+public sealed record GeoPoint(double Lat, double Lng);
+
+/// <summary>
+/// A user's watch zone. Circle zones leave <paramref name="Polygon"/> null and
+/// match by <paramref name="RadiusM"/>; drawn zones carry their outline and
+/// match by point-in-polygon (centre and radius are then just a summary).
+/// </summary>
 public sealed record WatchZone(
     Guid Id,
     string Name,
@@ -7,7 +15,8 @@ public sealed record WatchZone(
     double CenterLat,
     double CenterLng,
     int RadiusM,
-    IReadOnlyList<string> Categories);
+    IReadOnlyList<string> Categories,
+    IReadOnlyList<GeoPoint>? Polygon = null);
 
 public sealed record ZoneMatch(WatchZone Zone, double DistanceMeters);
 
