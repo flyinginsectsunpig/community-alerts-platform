@@ -100,4 +100,79 @@ public class WatchZoneMatcherTests
         Assert.Throws<ArgumentOutOfRangeException>(
             () => _matcher.FindMatches([Zone(1000)], NearbyLat, CenterLng, "THEFT", radiusMultiplier: 0));
     }
+
+    // L-shaped drawn zone: a 2 km square around the centre with its NE quadrant cut out.
+    private const double HalfLat = 0.009;   // ~1 km
+    private const double HalfLng = 0.0144;  // ~1 km at this latitude
+
+    private static WatchZone LShapedZone(params string[] categories) => new(
+        Guid.NewGuid(), "Drawn zone", "resident@example.com",
+        CenterLat, CenterLng, 1500, categories,
+        Polygon:
+        [
+            new(CenterLat - HalfLat, CenterLng - HalfLng),
+            new(CenterLat - HalfLat, CenterLng + HalfLng),
+            new(CenterLat, CenterLng + HalfLng),
+            new(CenterLat, CenterLng),
+            new(CenterLat + HalfLat, CenterLng),
+            new(CenterLat + HalfLat, CenterLng - HalfLng),
+        ]);
+
+    [Fact]
+    public void AlertInsideDrawnZoneMatches()
+    {
+        var matches = _matcher.FindMatches(
+            [LShapedZone()], CenterLat - 0.0045, CenterLng - 0.007, "THEFT");
+
+        Assert.Single(matches);
+    }
+
+    [Fact]
+    public void AlertOutsideDrawnZoneDoesNotMatch()
+    {
+        var matches = _matcher.FindMatches([LShapedZone()], CenterLat + 0.02, CenterLng, "THEFT");
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void AlertInConcaveNotchDoesNotMatch()
+    {
+        // NE of the centre: inside the zone's radius and bounding box, but cut out of the shape.
+        var matches = _matcher.FindMatches(
+            [LShapedZone()], CenterLat + 0.0045, CenterLng + 0.007, "THEFT");
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void DrawnZoneCategoryFilterAppliesEvenWhenIgnoringCategories()
+    {
+        var matches = _matcher.FindMatches(
+            [LShapedZone("HAZARD")], CenterLat - 0.0045, CenterLng - 0.007, "THEFT",
+            ignoreCategories: true);
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void EscalationDoesNotWidenDrawnZone()
+    {
+        // ~100 m west of the L's west edge: inside 2x the zone radius, outside the shape.
+        var matches = _matcher.FindMatches(
+            [LShapedZone()], CenterLat - 0.0045, CenterLng - HalfLng - 0.00145, "THEFT",
+            radiusMultiplier: 2.0);
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void CircleEscalationStillWidensAndBypasses()
+    {
+        var matches = _matcher.FindMatches(
+            [Zone(300, "VANDALISM")], NearbyLat, CenterLng, "ASSAULT",
+            radiusMultiplier: 2.0, ignoreCategories: true);
+
+        Assert.Single(matches);
+    }
 }

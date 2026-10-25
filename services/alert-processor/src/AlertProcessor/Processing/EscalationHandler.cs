@@ -7,7 +7,9 @@ namespace AlertProcessor.Processing;
 /// <summary>
 /// Handles <c>alert.scored</c>: when the ML service flags an alert as
 /// dangerous, notify a widened area (2x every zone's radius) regardless of
-/// the categories each zone subscribed to.
+/// the categories each zone subscribed to. Drawn (custom-shape) zones are
+/// neither widened nor category-bypassed: they match only inside their outline
+/// and for their subscribed categories.
 /// </summary>
 public sealed class EscalationHandler(
     IWatchZoneRepository watchZoneRepository,

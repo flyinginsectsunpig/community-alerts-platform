@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AlertProcessor.Domain;
 using Dapper;
 using Npgsql;
@@ -8,14 +9,17 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
 {
     private sealed record Row(
         Guid Id, string Name, string? ContactEmail,
-        double CenterLat, double CenterLng, int RadiusM, string Categories);
+        double CenterLat, double CenterLng, int RadiusM, string Categories, string? Polygon);
+
+    private static readonly JsonSerializerOptions PolygonJson = new(JsonSerializerDefaults.Web);
 
     public async Task<IReadOnlyList<WatchZone>> GetAllAsync(CancellationToken ct)
     {
         const string sql = """
             SELECT id, name, contact_email AS ContactEmail,
                    center_lat AS CenterLat, center_lng AS CenterLng,
-                   radius_m AS RadiusM, categories
+                   radius_m AS RadiusM, categories,
+                   polygon::text AS Polygon
             FROM watch_zones
             """;
 
@@ -26,7 +30,10 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
                 r.Id, r.Name, r.ContactEmail, r.CenterLat, r.CenterLng, r.RadiusM,
                 r.Categories.Length == 0
                     ? Array.Empty<string>()
-                    : r.Categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
+                    : r.Categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                r.Polygon is null
+                    ? null
+                    : JsonSerializer.Deserialize<List<GeoPoint>>(r.Polygon, PolygonJson)))
             .ToList();
     }
 }
