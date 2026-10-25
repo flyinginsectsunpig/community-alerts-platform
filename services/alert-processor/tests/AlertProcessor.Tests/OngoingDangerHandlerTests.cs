@@ -22,10 +22,15 @@ public class OngoingDangerHandlerTests
     private sealed class FakeDangerWatchRepository(AlertState? state, params DangerWatcher[] watchers)
         : IDangerWatchRepository
     {
+        public int StateQueries { get; private set; }
+
         public int WatcherQueries { get; private set; }
 
-        public Task<AlertState?> GetAlertStateAsync(Guid alertId, CancellationToken ct) =>
-            Task.FromResult(state);
+        public Task<AlertState?> GetAlertStateAsync(Guid alertId, CancellationToken ct)
+        {
+            StateQueries++;
+            return Task.FromResult(state);
+        }
 
         public Task<IReadOnlyList<DangerWatcher>> GetDangerWatchersAsync(CancellationToken ct)
         {
@@ -75,6 +80,32 @@ public class OngoingDangerHandlerTests
     }
 
     [Fact]
+    public async Task NonCriticalEvent_neverQueriesAlertState()
+    {
+        var scored = Scored() with { Severity = "HIGH" };
+        var repository = new FakeDangerWatchRepository(State(scored, ongoing: true), Watcher());
+        var (handler, sender) = Build(repository);
+
+        await handler.HandleAsync(scored, CancellationToken.None);
+
+        Assert.Equal(0, repository.StateQueries);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task IneligibleCategoryEvent_neverQueriesAlertState()
+    {
+        var scored = Scored() with { Category = "THEFT" };
+        var repository = new FakeDangerWatchRepository(State(scored, ongoing: true), Watcher());
+        var (handler, sender) = Build(repository);
+
+        await handler.HandleAsync(scored, CancellationToken.None);
+
+        Assert.Equal(0, repository.StateQueries);
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
     public async Task MissingAlertRow_doesNothing()
     {
         var repository = new FakeDangerWatchRepository(null, Watcher());
@@ -96,5 +127,18 @@ public class OngoingDangerHandlerTests
         await handler.HandleAsync(scored, CancellationToken.None);
 
         Assert.Single(sender.Sent);
+    }
+
+    [Fact]
+    public async Task PushBody_usesAlertCreationTimeAsReportedAt()
+    {
+        var scored = Scored();
+        var repository = new FakeDangerWatchRepository(State(scored, ongoing: true), Watcher());
+        var (handler, sender) = Build(repository);
+
+        await handler.HandleAsync(scored, CancellationToken.None);
+
+        var sent = Assert.Single(sender.Sent);
+        Assert.Contains("reported 10 min ago", sent.Body);
     }
 }

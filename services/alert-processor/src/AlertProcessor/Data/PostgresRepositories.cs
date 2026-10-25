@@ -134,6 +134,8 @@ public sealed class PostgresDigestRepository(NpgsqlDataSource dataSource) : IDig
             JOIN watch_zones wz ON wz.user_id = u.id
             JOIN notifications n ON n.watch_zone_id = wz.id
             WHERE u.digest_frequency = @frequency AND n.created_at >= @since
+              -- Danger warnings are only meaningful right now; hours later in a digest they would mislead.
+              AND n.kind <> 'DANGER_NEARBY'
             ORDER BY u.email, wz.name, n.created_at
             """;
 
