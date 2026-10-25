@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ageFraction, dayLetter, fillWeek } from "./format";
+import { ageFraction, dayLetter, fillWeek, formatZoneArea } from "./format";
 
 /** 00:30 in Johannesburg on 30 July — 22:30 UTC on the 29th. */
 const LATE_NIGHT_SAST = new Date("2026-07-30T00:30:00+02:00");
@@ -86,5 +86,18 @@ describe("ageFraction", () => {
 
   it("honours a custom horizon", () => {
     expect(ageFraction(new Date(now - 6 * 3_600_000).toISOString(), 12)).toBeCloseTo(0.5, 1);
+  });
+});
+
+describe("formatZoneArea", () => {
+  it("shows square kilometres from 0.1 km² up", () => {
+    expect(formatZoneArea(1.234)).toBe("1.2 km²");
+    expect(formatZoneArea(0.1)).toBe("0.1 km²");
+  });
+
+  it("shows hectares below 0.1 km², so a street is not 0.0 km²", () => {
+    // a 400 m x 20 m street
+    expect(formatZoneArea(0.008)).toBe("0.8 ha");
+    expect(formatZoneArea(0.0999)).toBe("10.0 ha");
   });
 });
