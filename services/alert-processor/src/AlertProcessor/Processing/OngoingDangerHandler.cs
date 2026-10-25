@@ -18,9 +18,18 @@ public sealed class OngoingDangerHandler(
 {
     public async Task HandleAsync(AlertScoredEvent alert, CancellationToken ct)
     {
+        // Cheap event-level gate before any DB read; Qualifies stays the
+        // authoritative check on the stored alert state.
+        if (alert.Severity != "CRITICAL" || !OngoingDanger.IsEligibleCategory(alert.Category))
+        {
+            return;
+        }
+
         var state = await repository.GetAlertStateAsync(alert.AlertId, ct);
         if (state is null)
         {
+            logger.LogWarning(
+                "Alert {AlertId} not found for ongoing-danger check; skipping", alert.AlertId);
             return;
         }
 

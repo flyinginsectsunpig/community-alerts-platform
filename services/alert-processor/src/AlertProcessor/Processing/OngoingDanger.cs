@@ -13,13 +13,17 @@ public static class OngoingDanger
 
     private static readonly string[] QualifyingCategories = ["ASSAULT", "HAZARD", "OTHER"];
 
+    /// <summary>Whether a category can be a danger still in progress.</summary>
+    public static bool IsEligibleCategory(string category) =>
+        QualifyingCategories.Contains(category, StringComparer.OrdinalIgnoreCase);
+
     public static bool Qualifies(AlertScoredEvent scored, AlertState state, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(scored);
         ArgumentNullException.ThrowIfNull(state);
 
         return state.Ongoing
-            && QualifyingCategories.Contains(state.Category, StringComparer.OrdinalIgnoreCase)
+            && IsEligibleCategory(state.Category)
             && scored.Severity == "CRITICAL"
             && (state.Status == "ACTIVE" || state.Status == "VERIFIED")
             && now - state.CreatedAt <= OngoingWindow;
