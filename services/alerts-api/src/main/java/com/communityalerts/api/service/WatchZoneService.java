@@ -5,10 +5,12 @@ import com.communityalerts.api.domain.WatchZone;
 import com.communityalerts.api.dto.CreateWatchZoneRequest;
 import com.communityalerts.api.dto.NotificationResponse;
 import com.communityalerts.api.dto.WatchZoneResponse;
+import com.communityalerts.api.error.BadRequestException;
 import com.communityalerts.api.error.NotFoundException;
 import com.communityalerts.api.repository.NotificationRepository;
 import com.communityalerts.api.repository.PushSubscriptionRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
+import com.communityalerts.api.support.ZoneGeometry;
 import com.communityalerts.api.support.ZoneOwner;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class WatchZoneService {
+
+    private static final int MAX_SHAPE_CHARS = 65_536;
 
     private final WatchZoneRepository watchZoneRepository;
     private final NotificationRepository notificationRepository;
@@ -54,15 +58,39 @@ public class WatchZoneService {
         zone.setName(request.name().trim());
         String email = request.contactEmail() == null ? "" : request.contactEmail().trim();
         zone.setContactEmail(email.isEmpty() ? null : email.toLowerCase());
-        zone.setCenterLat(request.centerLat());
-        zone.setCenterLng(request.centerLng());
-        zone.setRadiusM(request.radiusM());
+        applyGeometry(zone, request);
         zone.setCategoriesCsv(request.categories() == null
                 ? ""
                 : request.categories().stream()
                         .distinct()
                         .map(AlertCategory::name)
                         .collect(Collectors.joining(",")));
+    }
+
+    private static void applyGeometry(WatchZone zone, CreateWatchZoneRequest request) {
+        if ((request.polygon() == null) != (request.shape() == null)) {
+            throw new BadRequestException("polygon and shape must be sent together");
+        }
+        if (request.polygon() != null) {
+            if (request.shape().toString().length() > MAX_SHAPE_CHARS) {
+                throw new BadRequestException("shape is too large");
+            }
+            // The client's centre and radius are ignored: the outline is the source of truth.
+            ZoneGeometry.Summary summary = ZoneGeometry.summarize(request.polygon());
+            zone.setCenterLat(summary.centerLat());
+            zone.setCenterLng(summary.centerLng());
+            zone.setRadiusM(summary.radiusM());
+        } else {
+            if (request.centerLat() == null || request.centerLng() == null || request.radiusM() == null) {
+                throw new BadRequestException("centerLat, centerLng and radiusM are required for a circle zone");
+            }
+            zone.setCenterLat(request.centerLat());
+            zone.setCenterLng(request.centerLng());
+            zone.setRadiusM(request.radiusM());
+        }
+        // Reassigned unconditionally so editing a drawn zone back to a circle clears the outline.
+        zone.setPolygon(request.polygon());
+        zone.setShape(request.shape());
     }
 
     @Transactional
