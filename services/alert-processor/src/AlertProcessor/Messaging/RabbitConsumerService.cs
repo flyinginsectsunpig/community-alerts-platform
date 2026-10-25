@@ -9,13 +9,14 @@ namespace AlertProcessor.Messaging;
 
 /// <summary>
 /// Long-running consumer against CloudAMQP LavinMQ (AMQPS). Declares the
-/// shared topology idempotently and owns the two worker queues. Poison
+/// shared topology idempotently and owns the worker queues. Poison
 /// messages are rejected without requeue and land in the dead-letter queue.
 /// </summary>
 public sealed class RabbitConsumerService(
     WorkerOptions options,
     AlertEnrichmentHandler enrichmentHandler,
     EscalationHandler escalationHandler,
+    OngoingDangerHandler dangerHandler,
     ILogger<RabbitConsumerService> logger) : BackgroundService
 {
     private const string Exchange = "alerts.topic";
@@ -23,6 +24,7 @@ public sealed class RabbitConsumerService(
     private const string DeadLetterQueue = "q.dead-letter";
     private const string EnrichmentQueue = "q.worker.enrichment";
     private const string EscalationQueue = "q.worker.escalation";
+    private const string DangerQueue = "q.worker.danger";
     private const ushort PrefetchCount = 8;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -80,9 +82,11 @@ public sealed class RabbitConsumerService(
             (evt, ct) => enrichmentHandler.HandleAsync(evt, ct), stoppingToken);
         Consume<AlertScoredEvent>(channel, EscalationQueue,
             (evt, ct) => escalationHandler.HandleAsync(evt, ct), stoppingToken);
+        Consume<AlertScoredEvent>(channel, DangerQueue,
+            (evt, ct) => dangerHandler.HandleAsync(evt, ct), stoppingToken);
 
-        logger.LogInformation("Consuming {Q1} and {Q2} on {Host}:{Port}/{Vhost}",
-            EnrichmentQueue, EscalationQueue, options.RabbitHost, options.RabbitPort, options.RabbitVhost);
+        logger.LogInformation("Consuming {Q1}, {Q2} and {Q3} on {Host}:{Port}/{Vhost}",
+            EnrichmentQueue, EscalationQueue, DangerQueue, options.RabbitHost, options.RabbitPort, options.RabbitVhost);
 
         var closed = new TaskCompletionSource();
         connection.ConnectionShutdown += (_, args) =>
@@ -104,6 +108,8 @@ public sealed class RabbitConsumerService(
         channel.QueueBind(EnrichmentQueue, Exchange, routingKey: "alert.created");
         channel.QueueDeclare(EscalationQueue, durable: true, exclusive: false, autoDelete: false, queueArgs);
         channel.QueueBind(EscalationQueue, Exchange, routingKey: "alert.scored");
+        channel.QueueDeclare(DangerQueue, durable: true, exclusive: false, autoDelete: false, queueArgs);
+        channel.QueueBind(DangerQueue, Exchange, routingKey: "alert.scored");
     }
 
     private void Consume<TEvent>(

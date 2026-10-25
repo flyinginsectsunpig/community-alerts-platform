@@ -7,6 +7,15 @@ public interface IWatchZoneRepository
     Task<IReadOnlyList<WatchZone>> GetAllAsync(CancellationToken ct);
 }
 
+public interface IDangerWatchRepository
+{
+    /// <returns>The alert's current state, or null if the row no longer exists.</returns>
+    Task<AlertState?> GetAlertStateAsync(Guid alertId, CancellationToken ct);
+
+    /// <summary>Users who opted in to ongoing-danger warnings, with their watch zones.</summary>
+    Task<IReadOnlyList<DangerWatcher>> GetDangerWatchersAsync(CancellationToken ct);
+}
+
 public interface INotificationRepository
 {
     /// <returns>1 if a row was inserted, 0 if it already existed (idempotent).</returns>
