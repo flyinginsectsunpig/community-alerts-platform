@@ -1661,6 +1661,19 @@ kbd {
   transform: scale(1.05);
 }
 
+/* The invisible band along a drawn zone's edge, and the targets over its
+   points. A press there reshapes the zone, so the browser must not take it
+   for a pan. (.leaflet-interactive is doubled up to beat its own cursor.) */
+.leaflet-interactive.zone-grab {
+  cursor: grab;
+  touch-action: none;
+}
+
+.zone-dragging,
+.zone-dragging .leaflet-interactive {
+  cursor: grabbing;
+}
+
 .standalone-page {
   min-height: 100vh;
   min-height: 100dvh;

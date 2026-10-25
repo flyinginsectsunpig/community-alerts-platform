@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import L from "leaflet";
 import {
   Circle,
   CircleMarker,
@@ -18,6 +17,7 @@ import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
+import ZoneShapeEditor, { ZONE_COLOR } from "./ZoneShapeEditor";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
@@ -36,17 +36,6 @@ const BASEMAP_URL =
 
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
-
-// Zone drafts wear the accent: an action of yours in progress, not data.
-const ZONE_COLOR = "#24abe8";
-
-// Styled via .zone-handle in globals.css; a DivIcon avoids Leaflet's default
-// marker sprite (whose assets don't survive bundling).
-const ZONE_HANDLE_ICON = L.divIcon({
-  className: "zone-handle",
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
 
 interface AlertMapProps {
   alerts: Alert[];
@@ -67,7 +56,7 @@ interface AlertMapProps {
   selectedId: string | null;
   /** Hovered from either end of the feed/map pairing. */
   linkedId: string | null;
-  onZoneMove: (center: LatLng) => void;
+  onZoneShapeChange: (draft: ZoneDraft) => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
@@ -145,11 +134,12 @@ export default function AlertMap({
   pendingPoint,
   focus,
   zoneDraft,
+  zoneMode,
   zones,
   newIds,
   selectedId,
   linkedId,
-  onZoneMove,
+  onZoneShapeChange,
   onMapClick,
   onConfirm,
   onOpenDetail,
@@ -278,33 +268,7 @@ export default function AlertMap({
         );
       })}
 
-      {zoneDraft && (
-        <>
-          <Circle
-            center={[zoneDraft.center.lat, zoneDraft.center.lng]}
-            radius={zoneDraft.radiusM}
-            pathOptions={{
-              color: ZONE_COLOR,
-              weight: 2,
-              dashArray: "6 6",
-              fillColor: ZONE_COLOR,
-              fillOpacity: 0.08,
-            }}
-          />
-          <Marker
-            position={[zoneDraft.center.lat, zoneDraft.center.lng]}
-            icon={ZONE_HANDLE_ICON}
-            draggable
-            eventHandlers={{
-              drag: (event) => onZoneMove((event.target as L.Marker).getLatLng()),
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -10]}>
-              Drag to move the zone
-            </Tooltip>
-          </Marker>
-        </>
-      )}
+      {zoneDraft && <ZoneShapeEditor draft={zoneDraft} mode={zoneMode} onChange={onZoneShapeChange} />}
     </MapContainer>
   );
 }

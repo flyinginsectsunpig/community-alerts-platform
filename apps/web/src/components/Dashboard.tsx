@@ -303,10 +303,6 @@ export default function Dashboard() {
     setZoneDraft((draft) => (draft ? resetToCircle(draft, editingZone?.radiusM) : draft));
   }, [editingZone]);
 
-  const handleZoneMove = useCallback((center: LatLng) => {
-    setZoneDraft((draft) => (draft ? { ...draft, center } : draft));
-  }, []);
-
   function handleSwitchToZone() {
     if (!pendingPoint) return;
     setZoneMode("pull");
@@ -663,7 +659,7 @@ export default function Dashboard() {
             newIds={liveIds}
             selectedId={detailAlertId}
             linkedId={linkedId}
-            onZoneMove={handleZoneMove}
+            onZoneShapeChange={setZoneDraft}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
