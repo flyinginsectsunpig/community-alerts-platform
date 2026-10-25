@@ -118,3 +118,8 @@ export function fillWeek(
     return { day: key, count: counts.get(key) ?? 0, isToday: key === todayKey };
   });
 }
+
+/** A drawn zone's area: km² from 0.1 up, hectares below it (a street is 0.8 ha, not 0.0 km²). */
+export function formatZoneArea(km2: number): string {
+  return km2 < 0.1 ? `${(km2 * 100).toFixed(1)} ha` : `${km2.toFixed(1)} km²`;
+}

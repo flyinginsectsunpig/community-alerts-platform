@@ -6,7 +6,7 @@ import { OPEN_MODAL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { CATEGORY_LABELS, formatZoneArea, timeAgo } from "@/lib/format";
 import {
   disablePush,
   enablePush,
@@ -198,7 +198,7 @@ export default function MyZonesPanel({
                 </button>
                 <span className="zone-card__radius">
                   {zone.polygon
-                    ? `Drawn area · ${areaKm2(zone.polygon).toFixed(1)} km²`
+                    ? `Drawn area · ${formatZoneArea(areaKm2(zone.polygon))}`
                     : `${(zone.radiusM / 1000).toFixed(1)} km`}
                 </span>
               </div>
