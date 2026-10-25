@@ -371,10 +371,15 @@ export default function MyZonesPanel({
                   </select>
                 </label>
               )}
-              {dangerReach !== null && pushState !== "on" && (
-                <p className="panel__hint">
-                  Turn on notifications for this device to receive these warnings.
-                </p>
+              {dangerReach !== null && zones !== null && zones.length === 0 ? (
+                <p className="panel__hint">Add a watch zone to receive these warnings.</p>
+              ) : (
+                dangerReach !== null &&
+                pushState !== "on" && (
+                  <p className="panel__hint">
+                    Turn on notifications for this device to receive these warnings.
+                  </p>
+                )
               )}
               {dangerError && <p className="form-error">{dangerError}</p>}
             </>
