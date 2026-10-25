@@ -15,6 +15,7 @@ import {
   pushSupported,
 } from "@/lib/push";
 import type { DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
+import { areaKm2 } from "@/lib/zoneShape";
 
 type PushState = "unsupported" | "needs-install" | "off" | "on" | "busy";
 
@@ -195,7 +196,11 @@ export default function MyZonesPanel({
                 <button type="button" className="zone-card__name" onClick={() => onFocus(zone)}>
                   {zone.name}
                 </button>
-                <span className="zone-card__radius">{(zone.radiusM / 1000).toFixed(1)} km</span>
+                <span className="zone-card__radius">
+                  {zone.polygon
+                    ? `Drawn area · ${areaKm2(zone.polygon).toFixed(1)} km²`
+                    : `${(zone.radiusM / 1000).toFixed(1)} km`}
+                </span>
               </div>
               <p className="zone-card__categories">
                 {zone.categories.length === 0

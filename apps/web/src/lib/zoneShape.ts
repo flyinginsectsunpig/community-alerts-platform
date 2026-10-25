@@ -1,4 +1,4 @@
-import type { LatLng, ZoneShape } from "./types";
+import type { LatLng, ZoneDraft, ZoneGeometryInput, ZoneShape } from "./types";
 
 /** Angular step between the points that approximate the circle's arcs. */
 export const ARC_STEP_DEG = 5;
@@ -13,6 +13,9 @@ const EARTH_RADIUS_M = 6_371_000;
 const M_PER_DEG = (EARTH_RADIUS_M * Math.PI) / 180;
 const MIN_SIMPLIFY_TOLERANCE_M = 5;
 const SIMPLIFY_TOLERANCE_FRACTION = 0.005;
+
+const MAX_CIRCLE_RADIUS_M = 10_000;
+const RADIUS_STEP_M = 100;
 
 const TOO_FEW_POINTS = "A drawn zone needs at least 3 points";
 
@@ -265,6 +268,36 @@ export function freehandShape(pieces: LatLng[][]): ZoneShape {
     throw new Error(TOO_FEW_POINTS);
   }
   return { kind: "freehand", points: kept.map((i) => ({ at: all[i], handle: false })) };
+}
+
+// --- saving and resetting --------------------------------------------------
+
+/** The geometry fields the API expects for this draft: a circle, or an outline with its shape. */
+export function zonePayload(draft: ZoneDraft): ZoneGeometryInput {
+  if (draft.shape) {
+    return { polygon: outline(draft.shape), shape: draft.shape };
+  }
+  return { centerLat: draft.center.lat, centerLng: draft.center.lng, radiusM: draft.radiusM };
+}
+
+/**
+ * The draft as a plain circle again. A pulled shape still has its circle;
+ * a freehand shape has none, so one is made at its centroid, as large as the
+ * saved zone (or else the draft) was, capped at the slider's maximum.
+ */
+export function resetToCircle(draft: ZoneDraft, savedRadiusM?: number): ZoneDraft {
+  if (!draft.shape) {
+    return draft;
+  }
+  if (draft.shape.kind === "pulled") {
+    return { ...draft.shape.circle, shape: null };
+  }
+  const radiusM = Math.min(savedRadiusM ?? draft.radiusM, MAX_CIRCLE_RADIUS_M);
+  return {
+    center: centroid(outline(draft.shape)),
+    radiusM: Math.round(radiusM / RADIUS_STEP_M) * RADIUS_STEP_M,
+    shape: null,
+  };
 }
 
 // --- measurements and validation -------------------------------------------

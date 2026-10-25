@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { LatLng, ZoneShape } from "./types";
+import type { LatLng, ZoneDraft, ZoneShape } from "./types";
 import {
   areaKm2,
   centroid,
@@ -12,8 +12,10 @@ import {
   outline,
   removeHandle,
   startPull,
+  resetToCircle,
   translateShape,
   validateOutline,
+  zonePayload,
 } from "./zoneShape";
 
 const CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
@@ -372,5 +374,59 @@ describe("nearestSegment", () => {
   it("measures to the end point beyond a segment's span", () => {
     const result = nearestSegment(ring, { x: -30, y: -40 });
     expect(result.distance).toBe(50);
+  });
+});
+
+describe("zonePayload", () => {
+  it("sends the outline and shape, and no circle fields, for a drawn draft", () => {
+    const shape = startPull(CENTER, RADIUS_M, at(2000, 0));
+    const draft: ZoneDraft = { center: CENTER, radiusM: RADIUS_M, shape };
+
+    const payload = zonePayload(draft);
+
+    expect(payload).toEqual({ polygon: outline(shape), shape });
+    expect(payload).not.toHaveProperty("radiusM");
+    expect(payload).not.toHaveProperty("centerLat");
+    expect(payload).not.toHaveProperty("centerLng");
+  });
+
+  it("sends the circle fields, and no polygon or shape, for a circle draft", () => {
+    const payload = zonePayload({ center: CENTER, radiusM: RADIUS_M, shape: null });
+
+    expect(payload).toEqual({ centerLat: CENTER.lat, centerLng: CENTER.lng, radiusM: RADIUS_M });
+    expect(payload).not.toHaveProperty("polygon");
+    expect(payload).not.toHaveProperty("shape");
+  });
+});
+
+describe("resetToCircle", () => {
+  it("keeps the circle of a pulled shape", () => {
+    const shape = startPull(CENTER, RADIUS_M, at(2000, 0));
+
+    expect(resetToCircle({ center: CENTER, radiusM: RADIUS_M, shape })).toEqual({
+      center: CENTER,
+      radiusM: RADIUS_M,
+      shape: null,
+    });
+  });
+
+  it("turns a freehand shape into a circle at its centroid", () => {
+    const points = [at(-500, -500), at(500, -500), at(500, 500), at(-500, 500)];
+    const shape = freehandShape([points]);
+
+    const reset = resetToCircle({ center: at(9, 9), radiusM: 1234, shape });
+
+    expect(reset.shape).toBeNull();
+    expect(reset.center.lat).toBeCloseTo(centroid(points).lat, 9);
+    expect(reset.center.lng).toBeCloseTo(centroid(points).lng, 9);
+    expect(reset.radiusM).toBe(1200);
+  });
+
+  it("prefers the saved zone's radius, capped at 10 000 m", () => {
+    const shape = freehandShape([[at(-500, -500), at(500, -500), at(0, 500)]]);
+
+    expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 4960).radiusM).toBe(5000);
+    expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 10_000).radiusM).toBe(10_000);
+    expect(resetToCircle({ center: CENTER, radiusM: 12_345, shape }).radiusM).toBe(10_000);
   });
 });
