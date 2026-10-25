@@ -147,6 +147,14 @@ export interface LatLng {
   lng: number;
 }
 
+/**
+ * A hand-shaped watch zone. "pulled" is a circle with points dragged out of its
+ * edge; "freehand" is a drawn outline whose `handle` points the user can move.
+ */
+export type ZoneShape =
+  | { kind: "pulled"; circle: { center: LatLng; radiusM: number }; pulls: LatLng[] }
+  | { kind: "freehand"; points: { at: LatLng; handle: boolean }[] };
+
 /** In-progress watch zone being shaped on the map before submission. */
 export interface ZoneDraft {
   center: LatLng;
