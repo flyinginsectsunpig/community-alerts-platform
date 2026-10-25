@@ -1674,6 +1674,15 @@ kbd {
   cursor: grabbing;
 }
 
+/* Drawing freehand with the pen down: a press draws, so the browser must not
+   take it for a pan. (Doubled up to beat Leaflet's own touch-action rules.) */
+.leaflet-container.zone-drawing,
+.leaflet-container.zone-drawing.leaflet-touch-zoom,
+.zone-drawing .leaflet-interactive {
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .standalone-page {
   min-height: 100vh;
   min-height: 100dvh;

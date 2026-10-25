@@ -48,6 +48,9 @@ interface AlertMapProps {
   zoneDraft: ZoneDraft | null;
   /** How the draft is being reshaped; the map starts acting on it with the pull and freehand tools. */
   zoneMode: ZoneMode;
+  /** Freehand: the line drawn so far, and whether a press draws or moves the map. */
+  freehandPieces: LatLng[][];
+  penDown: boolean;
   /** Saved zones to display (My Zones panel open); null hides them. */
   zones: WatchZone[] | null;
   /** Ids that just arrived over the live stream — their pins ripple. */
@@ -57,6 +60,9 @@ interface AlertMapProps {
   /** Hovered from either end of the feed/map pairing. */
   linkedId: string | null;
   onZoneShapeChange: (draft: ZoneDraft) => void;
+  onPiecesChange: (pieces: LatLng[][]) => void;
+  onFinishFreehand: () => void;
+  onStrayStart: () => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
@@ -135,11 +141,16 @@ export default function AlertMap({
   focus,
   zoneDraft,
   zoneMode,
+  freehandPieces,
+  penDown,
   zones,
   newIds,
   selectedId,
   linkedId,
   onZoneShapeChange,
+  onPiecesChange,
+  onFinishFreehand,
+  onStrayStart,
   onMapClick,
   onConfirm,
   onOpenDetail,
@@ -268,7 +279,18 @@ export default function AlertMap({
         );
       })}
 
-      {zoneDraft && <ZoneShapeEditor draft={zoneDraft} mode={zoneMode} onChange={onZoneShapeChange} />}
+      {zoneDraft && (
+        <ZoneShapeEditor
+          draft={zoneDraft}
+          mode={zoneMode}
+          onChange={onZoneShapeChange}
+          pieces={freehandPieces}
+          penDown={penDown}
+          onPiecesChange={onPiecesChange}
+          onFinish={onFinishFreehand}
+          onStrayStart={onStrayStart}
+        />
+      )}
     </MapContainer>
   );
 }

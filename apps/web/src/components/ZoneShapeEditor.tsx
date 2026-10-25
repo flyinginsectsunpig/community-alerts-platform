@@ -6,12 +6,14 @@ import { Circle, CircleMarker, Marker, Polygon, Polyline, Tooltip, useMap } from
 
 import type { LatLng, ZoneDraft, ZoneMode, ZoneShape } from "@/lib/types";
 import {
+  FREEHAND_STEP_PX,
   centroid,
   circleOutline,
   handles,
   insertPointAt,
   moveHandle,
   outline,
+  penDownAction,
   removeHandle,
   resetToCircle,
   snapToCircle,
@@ -50,6 +52,15 @@ interface ZoneShapeEditorProps {
   draft: ZoneDraft;
   mode: ZoneMode;
   onChange: (draft: ZoneDraft) => void;
+  /** The pieces of freehand line drawn so far. */
+  pieces: LatLng[][];
+  /** Whether a press on the map draws (true) or moves the map (false). */
+  penDown: boolean;
+  onPiecesChange: (pieces: LatLng[][]) => void;
+  /** The shape was closed by pressing its first point. */
+  onFinish: () => void;
+  /** A press with the pen down was too far from the end of the line to carry it on. */
+  onStrayStart: () => void;
 }
 
 /**
@@ -84,6 +95,18 @@ function swallowNextClick() {
   };
   window.addEventListener("click", swallow, { capture: true, once: true });
   window.setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
+}
+
+/** Swallows the click that follows this pointer's release, however the press was used. */
+function swallowClickAfterRelease(pointerId: number) {
+  const released = (event: PointerEvent) => {
+    if (event.pointerId !== pointerId) return;
+    window.removeEventListener("pointerup", released);
+    window.removeEventListener("pointercancel", released);
+    swallowNextClick();
+  };
+  window.addEventListener("pointerup", released);
+  window.addEventListener("pointercancel", released);
 }
 
 /**
@@ -172,19 +195,106 @@ function ZoneHandle({
  * The zone being drawn: a circle until its edge is pulled, then the shape.
  * In pull mode, grabbing the edge pulls out a point there and grabbing a
  * point moves it; double-click or long-press a point to take it out again.
+ * In freehand mode, with the pen down, dragging across the map draws a line
+ * in pieces; with it up the map pans and zooms as usual.
  */
-export default function ZoneShapeEditor({ draft, mode, onChange }: ZoneShapeEditorProps) {
+export default function ZoneShapeEditor({
+  draft,
+  mode,
+  onChange,
+  pieces,
+  penDown,
+  onPiecesChange,
+  onFinish,
+  onStrayStart,
+}: ZoneShapeEditorProps) {
   const map = useMap();
   const active = mode === "pull";
+  const drawing = mode === "freehand" && penDown;
 
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const piecesRef = useRef(pieces);
+  piecesRef.current = pieces;
+  const drawCallbacks = useRef({ onPiecesChange, onFinish, onStrayStart });
+  drawCallbacks.current = { onPiecesChange, onFinish, onStrayStart };
   const endDrag = useRef<(() => void) | null>(null);
   const pinStart = useRef<{ draft: ZoneDraft; at: LatLng } | null>(null);
 
   useEffect(() => () => endDrag.current?.(), []);
+
+  // With the pen down a press draws instead of panning. Map dragging is off
+  // for as long, restored only if it was on; touch-action is too, or the
+  // browser would take the stroke for a scroll.
+  useEffect(() => {
+    if (!drawing) return;
+    const container = map.getContainer();
+    const wasDraggable = map.dragging.enabled();
+    map.dragging.disable();
+    container.classList.add("zone-drawing");
+
+    let endStroke: (() => void) | null = null;
+
+    const down = (event: PointerEvent) => {
+      if (!event.isPrimary) {
+        endStroke?.(); // a second finger is a pinch: leave it to the map
+        return;
+      }
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if ((event.target as Element).closest(".leaflet-control, .leaflet-popup")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      swallowClickAfterRelease(event.pointerId);
+
+      const start = map.mouseEventToContainerPoint(event);
+      const action = penDownAction(piecesRef.current, (p) => map.latLngToContainerPoint(p), start);
+      if (action === "finish") {
+        drawCallbacks.current.onFinish();
+        return;
+      }
+      if (action === "stray") {
+        drawCallbacks.current.onStrayStart();
+        return;
+      }
+
+      endStroke?.();
+      const before = piecesRef.current;
+      const first = map.mouseEventToLatLng(event);
+      const piece: LatLng[] = [{ lat: first.lat, lng: first.lng }];
+      let last = start;
+      const move = (e: PointerEvent) => {
+        if (e.pointerId !== event.pointerId) return;
+        const at = map.mouseEventToContainerPoint(e);
+        if (last.distanceTo(at) < FREEHAND_STEP_PX) return;
+        last = at;
+        const { lat, lng } = map.mouseEventToLatLng(e);
+        piece.push({ lat, lng });
+        drawCallbacks.current.onPiecesChange([...before, [...piece]]);
+      };
+      const up = (e: PointerEvent) => {
+        if (e.pointerId === event.pointerId) endStroke?.();
+      };
+      endStroke = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
+        endStroke = null;
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
+    };
+
+    container.addEventListener("pointerdown", down, { capture: true });
+    return () => {
+      container.removeEventListener("pointerdown", down, { capture: true });
+      endStroke?.();
+      container.classList.remove("zone-drawing");
+      if (wasDraggable) map.dragging.enable();
+    };
+  }, [map, drawing]);
 
   const toLatLng = (event: PointerEvent): LatLng => {
     const { lat, lng } = map.mouseEventToLatLng(event);
@@ -306,6 +416,14 @@ export default function ZoneShapeEditor({ draft, mode, onChange }: ZoneShapeEdit
         />
       )}
 
+      {mode === "freehand" && pieces.length > 0 && (
+        <Polyline
+          positions={pieces.flat().map((p) => [p.lat, p.lng] as [number, number])}
+          interactive={false}
+          pathOptions={{ color: ZONE_COLOR, weight: 3, dashArray: DRAFT_STYLE.dashArray }}
+        />
+      )}
+
       {active && (
         <>
           <GrabRing edge={edge} onGrab={grabEdge} />
@@ -345,9 +463,11 @@ export default function ZoneShapeEditor({ draft, mode, onChange }: ZoneShapeEdit
           },
         }}
       >
-        <Tooltip direction="top" offset={[0, -10]}>
-          Drag to move the zone
-        </Tooltip>
+        {active && (
+          <Tooltip direction="top" offset={[0, -10]}>
+            Drag to move the zone
+          </Tooltip>
+        )}
       </Marker>
     </>
   );
