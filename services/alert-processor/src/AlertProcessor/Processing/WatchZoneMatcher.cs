@@ -36,8 +36,10 @@ public sealed class WatchZoneMatcher
             .Select(zone => new ZoneMatch(
                 zone,
                 GeoMath.DistanceMeters(zone.CenterLat, zone.CenterLng, lat, lng)))
+            // RadiusM is a drawn zone's furthest-vertex distance from its centre, so
+            // nothing beyond it can be inside: a cheap check before point-in-polygon.
             .Where(match => match.Zone.Polygon is { } polygon
-                ? GeoMath.ContainsPoint(polygon, lat, lng)
+                ? match.DistanceMeters <= match.Zone.RadiusM && GeoMath.ContainsPoint(polygon, lat, lng)
                 : match.DistanceMeters <= match.Zone.RadiusM * radiusMultiplier)
             .OrderBy(match => match.DistanceMeters)
             .ToList();
