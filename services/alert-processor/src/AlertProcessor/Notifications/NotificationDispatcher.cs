@@ -29,18 +29,29 @@ public sealed class NotificationDispatcher(
     {
         foreach (var match in matches)
         {
-            var message =
-                $"New {EmailComposer.Humanize(alert.Category)} report " +
-                $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}'.";
+            var message = match.Zone.Polygon is null
+                ? $"New {EmailComposer.Humanize(alert.Category)} report " +
+                  $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}'."
+                : $"New {EmailComposer.Humanize(alert.Category)} report " +
+                  $"inside your watch zone '{match.Zone.Name}'.";
 
             var inserted = await notificationRepository.InsertAsync(
                 match.Zone.Id, alert.AlertId, KindZoneMatch, message, ct);
 
             if (inserted > 0)
             {
-                logger.LogInformation(
-                    "Notified zone {ZoneName} about alert {AlertId} ({Distance} m away)",
-                    match.Zone.Name, alert.AlertId, Math.Round(match.DistanceMeters));
+                if (match.Zone.Polygon is null)
+                {
+                    logger.LogInformation(
+                        "Notified zone {ZoneName} about alert {AlertId} ({Distance} m away)",
+                        match.Zone.Name, alert.AlertId, Math.Round(match.DistanceMeters));
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "Notified zone {ZoneName} about alert {AlertId} (inside drawn zone)",
+                        match.Zone.Name, alert.AlertId);
+                }
 
                 await PushToZoneAsync(
                     match.Zone, $"Alert near '{match.Zone.Name}'", message, alert.AlertId, ct);
@@ -53,10 +64,13 @@ public sealed class NotificationDispatcher(
     {
         foreach (var match in matches)
         {
-            var message =
-                $"{alert.Severity} severity {EmailComposer.Humanize(alert.Category)} alert " +
-                $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}' " +
-                $"(risk score {alert.RiskScore:0.00}).";
+            var message = match.Zone.Polygon is null
+                ? $"{alert.Severity} severity {EmailComposer.Humanize(alert.Category)} alert " +
+                  $"{Math.Round(match.DistanceMeters)} m from your watch zone '{match.Zone.Name}' " +
+                  $"(risk score {alert.RiskScore:0.00})."
+                : $"{alert.Severity} severity {EmailComposer.Humanize(alert.Category)} alert " +
+                  $"inside your watch zone '{match.Zone.Name}' " +
+                  $"(risk score {alert.RiskScore:0.00}).";
 
             var inserted = await notificationRepository.InsertAsync(
                 match.Zone.Id, alert.AlertId, KindEscalation, message, ct);
