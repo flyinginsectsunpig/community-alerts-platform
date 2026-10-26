@@ -6,6 +6,7 @@ import {
   CircleMarker,
   MapContainer,
   Marker,
+  Pane,
   Polygon,
   Popup,
   TileLayer,
@@ -30,9 +31,12 @@ const DEFAULT_ZOOM = 13;
 // checkout without the key in .env degrades to the watermark rather than a
 // blank map.
 const BASEMAP_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY ?? "";
-const BASEMAP_URL =
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" +
-  (BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "");
+const BASEMAP_QUERY = BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "";
+const BASEMAP_URL = `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
+// Dark Matter's baked-in labels are mid-grey and get lost in the road network,
+// so roads and labels are separate layers that CSS dims and brightens
+// independently (.basemap-roads, .basemap-labels).
+const LABELS_URL = `https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
 
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
@@ -166,8 +170,13 @@ export default function AlertMap({
     >
       <TileLayer
         url={BASEMAP_URL}
+        className="basemap-roads"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
+      {/* Above the roads, below zones (overlay pane, 400) and markers. */}
+      <Pane name="basemap-labels" style={{ zIndex: 350, pointerEvents: "none" }}>
+        <TileLayer url={LABELS_URL} className="basemap-labels" />
+      </Pane>
       <MapResize />
       <ClickCapture onMapClick={onMapClick} />
       <CenterWatcher onCenterChange={onCenterChange} />
