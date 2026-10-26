@@ -1,12 +1,18 @@
 package com.communityalerts.api.domain;
 
+import com.communityalerts.api.dto.ZonePoint;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,6 +36,16 @@ public class WatchZone {
 
     @Column(name = "radius_m", nullable = false)
     private int radiusM;
+
+    /** Drawn outline; null for a circle zone. Always set together with {@link #shape}. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "polygon")
+    private List<ZonePoint> polygon;
+
+    /** Client-owned description of the drawn shape, opaque to the API; null for a circle zone. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "shape")
+    private JsonNode shape;
 
     /** CSV of {@link AlertCategory} names; empty string means all categories. */
     @Column(name = "categories", nullable = false, length = 512)
@@ -70,6 +86,12 @@ public class WatchZone {
 
     public int getRadiusM() { return radiusM; }
     public void setRadiusM(int radiusM) { this.radiusM = radiusM; }
+
+    public List<ZonePoint> getPolygon() { return polygon; }
+    public void setPolygon(List<ZonePoint> polygon) { this.polygon = polygon; }
+
+    public JsonNode getShape() { return shape; }
+    public void setShape(JsonNode shape) { this.shape = shape; }
 
     public String getCategoriesCsv() { return categoriesCsv; }
     public void setCategoriesCsv(String categoriesCsv) { this.categoriesCsv = categoriesCsv; }

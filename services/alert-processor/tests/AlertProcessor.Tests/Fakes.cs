@@ -7,11 +7,13 @@ namespace AlertProcessor.Tests;
 internal sealed class CountingNotificationRepository(int insertResult = 1) : INotificationRepository
 {
     public int Inserted { get; private set; }
+    public List<string> Messages { get; } = [];
 
     public Task<int> InsertAsync(
         Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct)
     {
         Inserted += insertResult;
+        Messages.Add(message);
         return Task.FromResult(insertResult);
     }
 }

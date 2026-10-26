@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import L from "leaflet";
 import {
   Circle,
   CircleMarker,
   MapContainer,
   Marker,
+  Polygon,
   Popup,
   TileLayer,
   Tooltip,
@@ -17,9 +17,10 @@ import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
+import ZoneShapeEditor, { ZONE_COLOR } from "./ZoneShapeEditor";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft } from "@/lib/types";
+import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
 
 export const DEFAULT_CENTER: LatLng = { lat: 51.5074, lng: -0.1278 };
 const DEFAULT_ZOOM = 13;
@@ -36,17 +37,6 @@ const BASEMAP_URL =
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
 
-// Zone drafts wear the accent: an action of yours in progress, not data.
-const ZONE_COLOR = "#24abe8";
-
-// Styled via .zone-handle in globals.css; a DivIcon avoids Leaflet's default
-// marker sprite (whose assets don't survive bundling).
-const ZONE_HANDLE_ICON = L.divIcon({
-  className: "zone-handle",
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
-
 interface AlertMapProps {
   alerts: Alert[];
   showStations: boolean;
@@ -56,6 +46,11 @@ interface AlertMapProps {
   pendingPoint: LatLng | null;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
+  /** How the draft is being reshaped; the map starts acting on it with the pull and freehand tools. */
+  zoneMode: ZoneMode;
+  /** Freehand: the line drawn so far, and whether a press draws or moves the map. */
+  freehandPieces: LatLng[][];
+  penDown: boolean;
   /** Saved zones to display (My Zones panel open); null hides them. */
   zones: WatchZone[] | null;
   /** Ids that just arrived over the live stream — their pins ripple. */
@@ -64,7 +59,10 @@ interface AlertMapProps {
   selectedId: string | null;
   /** Hovered from either end of the feed/map pairing. */
   linkedId: string | null;
-  onZoneMove: (center: LatLng) => void;
+  onZoneShapeChange: (draft: ZoneDraft) => void;
+  onPiecesChange: (pieces: LatLng[][]) => void;
+  onFinishFreehand: () => void;
+  onStrayStart: () => void;
   onMapClick: (point: LatLng) => void;
   onConfirm: (alertId: string) => void;
   onOpenDetail: (alert: Alert) => void;
@@ -142,11 +140,17 @@ export default function AlertMap({
   pendingPoint,
   focus,
   zoneDraft,
+  zoneMode,
+  freehandPieces,
+  penDown,
   zones,
   newIds,
   selectedId,
   linkedId,
-  onZoneMove,
+  onZoneShapeChange,
+  onPiecesChange,
+  onFinishFreehand,
+  onStrayStart,
   onMapClick,
   onConfirm,
   onOpenDetail,
@@ -248,48 +252,44 @@ export default function AlertMap({
         />
       )}
 
-      {zones?.map((zone) => (
-        <Circle
-          key={zone.id}
-          center={[zone.centerLat, zone.centerLng]}
-          radius={zone.radiusM}
-          pathOptions={{
-            color: ZONE_COLOR,
-            weight: 2,
-            fillColor: ZONE_COLOR,
-            fillOpacity: 0.06,
-          }}
-        >
-          <Tooltip sticky>{zone.name}</Tooltip>
-        </Circle>
-      ))}
+      {zones?.map((zone) => {
+        const pathOptions = {
+          color: ZONE_COLOR,
+          weight: 2,
+          fillColor: ZONE_COLOR,
+          fillOpacity: 0.06,
+        };
+        return zone.polygon ? (
+          <Polygon
+            key={zone.id}
+            positions={zone.polygon.map((p) => [p.lat, p.lng] as [number, number])}
+            pathOptions={pathOptions}
+          >
+            <Tooltip sticky>{zone.name}</Tooltip>
+          </Polygon>
+        ) : (
+          <Circle
+            key={zone.id}
+            center={[zone.centerLat, zone.centerLng]}
+            radius={zone.radiusM}
+            pathOptions={pathOptions}
+          >
+            <Tooltip sticky>{zone.name}</Tooltip>
+          </Circle>
+        );
+      })}
 
       {zoneDraft && (
-        <>
-          <Circle
-            center={[zoneDraft.center.lat, zoneDraft.center.lng]}
-            radius={zoneDraft.radiusM}
-            pathOptions={{
-              color: ZONE_COLOR,
-              weight: 2,
-              dashArray: "6 6",
-              fillColor: ZONE_COLOR,
-              fillOpacity: 0.08,
-            }}
-          />
-          <Marker
-            position={[zoneDraft.center.lat, zoneDraft.center.lng]}
-            icon={ZONE_HANDLE_ICON}
-            draggable
-            eventHandlers={{
-              drag: (event) => onZoneMove((event.target as L.Marker).getLatLng()),
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -10]}>
-              Drag to move the zone
-            </Tooltip>
-          </Marker>
-        </>
+        <ZoneShapeEditor
+          draft={zoneDraft}
+          mode={zoneMode}
+          onChange={onZoneShapeChange}
+          pieces={freehandPieces}
+          penDown={penDown}
+          onPiecesChange={onPiecesChange}
+          onFinish={onFinishFreehand}
+          onStrayStart={onStrayStart}
+        />
       )}
     </MapContainer>
   );

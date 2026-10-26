@@ -21,6 +21,7 @@ import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
+import { canFinishPieces, centroid, freehandShape, outline, resetToCircle } from "@/lib/zoneShape";
 import { applyFilter, EMPTY_FILTER, toggle, type AlertFilter } from "@/lib/filter";
 import type { FocusTarget } from "./AlertMap";
 import { clearSession, getSession, type AuthSession } from "@/lib/auth";
@@ -35,6 +36,7 @@ import type {
   StatsResponse,
   WatchZone,
   ZoneDraft,
+  ZoneMode,
 } from "@/lib/types";
 
 // Leaflet touches `window`, so the map only ever renders client-side.
@@ -65,6 +67,10 @@ export default function Dashboard() {
   const [pendingPoint, setPendingPoint] = useState<LatLng | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>(null);
   const [zoneDraft, setZoneDraft] = useState<ZoneDraft | null>(null);
+  const [zoneMode, setZoneMode] = useState<ZoneMode>("pull");
+  const [freehandPieces, setFreehandPieces] = useState<LatLng[][]>([]);
+  const [penDown, setPenDown] = useState(false);
+  const [startedAwayFromEnd, setStartedAwayFromEnd] = useState(false);
   const [zones, setZones] = useState<WatchZone[] | null>(null);
   const [showZonesPanel, setShowZonesPanel] = useState(false);
   const [editingZone, setEditingZone] = useState<WatchZone | null>(null);
@@ -266,8 +272,10 @@ export default function Dashboard() {
       dismissHint(); // the hint has done its job
       if (zoneActive) {
         // While shaping a zone, map clicks reposition it instead of
-        // opening the report form.
-        setZoneDraft((draft) => (draft ? { ...draft, center: point } : draft));
+        // opening the report form. Only a plain circle moves this way (a
+        // shape is moved by its pin), and a tap that draws moves nothing.
+        if (zoneMode === "freehand" && penDown) return;
+        setZoneDraft((draft) => (draft && !draft.shape ? { ...draft, center: point } : draft));
         return;
       }
       if (!session) {
@@ -279,7 +287,7 @@ export default function Dashboard() {
       setPendingPoint(point);
       setPanelMode("report");
     },
-    [dismissHint, zoneActive, session, showToast],
+    [dismissHint, zoneActive, zoneMode, penDown, session, showToast],
   );
 
   const closePanel = useCallback(() => {
@@ -287,22 +295,72 @@ export default function Dashboard() {
     setPendingPoint(null);
   }, []);
 
+  /** Back to pulling, with nothing drawn and the pen up. */
+  const resetFreehand = useCallback(() => {
+    setZoneMode("pull");
+    setFreehandPieces([]);
+    setPenDown(false);
+    setStartedAwayFromEnd(false);
+  }, []);
+
   const closeZone = useCallback(() => {
     setZoneDraft(null);
     setEditingZone(null);
+    resetFreehand();
+  }, [resetFreehand]);
+
+  const handleZoneModeChange = useCallback((mode: ZoneMode) => {
+    setZoneMode(mode);
+    setPenDown(mode === "freehand"); // choosing freehand means to draw
+    setStartedAwayFromEnd(false);
   }, []);
+
+  const handlePiecesChange = useCallback((pieces: LatLng[][]) => {
+    setFreehandPieces(pieces);
+    setStartedAwayFromEnd(false);
+  }, []);
+
+  const handlePenToggle = useCallback(() => {
+    setPenDown((down) => !down);
+    setStartedAwayFromEnd(false);
+  }, []);
+
+  const handleUndoPiece = useCallback(() => {
+    setFreehandPieces((pieces) => pieces.slice(0, -1));
+    setStartedAwayFromEnd(false);
+  }, []);
+
+  const handleClearPieces = useCallback(() => {
+    setFreehandPieces([]);
+    setStartedAwayFromEnd(false);
+  }, []);
+
+  const handleFinishFreehand = useCallback(() => {
+    if (!canFinishPieces(freehandPieces)) return;
+    let shape;
+    try {
+      shape = freehandShape(freehandPieces);
+    } catch (e) {
+      showToast("error", e instanceof Error ? e.message : "Could not make a shape from that line");
+      return;
+    }
+    // centroid: where the pin sits, and what the server will store as the centre
+    setZoneDraft((draft) => (draft ? { ...draft, center: centroid(outline(shape)), shape } : draft));
+    resetFreehand(); // back to pull, so the new shape can be reshaped at once
+  }, [freehandPieces, resetFreehand, showToast]);
 
   const handleZoneRadius = useCallback((radiusM: number) => {
     setZoneDraft((draft) => (draft ? { ...draft, radiusM } : draft));
   }, []);
 
-  const handleZoneMove = useCallback((center: LatLng) => {
-    setZoneDraft((draft) => (draft ? { ...draft, center } : draft));
-  }, []);
+  const handleResetToCircle = useCallback(() => {
+    setZoneDraft((draft) => (draft ? resetToCircle(draft, editingZone?.radiusM) : draft));
+  }, [editingZone]);
 
   function handleSwitchToZone() {
     if (!pendingPoint) return;
-    setZoneDraft({ center: pendingPoint, radiusM: 1000 });
+    resetFreehand();
+    setZoneDraft({ center: pendingPoint, radiusM: 1000, shape: null });
     closePanel();
   }
 
@@ -349,13 +407,19 @@ export default function Dashboard() {
   function startNewZone() {
     setShowZonesPanel(false);
     setEditingZone(null);
-    setZoneDraft({ center: mapCenter.current, radiusM: 1000 });
+    resetFreehand();
+    setZoneDraft({ center: mapCenter.current, radiusM: 1000, shape: null });
   }
 
   function startEditZone(zone: WatchZone) {
     setShowZonesPanel(false);
     setEditingZone(zone);
-    setZoneDraft({ center: { lat: zone.centerLat, lng: zone.centerLng }, radiusM: zone.radiusM });
+    resetFreehand();
+    setZoneDraft({
+      center: { lat: zone.centerLat, lng: zone.centerLng },
+      radiusM: zone.radiusM,
+      shape: zone.shape,
+    });
     setFocus({ lat: zone.centerLat, lng: zone.centerLng });
   }
 
@@ -644,11 +708,17 @@ export default function Dashboard() {
             pendingPoint={pendingPoint}
             focus={focus}
             zoneDraft={zoneDraft}
+            zoneMode={zoneMode}
+            freehandPieces={freehandPieces}
+            penDown={penDown}
             zones={showZonesPanel && !zoneDraft ? zones : null}
             newIds={liveIds}
             selectedId={detailAlertId}
             linkedId={linkedId}
-            onZoneMove={handleZoneMove}
+            onZoneShapeChange={setZoneDraft}
+            onPiecesChange={handlePiecesChange}
+            onFinishFreehand={handleFinishFreehand}
+            onStrayStart={() => setStartedAwayFromEnd(true)}
             onMapClick={handleMapClick}
             onConfirm={handleConfirm}
             onOpenDetail={openDetail}
@@ -677,7 +747,18 @@ export default function Dashboard() {
                 draft={zoneDraft}
                 editing={editingZone}
                 session={session}
+                mode={zoneMode}
+                onModeChange={handleZoneModeChange}
+                penDown={penDown}
+                onPenToggle={handlePenToggle}
+                onUndoPiece={handleUndoPiece}
+                onClearPieces={handleClearPieces}
+                onFinishFreehand={handleFinishFreehand}
+                canFinish={canFinishPieces(freehandPieces)}
+                hasPieces={freehandPieces.length > 0}
+                startedAwayFromEnd={startedAwayFromEnd}
                 onRadiusChange={handleZoneRadius}
+                onResetToCircle={handleResetToCircle}
                 onClose={closeZone}
                 onCreated={handleZoneCreated}
                 onUpdated={handleZoneUpdated}

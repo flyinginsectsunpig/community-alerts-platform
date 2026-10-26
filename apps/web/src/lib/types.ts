@@ -68,13 +68,15 @@ export interface SeverityPreview {
   modelVersion: string;
 }
 
-export interface CreateWatchZoneInput {
+/** A circle sends its centre and radius; a drawn zone sends its outline and the shape it came from. */
+export type ZoneGeometryInput =
+  | { centerLat: number; centerLng: number; radiusM: number }
+  | { polygon: LatLng[]; shape: ZoneShape };
+
+export type CreateWatchZoneInput = {
   name: string;
-  centerLat: number;
-  centerLng: number;
-  radiusM: number;
   categories: AlertCategory[];
-}
+} & ZoneGeometryInput;
 
 /** The browser's PushSubscription.toJSON() shape, minus expirationTime. */
 export interface PushSubscriptionInput {
@@ -91,8 +93,13 @@ export interface WatchZone {
   contactEmail: string | null;
   centerLat: number;
   centerLng: number;
+  /** For a drawn zone, the distance from the centre to its furthest point. */
   radiusM: number;
   categories: AlertCategory[];
+  /** The drawn outline; null for a circle. */
+  polygon: LatLng[] | null;
+  /** What the outline was built from, so it can be edited again; null for a circle. */
+  shape: ZoneShape | null;
   createdAt: string;
 }
 
@@ -154,10 +161,23 @@ export interface LatLng {
   lng: number;
 }
 
+/**
+ * A hand-shaped watch zone. "pulled" is a circle with points dragged out of its
+ * edge; "freehand" is a drawn outline whose `handle` points the user can move.
+ */
+export type ZoneShape =
+  | { kind: "pulled"; circle: { center: LatLng; radiusM: number }; pulls: LatLng[] }
+  | { kind: "freehand"; points: { at: LatLng; handle: boolean }[] };
+
+/** How a circle is reshaped on the map. */
+export type ZoneMode = "pull" | "freehand";
+
 /** In-progress watch zone being shaped on the map before submission. */
 export interface ZoneDraft {
   center: LatLng;
   radiusM: number;
+  /** Null while the draft is still a plain circle. */
+  shape: ZoneShape | null;
 }
 
 export interface PoliceStation {

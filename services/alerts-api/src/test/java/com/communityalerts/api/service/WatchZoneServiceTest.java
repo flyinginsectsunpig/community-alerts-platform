@@ -4,10 +4,15 @@ import com.communityalerts.api.domain.AlertCategory;
 import com.communityalerts.api.domain.WatchZone;
 import com.communityalerts.api.dto.CreateWatchZoneRequest;
 import com.communityalerts.api.dto.WatchZoneResponse;
+import com.communityalerts.api.dto.ZonePoint;
+import com.communityalerts.api.error.BadRequestException;
 import com.communityalerts.api.repository.NotificationRepository;
 import com.communityalerts.api.repository.PushSubscriptionRepository;
 import com.communityalerts.api.repository.WatchZoneRepository;
 import com.communityalerts.api.support.ZoneOwner;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +26,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +53,33 @@ class WatchZoneServiceTest {
     private static CreateWatchZoneRequest validRequest() {
         return new CreateWatchZoneRequest(
                 "Home", "Sam@Example.com ", 51.5074, -0.1278, 1500,
-                List.of(AlertCategory.THEFT, AlertCategory.BURGLARY));
+                List.of(AlertCategory.THEFT, AlertCategory.BURGLARY), null, null);
+    }
+
+    /** A drawn-zone request; the circle fields are junk the server must ignore. */
+    private static CreateWatchZoneRequest drawnRequest(List<ZonePoint> polygon, JsonNode shape) {
+        return new CreateWatchZoneRequest(
+                "Park", null, 0.0, 0.0, 9999, List.of(), polygon, shape);
+    }
+
+    private static CreateWatchZoneRequest circleRequest() {
+        return new CreateWatchZoneRequest(
+                "Home", null, 52.0, -1.0, 3000, List.of(), null, null);
+    }
+
+    /** A square 1000 m on a side centred on (51.5, -0.1). */
+    private static List<ZonePoint> square() {
+        double dLat = 500 / 111_195.0;
+        double dLng = 500 / (111_195.0 * Math.cos(Math.toRadians(51.5)));
+        return List.of(
+                new ZonePoint(51.5 - dLat, -0.1 - dLng),
+                new ZonePoint(51.5 - dLat, -0.1 + dLng),
+                new ZonePoint(51.5 + dLat, -0.1 + dLng),
+                new ZonePoint(51.5 + dLat, -0.1 - dLng));
+    }
+
+    private static JsonNode freehandShape() {
+        return new ObjectMapper().createObjectNode().put("kind", "freehand");
     }
 
     static WatchZone zoneOwnedByUser(UUID userId) {
@@ -73,7 +106,7 @@ class WatchZoneServiceTest {
         when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateWatchZoneRequest request = new CreateWatchZoneRequest(
-                "Home", null, 51.5074, -0.1278, 1500, List.of());
+                "Home", null, 51.5074, -0.1278, 1500, List.of(), null, null);
         watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
 
         ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
@@ -87,7 +120,7 @@ class WatchZoneServiceTest {
         when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateWatchZoneRequest request = new CreateWatchZoneRequest(
-                "Home", "   ", 51.5074, -0.1278, 1500, List.of());
+                "Home", "   ", 51.5074, -0.1278, 1500, List.of(), null, null);
         watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
 
         ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
@@ -167,7 +200,7 @@ class WatchZoneServiceTest {
         when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateWatchZoneRequest request = new CreateWatchZoneRequest(
-                " School run ", "new@example.com", 52.0, -1.0, 3000, List.of(AlertCategory.HAZARD));
+                " School run ", "new@example.com", 52.0, -1.0, 3000, List.of(AlertCategory.HAZARD), null, null);
         WatchZoneResponse updated = watchZoneService.update(
                 zone.getId(), request, new ZoneOwner(null, "fp-123"));
 
@@ -279,5 +312,108 @@ class WatchZoneServiceTest {
                 .thenReturn(List.of(zoneOwnedByFingerprint("fp-123")));
 
         assertThat(watchZoneService.claimable("fp-123")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("a drawn zone's centre and radius are computed server-side, ignoring the circle fields")
+    void createsDrawnZoneWithServerComputedCentre() {
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+        JsonNode shape = freehandShape();
+
+        watchZoneService.create(drawnRequest(square(), shape), new ZoneOwner(null, "fp-123"));
+
+        ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
+        verify(watchZoneRepository).save(captor.capture());
+        WatchZone saved = captor.getValue();
+        assertThat(saved.getCenterLat()).isCloseTo(51.5, within(1e-9));
+        assertThat(saved.getCenterLng()).isCloseTo(-0.1, within(1e-9));
+        assertThat(saved.getRadiusM()).isBetween(706, 709);
+        assertThat(saved.getPolygon()).isEqualTo(square());
+        assertThat(saved.getShape()).isEqualTo(shape);
+    }
+
+    @Test
+    @DisplayName("a polygon without a shape is rejected")
+    void rejectsPolygonWithoutShape() {
+        assertThatThrownBy(() -> watchZoneService.create(
+                        drawnRequest(square(), null), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("polygon and shape must be sent together");
+    }
+
+    @Test
+    @DisplayName("a shape without a polygon is rejected")
+    void rejectsShapeWithoutPolygon() {
+        assertThatThrownBy(() -> watchZoneService.create(
+                        drawnRequest(null, freehandShape()), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("polygon and shape must be sent together");
+    }
+
+    @Test
+    @DisplayName("a shape larger than 65 536 serialized characters is rejected")
+    void rejectsOversizedShape() {
+        // {"k":"<n x>"} is 8 + n chars; 65 529 x's makes the whole thing 65 537.
+        JsonNode shape = new ObjectMapper().createObjectNode().put("k", "x".repeat(65_529));
+        assertThat(shape.toString()).hasSize(65_537);
+
+        assertThatThrownBy(() -> watchZoneService.create(
+                        drawnRequest(square(), shape), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("shape is too large");
+    }
+
+    @Test
+    @DisplayName("a circle request missing its radius is rejected")
+    void circleRequestWithoutRadiusIsRejected() {
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                "Home", null, 52.0, -1.0, null, List.of(), null, null);
+
+        assertThatThrownBy(() -> watchZoneService.create(request, new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("centerLat, centerLng and radiusM are required for a circle zone");
+    }
+
+    @Test
+    @DisplayName("updating a drawn zone back to a circle clears its polygon and shape")
+    void updatingDrawnZoneBackToCircleClearsShape() {
+        WatchZone zone = zoneOwnedByFingerprint("fp-123");
+        zone.setPolygon(square());
+        zone.setShape(freehandShape());
+        when(watchZoneRepository.findById(zone.getId())).thenReturn(java.util.Optional.of(zone));
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        watchZoneService.update(zone.getId(), circleRequest(), new ZoneOwner(null, "fp-123"));
+
+        assertThat(zone.getPolygon()).isNull();
+        assertThat(zone.getShape()).isNull();
+        assertThat(zone.getCenterLat()).isEqualTo(52.0);
+        assertThat(zone.getCenterLng()).isEqualTo(-1.0);
+        assertThat(zone.getRadiusM()).isEqualTo(3000);
+    }
+
+    @Test
+    @DisplayName("an explicit JSON null shape on a circle request counts as absent")
+    void circleRequestWithNullNodeShapeIsACircle() {
+        when(watchZoneRepository.save(any(WatchZone.class))).thenAnswer(inv -> inv.getArgument(0));
+        CreateWatchZoneRequest request = new CreateWatchZoneRequest(
+                "Home", null, 52.0, -1.0, 3000, List.of(), null, NullNode.getInstance());
+
+        watchZoneService.create(request, new ZoneOwner(null, "fp-123"));
+
+        ArgumentCaptor<WatchZone> captor = ArgumentCaptor.forClass(WatchZone.class);
+        verify(watchZoneRepository).save(captor.capture());
+        assertThat(captor.getValue().getPolygon()).isNull();
+        assertThat(captor.getValue().getShape()).isNull();
+        assertThat(captor.getValue().getRadiusM()).isEqualTo(3000);
+    }
+
+    @Test
+    @DisplayName("a polygon with an explicit JSON null shape is rejected")
+    void rejectsPolygonWithNullNodeShape() {
+        assertThatThrownBy(() -> watchZoneService.create(
+                        drawnRequest(square(), NullNode.getInstance()), new ZoneOwner(null, "fp-123")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("polygon and shape must be sent together");
     }
 }

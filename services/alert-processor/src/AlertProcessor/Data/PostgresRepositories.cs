@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AlertProcessor.Domain;
 using Dapper;
 using Npgsql;
@@ -8,14 +9,17 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
 {
     private sealed record Row(
         Guid Id, string Name, string? ContactEmail,
-        double CenterLat, double CenterLng, int RadiusM, string Categories);
+        double CenterLat, double CenterLng, int RadiusM, string Categories, string? Polygon);
+
+    private static readonly JsonSerializerOptions PolygonJson = new(JsonSerializerDefaults.Web);
 
     public async Task<IReadOnlyList<WatchZone>> GetAllAsync(CancellationToken ct)
     {
         const string sql = """
             SELECT id, name, contact_email AS ContactEmail,
                    center_lat AS CenterLat, center_lng AS CenterLng,
-                   radius_m AS RadiusM, categories
+                   radius_m AS RadiusM, categories,
+                   polygon::text AS Polygon
             FROM watch_zones
             """;
 
@@ -24,7 +28,7 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
 
         return rows.Select(r => new WatchZone(
                 r.Id, r.Name, r.ContactEmail, r.CenterLat, r.CenterLng, r.RadiusM,
-                SplitCategories(r.Categories)))
+                SplitCategories(r.Categories), ParsePolygon(r.Polygon)))
             .ToList();
     }
 
@@ -32,6 +36,9 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
         categories.Length == 0
             ? Array.Empty<string>()
             : categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    internal static IReadOnlyList<GeoPoint>? ParsePolygon(string? polygon) =>
+        polygon is null ? null : JsonSerializer.Deserialize<List<GeoPoint>>(polygon, PolygonJson);
 }
 
 public sealed class PostgresDangerWatchRepository(NpgsqlDataSource dataSource) : IDangerWatchRepository
@@ -39,7 +46,7 @@ public sealed class PostgresDangerWatchRepository(NpgsqlDataSource dataSource) :
     private sealed record WatcherRow(
         Guid UserId, int ReachM,
         Guid Id, string Name, string? ContactEmail,
-        double CenterLat, double CenterLng, int RadiusM, string Categories);
+        double CenterLat, double CenterLng, int RadiusM, string Categories, string? Polygon);
 
     public async Task<AlertState?> GetAlertStateAsync(Guid alertId, CancellationToken ct)
     {
@@ -59,7 +66,8 @@ public sealed class PostgresDangerWatchRepository(NpgsqlDataSource dataSource) :
             SELECT u.id AS UserId, u.danger_reach_m AS ReachM,
                    wz.id, wz.name, wz.contact_email AS ContactEmail,
                    wz.center_lat AS CenterLat, wz.center_lng AS CenterLng,
-                   wz.radius_m AS RadiusM, wz.categories
+                   wz.radius_m AS RadiusM, wz.categories,
+                   wz.polygon::text AS Polygon
             FROM users u
             JOIN watch_zones wz ON wz.user_id = u.id
             WHERE u.danger_reach_m IS NOT NULL
@@ -74,7 +82,8 @@ public sealed class PostgresDangerWatchRepository(NpgsqlDataSource dataSource) :
                 g.Key.UserId, g.Key.ReachM,
                 g.Select(r => new WatchZone(
                         r.Id, r.Name, r.ContactEmail, r.CenterLat, r.CenterLng, r.RadiusM,
-                        PostgresWatchZoneRepository.SplitCategories(r.Categories)))
+                        PostgresWatchZoneRepository.SplitCategories(r.Categories),
+                        PostgresWatchZoneRepository.ParsePolygon(r.Polygon)))
                     .ToList()))
             .ToList();
     }

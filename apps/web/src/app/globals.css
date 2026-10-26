@@ -1661,6 +1661,28 @@ kbd {
   transform: scale(1.05);
 }
 
+/* The invisible band along a drawn zone's edge, and the targets over its
+   points. A press there reshapes the zone, so the browser must not take it
+   for a pan. (.leaflet-interactive is doubled up to beat its own cursor.) */
+.leaflet-interactive.zone-grab {
+  cursor: grab;
+  touch-action: none;
+}
+
+.zone-dragging,
+.zone-dragging .leaflet-interactive {
+  cursor: grabbing;
+}
+
+/* Drawing freehand with the pen down: a press draws, so the browser must not
+   take it for a pan. (Doubled up to beat Leaflet's own touch-action rules.) */
+.leaflet-container.zone-drawing,
+.leaflet-container.zone-drawing.leaflet-touch-zoom,
+.zone-drawing .leaflet-interactive {
+  cursor: crosshair;
+  touch-action: none;
+}
+
 .standalone-page {
   min-height: 100vh;
   min-height: 100dvh;
@@ -2667,5 +2689,40 @@ kbd {
     transform: none;
     outline: 2px solid var(--sev, var(--accent));
     outline-offset: 2px;
+  }
+}
+
+/* Pull to shape / Freehand: two options, one pressed, like the layer toggles. */
+.mode-switch {
+  display: flex;
+  gap: var(--s1);
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.mode-switch__option {
+  flex: 1;
+  padding: 6px var(--s2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--t-small);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--speed-fast) ease, color var(--speed-fast) ease;
+}
+
+.mode-switch__option[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .mode-switch__option:hover {
+    color: var(--ink);
   }
 }

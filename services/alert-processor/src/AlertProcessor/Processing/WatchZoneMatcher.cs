@@ -10,10 +10,12 @@ namespace AlertProcessor.Processing;
 public sealed class WatchZoneMatcher
 {
     /// <param name="radiusMultiplier">
-    /// Scales each zone's radius; escalations use &gt; 1 to widen the blast radius.
+    /// Scales each circle zone's radius; escalations use &gt; 1 to widen the blast radius.
+    /// Ignored for drawn zones.
     /// </param>
     /// <param name="ignoreCategories">
-    /// When true, category subscriptions are bypassed (public-safety broadcasts).
+    /// When true, category subscriptions of circle zones are bypassed (public-safety
+    /// broadcasts). Drawn zones always apply their category filter.
     /// </param>
     public IReadOnlyList<ZoneMatch> FindMatches(
         IEnumerable<WatchZone> zones,
@@ -28,13 +30,17 @@ public sealed class WatchZoneMatcher
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radiusMultiplier);
 
         return zones
-            .Where(zone => ignoreCategories
+            .Where(zone => (ignoreCategories && zone.Polygon is null)
                            || zone.Categories.Count == 0
                            || zone.Categories.Contains(category, StringComparer.OrdinalIgnoreCase))
             .Select(zone => new ZoneMatch(
                 zone,
                 GeoMath.DistanceMeters(zone.CenterLat, zone.CenterLng, lat, lng)))
-            .Where(match => match.DistanceMeters <= match.Zone.RadiusM * radiusMultiplier)
+            // RadiusM is a drawn zone's furthest-vertex distance from its centre, so
+            // nothing beyond it can be inside: a cheap check before point-in-polygon.
+            .Where(match => match.Zone.Polygon is { } polygon
+                ? match.DistanceMeters <= match.Zone.RadiusM && GeoMath.ContainsPoint(polygon, lat, lng)
+                : match.DistanceMeters <= match.Zone.RadiusM * radiusMultiplier)
             .OrderBy(match => match.DistanceMeters)
             .ToList();
     }

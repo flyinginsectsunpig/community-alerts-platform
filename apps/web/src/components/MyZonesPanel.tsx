@@ -6,7 +6,7 @@ import { OPEN_MODAL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { CATEGORY_LABELS, formatZoneArea, timeAgo } from "@/lib/format";
 import {
   disablePush,
   enablePush,
@@ -15,6 +15,7 @@ import {
   pushSupported,
 } from "@/lib/push";
 import type { DangerReachM, DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
+import { areaKm2 } from "@/lib/zoneShape";
 
 const DEFAULT_DANGER_REACH_M: DangerReachM = 5000;
 const DANGER_REACH_OPTIONS: { value: DangerReachM; label: string }[] = [
@@ -229,7 +230,11 @@ export default function MyZonesPanel({
                 <button type="button" className="zone-card__name" onClick={() => onFocus(zone)}>
                   {zone.name}
                 </button>
-                <span className="zone-card__radius">{(zone.radiusM / 1000).toFixed(1)} km</span>
+                <span className="zone-card__radius">
+                  {zone.polygon
+                    ? `Drawn area · ${formatZoneArea(areaKm2(zone.polygon))}`
+                    : `${(zone.radiusM / 1000).toFixed(1)} km`}
+                </span>
               </div>
               <p className="zone-card__categories">
                 {zone.categories.length === 0
