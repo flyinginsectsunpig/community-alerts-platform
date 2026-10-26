@@ -34,7 +34,8 @@ const BASEMAP_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY ?? "";
 const BASEMAP_QUERY = BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "";
 const BASEMAP_URL = `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
 // Dark Matter's baked-in labels are mid-grey and get lost in the road network,
-// so they come from their own layer, which CSS brightens (.basemap-labels).
+// so roads and labels are separate layers that CSS dims and brightens
+// independently (.basemap-roads, .basemap-labels).
 const LABELS_URL = `https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
 
 /** A point the map should fly to, optionally at a specific zoom. */
@@ -169,6 +170,7 @@ export default function AlertMap({
     >
       <TileLayer
         url={BASEMAP_URL}
+        className="basemap-roads"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
       {/* Above the roads, below zones (overlay pane, 400) and markers. */}

@@ -1818,9 +1818,15 @@ kbd {
   font-family: var(--font);
 }
 
-/* Dark Matter's label tiles are mid-grey; lift them clear of the road network. */
+/* Dark Matter draws every street in the same light grey, which turns the map
+   into a dense web; dim it so alerts, zones and labels read over it. */
+.basemap-roads {
+  filter: brightness(0.55);
+}
+
+/* Its labels are mid-grey; lift them clear of the dimmed roads. */
 .basemap-labels {
-  filter: brightness(1.6);
+  filter: brightness(1.3);
 }
 
 .leaflet-popup-content-wrapper,
