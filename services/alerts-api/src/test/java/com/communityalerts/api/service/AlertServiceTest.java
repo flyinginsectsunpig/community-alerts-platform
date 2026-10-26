@@ -8,6 +8,7 @@ import com.communityalerts.api.domain.AlertStatus;
 import com.communityalerts.api.domain.Severity;
 import com.communityalerts.api.dto.AlertResponse;
 import com.communityalerts.api.dto.CreateAlertRequest;
+import com.communityalerts.api.error.BadRequestException;
 import com.communityalerts.api.error.ConflictException;
 import com.communityalerts.api.error.ForbiddenException;
 import com.communityalerts.api.error.NotFoundException;
@@ -104,7 +105,7 @@ class AlertServiceTest {
         });
 
         CreateAlertRequest request = new CreateAlertRequest(
-                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278);
+                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278, null);
 
         AlertResponse response = alertService.create(request, "reporter-1", REPORTER);
 
@@ -127,7 +128,7 @@ class AlertServiceTest {
         when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateAlertRequest request = new CreateAlertRequest(
-                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278);
+                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278, null);
         alertService.create(request, "reporter-1", REPORTER);
 
         ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
@@ -135,6 +136,44 @@ class AlertServiceTest {
         Instant expected = Instant.now().plus(72, java.time.temporal.ChronoUnit.HOURS);
         assertThat(captor.getValue().getExpiresAt())
                 .isBetween(expected.minusSeconds(60), expected.plusSeconds(60));
+    }
+
+    @Test
+    @DisplayName("an assault reported as happening right now is stored as ongoing")
+    void create_storesOngoing() {
+        when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        alertService.create(new CreateAlertRequest(
+                AlertCategory.ASSAULT, "Shots fired on Main Road right now", 51.5074, -0.1278, true),
+                "reporter-1", REPORTER);
+
+        ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(captor.capture());
+        assertThat(captor.getValue().isOngoing()).isTrue();
+    }
+
+    @Test
+    @DisplayName("omitting ongoing stores false")
+    void create_nullOngoingIsFalse() {
+        when(alertRepository.save(any(Alert.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        alertService.create(new CreateAlertRequest(
+                AlertCategory.ASSAULT, "Shots fired on Main Road right now", 51.5074, -0.1278, null),
+                "reporter-1", REPORTER);
+
+        ArgumentCaptor<Alert> captor = ArgumentCaptor.forClass(Alert.class);
+        verify(alertRepository).save(captor.capture());
+        assertThat(captor.getValue().isOngoing()).isFalse();
+    }
+
+    @Test
+    @DisplayName("only assault, hazard and other reports can be marked ongoing")
+    void create_rejectsOngoingForIneligibleCategory() {
+        assertThatThrownBy(() -> alertService.create(new CreateAlertRequest(
+                AlertCategory.THEFT, "Bike stolen from outside the library", 51.5074, -0.1278, true),
+                "reporter-1", REPORTER))
+                .isInstanceOf(BadRequestException.class);
+        verify(alertRepository, never()).save(any());
     }
 
     @Test

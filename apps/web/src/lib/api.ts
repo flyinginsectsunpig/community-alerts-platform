@@ -7,6 +7,7 @@ import type {
   AuthResponse,
   CreateAlertInput,
   CreateWatchZoneInput,
+  DangerReachM,
   DigestFrequency,
   LoginInput,
   MapBounds,
@@ -186,6 +187,13 @@ export const api = {
     return request<ProfileResponse>("/api/v1/auth/profile", {
       method: "PATCH",
       body: JSON.stringify({ digestFrequency }),
+    });
+  },
+
+  updateDangerReach(reachM: DangerReachM | null): Promise<ProfileResponse> {
+    return request<ProfileResponse>("/api/v1/auth/profile/danger-reach", {
+      method: "PUT",
+      body: JSON.stringify({ reachM }),
     });
   },
 

@@ -8,7 +8,8 @@ namespace AlertProcessor.Notifications;
 /// <summary>
 /// Persists notifications for matched watch zones (served to users by the
 /// API), delivers a browser push to the zone owner's subscribed devices, and,
-/// for escalations, POSTs to the optional webhook (e.g. Slack). Inserts are
+/// for escalations, POSTs to the optional webhook (e.g. Slack). Ongoing-danger
+/// warnings are push-only (no webhook). Inserts are
 /// idempotent per (zone, alert, kind); pushes fire only on a fresh insert so
 /// AMQP redeliveries never double-send. Zone-hit email was retired in favour
 /// of push + account digests.
@@ -23,6 +24,7 @@ public sealed class NotificationDispatcher(
 {
     public const string KindZoneMatch = "ZONE_MATCH";
     public const string KindEscalation = "ESCALATION";
+    public const string KindDangerNearby = "DANGER_NEARBY";
 
     public async Task DispatchZoneMatchesAsync(
         AlertCreatedEvent alert, IReadOnlyList<ZoneMatch> matches, CancellationToken ct)
@@ -70,6 +72,43 @@ public sealed class NotificationDispatcher(
         }
 
         await PostWebhookAsync(alert, matches.Count, ct);
+    }
+
+    /// <summary>
+    /// Warns zone owners that an ongoing incident is near (but outside) their
+    /// zone. Push-only: no webhook, and a redelivery inserts nothing so never
+    /// pushes twice.
+    /// </summary>
+    public async Task DispatchDangerWarningsAsync(
+        AlertScoredEvent alert,
+        DateTimeOffset reportedAt,
+        IReadOnlyList<DangerTarget> targets,
+        DateTimeOffset now,
+        CancellationToken ct)
+    {
+        var label = alert.Category switch
+        {
+            "ASSAULT" => "Assault",
+            "HAZARD" => "Hazard",
+            _ => "Incident",
+        };
+        var minutes = Math.Max(1, (int)(now - reportedAt).TotalMinutes);
+
+        foreach (var target in targets)
+        {
+            var title =
+                $"Avoid area: ongoing incident {EmailComposer.FormatDistance(target.EdgeDistanceMeters)} " +
+                $"from '{target.Zone.Name}'";
+            var body = $"{label} reported {minutes} min ago, still in progress. Consider another route.";
+
+            var inserted = await notificationRepository.InsertAsync(
+                target.Zone.Id, alert.AlertId, KindDangerNearby, $"{title}. {body}", ct);
+
+            if (inserted > 0)
+            {
+                await PushToZoneAsync(target.Zone, title, body, alert.AlertId, ct);
+            }
+        }
     }
 
     /// <summary>Best-effort: a push failure never fails the durable notification.</summary>
