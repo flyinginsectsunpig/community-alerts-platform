@@ -20,6 +20,15 @@ public sealed record WatchZone(
 
 public sealed record ZoneMatch(WatchZone Zone, double DistanceMeters);
 
+/// <summary>The slice of an alert's current state needed to decide on an ongoing-danger warning.</summary>
+public sealed record AlertState(Guid Id, string Category, string Status, bool Ongoing, DateTimeOffset CreatedAt);
+
+/// <summary>A user who opted in to ongoing-danger warnings, with their reach and watch zones.</summary>
+public sealed record DangerWatcher(Guid UserId, int ReachM, IReadOnlyList<WatchZone> Zones);
+
+/// <summary>The zone to warn a watcher through, and how far the alert is from its edge.</summary>
+public sealed record DangerTarget(WatchZone Zone, double EdgeDistanceMeters);
+
 /// <summary>A browser push target for a zone owner's device.</summary>
 public sealed record PushSubscriptionRow(long Id, string Endpoint, string P256dh, string Auth);
 

@@ -10,5 +10,10 @@ public enum AlertCategory {
     DRUGS,
     HARASSMENT,
     HAZARD,
-    OTHER
+    OTHER;
+
+    /** Only these can be "happening right now"; a stolen bike is not an ongoing danger. */
+    public boolean canBeOngoing() {
+        return this == ASSAULT || this == HAZARD || this == OTHER;
+    }
 }

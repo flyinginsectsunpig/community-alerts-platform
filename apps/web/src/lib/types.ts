@@ -39,6 +39,8 @@ export interface CreateAlertInput {
   description: string;
   lat: number;
   lng: number;
+  /** Only honoured by the API for categories where `canReportOngoing` is true. */
+  ongoing?: boolean;
 }
 
 export interface DayCount {
@@ -133,8 +135,13 @@ export interface LoginInput {
 
 export type DigestFrequency = "OFF" | "DAILY" | "WEEKLY";
 
+/** Metres around a watch zone within which ongoing dangers warn the user. */
+export type DangerReachM = 2000 | 5000 | 10000;
+
 export interface ProfileResponse {
   digestFrequency: DigestFrequency;
+  /** Null when the user has not opted in to ongoing-danger warnings. */
+  dangerReachM: DangerReachM | null;
 }
 
 export interface AuthResponse {

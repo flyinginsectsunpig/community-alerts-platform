@@ -28,12 +28,63 @@ public sealed class PostgresWatchZoneRepository(NpgsqlDataSource dataSource) : I
 
         return rows.Select(r => new WatchZone(
                 r.Id, r.Name, r.ContactEmail, r.CenterLat, r.CenterLng, r.RadiusM,
-                r.Categories.Length == 0
-                    ? Array.Empty<string>()
-                    : r.Categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                r.Polygon is null
-                    ? null
-                    : JsonSerializer.Deserialize<List<GeoPoint>>(r.Polygon, PolygonJson)))
+                SplitCategories(r.Categories), ParsePolygon(r.Polygon)))
+            .ToList();
+    }
+
+    internal static IReadOnlyList<string> SplitCategories(string categories) =>
+        categories.Length == 0
+            ? Array.Empty<string>()
+            : categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    internal static IReadOnlyList<GeoPoint>? ParsePolygon(string? polygon) =>
+        polygon is null ? null : JsonSerializer.Deserialize<List<GeoPoint>>(polygon, PolygonJson);
+}
+
+public sealed class PostgresDangerWatchRepository(NpgsqlDataSource dataSource) : IDangerWatchRepository
+{
+    private sealed record WatcherRow(
+        Guid UserId, int ReachM,
+        Guid Id, string Name, string? ContactEmail,
+        double CenterLat, double CenterLng, int RadiusM, string Categories, string? Polygon);
+
+    public async Task<AlertState?> GetAlertStateAsync(Guid alertId, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT id, category, status, ongoing, created_at AS CreatedAt
+            FROM alerts WHERE id = @alertId
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        return await connection.QuerySingleOrDefaultAsync<AlertState>(
+            new CommandDefinition(sql, new { alertId }, cancellationToken: ct));
+    }
+
+    public async Task<IReadOnlyList<DangerWatcher>> GetDangerWatchersAsync(CancellationToken ct)
+    {
+        const string sql = """
+            SELECT u.id AS UserId, u.danger_reach_m AS ReachM,
+                   wz.id, wz.name, wz.contact_email AS ContactEmail,
+                   wz.center_lat AS CenterLat, wz.center_lng AS CenterLng,
+                   wz.radius_m AS RadiusM, wz.categories,
+                   wz.polygon::text AS Polygon
+            FROM users u
+            JOIN watch_zones wz ON wz.user_id = u.id
+            WHERE u.danger_reach_m IS NOT NULL
+            """;
+
+        await using var connection = await dataSource.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<WatcherRow>(new CommandDefinition(sql, cancellationToken: ct));
+
+        return rows
+            .GroupBy(r => (r.UserId, r.ReachM))
+            .Select(g => new DangerWatcher(
+                g.Key.UserId, g.Key.ReachM,
+                g.Select(r => new WatchZone(
+                        r.Id, r.Name, r.ContactEmail, r.CenterLat, r.CenterLng, r.RadiusM,
+                        PostgresWatchZoneRepository.SplitCategories(r.Categories),
+                        PostgresWatchZoneRepository.ParsePolygon(r.Polygon)))
+                    .ToList()))
             .ToList();
     }
 }
@@ -92,6 +143,8 @@ public sealed class PostgresDigestRepository(NpgsqlDataSource dataSource) : IDig
             JOIN watch_zones wz ON wz.user_id = u.id
             JOIN notifications n ON n.watch_zone_id = wz.id
             WHERE u.digest_frequency = @frequency AND n.created_at >= @since
+              -- Danger warnings are only meaningful right now; hours later in a digest they would mislead.
+              AND n.kind <> 'DANGER_NEARBY'
             ORDER BY u.email, wz.name, n.created_at
             """;
 

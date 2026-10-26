@@ -11,5 +11,6 @@ public record CreateAlertRequest(
         @NotNull AlertCategory category,
         @NotBlank @Size(min = 10, max = 2000) String description,
         @NotNull @DecimalMin("-90") @DecimalMax("90") Double lat,
-        @NotNull @DecimalMin("-180") @DecimalMax("180") Double lng) {
+        @NotNull @DecimalMin("-180") @DecimalMax("180") Double lng,
+        Boolean ongoing) {
 }

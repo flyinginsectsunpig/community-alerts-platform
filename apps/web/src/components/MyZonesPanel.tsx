@@ -14,8 +14,15 @@ import {
   needsInstallForPush,
   pushSupported,
 } from "@/lib/push";
-import type { DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
+import type { DangerReachM, DigestFrequency, WatchZone, ZoneNotification } from "@/lib/types";
 import { areaKm2 } from "@/lib/zoneShape";
+
+const DEFAULT_DANGER_REACH_M: DangerReachM = 5000;
+const DANGER_REACH_OPTIONS: { value: DangerReachM; label: string }[] = [
+  { value: 2000, label: "2 km" },
+  { value: 5000, label: "5 km" },
+  { value: 10000, label: "10 km" },
+];
 
 type PushState = "unsupported" | "needs-install" | "off" | "on" | "busy";
 
@@ -48,6 +55,10 @@ export default function MyZonesPanel({
   const [digest, setDigest] = useState<DigestFrequency | null>(null);
   const [digestBusy, setDigestBusy] = useState(false);
   const [digestError, setDigestError] = useState<string | null>(null);
+  const [dangerReach, setDangerReach] = useState<DangerReachM | null>(null);
+  const [dangerLoaded, setDangerLoaded] = useState(false);
+  const [dangerBusy, setDangerBusy] = useState(false);
+  const [dangerError, setDangerError] = useState<string | null>(null);
   const exiting = useExiting();
   const panelRef = useFocusCapture<HTMLElement>({ active: !exiting, trap: false });
 
@@ -57,10 +68,16 @@ export default function MyZonesPanel({
     api
       .fetchProfile()
       .then((profile) => {
-        if (!cancelled) setDigest(profile.digestFrequency);
+        if (cancelled) return;
+        setDigest(profile.digestFrequency);
+        setDangerReach(profile.dangerReachM);
+        setDangerLoaded(true);
       })
       .catch(() => {
-        if (!cancelled) setDigestError("Could not load your digest setting.");
+        if (!cancelled) {
+          setDigestError("Could not load your digest setting.");
+          setDangerError("Could not load your ongoing-danger setting.");
+        }
       });
     return () => {
       cancelled = true;
@@ -81,6 +98,23 @@ export default function MyZonesPanel({
       );
     } finally {
       setDigestBusy(false);
+    }
+  }
+
+  async function changeDangerReach(reachM: DangerReachM | null) {
+    const previous = dangerReach;
+    setDangerReach(reachM);
+    setDangerBusy(true);
+    setDangerError(null);
+    try {
+      await api.updateDangerReach(reachM);
+    } catch (e) {
+      setDangerReach(previous);
+      setDangerError(
+        e instanceof ApiError ? e.message : "Could not update the ongoing-danger setting — try again.",
+      );
+    } finally {
+      setDangerBusy(false);
     }
   }
 
@@ -306,6 +340,55 @@ export default function MyZonesPanel({
             <p className="panel__hint">Sign in to get email summaries of your zones.</p>
           )}
           {digestError && <p className="form-error">{digestError}</p>}
+
+          {session && (
+            <>
+              <label className="category-option">
+                <input
+                  type="checkbox"
+                  checked={dangerReach !== null}
+                  disabled={!dangerLoaded || dangerBusy}
+                  onChange={(event) =>
+                    void changeDangerReach(event.target.checked ? DEFAULT_DANGER_REACH_M : null)
+                  }
+                />
+                Ongoing danger nearby
+              </label>
+              <p className="panel__hint">
+                Warn me about serious incidents that are still happening near my zones, even
+                outside them.
+              </p>
+              {dangerReach !== null && (
+                <label className="field">
+                  <span>Reach</span>
+                  <select
+                    value={dangerReach}
+                    disabled={dangerBusy}
+                    onChange={(event) =>
+                      void changeDangerReach(Number(event.target.value) as DangerReachM)
+                    }
+                  >
+                    {DANGER_REACH_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {dangerReach !== null && zones !== null && zones.length === 0 ? (
+                <p className="panel__hint">Add a watch zone to receive these warnings.</p>
+              ) : (
+                dangerReach !== null &&
+                pushState !== "on" && (
+                  <p className="panel__hint">
+                    Turn on notifications for this device to receive these warnings.
+                  </p>
+                )
+              )}
+              {dangerError && <p className="form-error">{dangerError}</p>}
+            </>
+          )}
         </div>
       </div>
     </aside>
