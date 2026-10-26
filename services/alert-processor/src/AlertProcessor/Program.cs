@@ -25,6 +25,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(10) });
 
 builder.Services.AddSingleton<IWatchZoneRepository, PostgresWatchZoneRepository>();
+builder.Services.AddSingleton<IDangerWatchRepository, PostgresDangerWatchRepository>();
 builder.Services.AddSingleton<INotificationRepository, PostgresNotificationRepository>();
 builder.Services.AddSingleton<IStatsRepository, PostgresStatsRepository>();
 builder.Services.AddSingleton<IAlertExpiryRepository, PostgresAlertExpiryRepository>();
@@ -39,6 +40,7 @@ builder.Services.AddSingleton<StatsAggregator>();
 builder.Services.AddSingleton<NotificationDispatcher>();
 builder.Services.AddSingleton<AlertEnrichmentHandler>();
 builder.Services.AddSingleton<EscalationHandler>();
+builder.Services.AddSingleton<OngoingDangerHandler>();
 
 builder.Services.AddHostedService<RabbitConsumerService>();
 builder.Services.AddHostedService<ExpirySweepService>();

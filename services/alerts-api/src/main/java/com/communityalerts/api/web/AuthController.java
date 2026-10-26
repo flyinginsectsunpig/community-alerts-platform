@@ -22,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -95,5 +96,15 @@ public class AuthController {
                                          HttpServletRequest httpRequest) {
         return profileService.updateDigestFrequency(
                 AuthContext.require(httpRequest).id(), request.digestFrequency());
+    }
+
+    public record UpdateDangerReachRequest(Integer reachM) {
+    }
+
+    @PutMapping("/profile/danger-reach")
+    public ProfileResponse updateDangerReach(@RequestBody UpdateDangerReachRequest request,
+                                             HttpServletRequest httpRequest) {
+        return profileService.updateDangerReach(
+                AuthContext.require(httpRequest).id(), request.reachM());
     }
 }

@@ -8,69 +8,14 @@ namespace AlertProcessor.Tests;
 
 public class NotificationDispatcherTests
 {
-    private sealed class CountingNotificationRepository(int insertResult = 1) : INotificationRepository
-    {
-        public int Inserted { get; private set; }
-
-        public Task<int> InsertAsync(
-            Guid watchZoneId, Guid alertId, string kind, string message, CancellationToken ct)
-        {
-            Inserted += insertResult;
-            return Task.FromResult(insertResult);
-        }
-    }
-
-    private sealed class FakePushSubscriptions(params PushSubscriptionRow[] rows) : IPushSubscriptionRepository
-    {
-        public List<string> Deleted { get; } = [];
-        public int Queries { get; private set; }
-
-        public Task<IReadOnlyList<PushSubscriptionRow>> GetForZoneAsync(Guid zoneId, CancellationToken ct)
-        {
-            Queries++;
-            return Task.FromResult<IReadOnlyList<PushSubscriptionRow>>(rows);
-        }
-
-        public Task DeleteAsync(string endpoint, CancellationToken ct)
-        {
-            Deleted.Add(endpoint);
-            return Task.CompletedTask;
-        }
-    }
-
-    private sealed class RecordingPushSender(PushSendResult result = PushSendResult.Sent, bool enabled = true)
-        : IPushSender
-    {
-        public List<(string Endpoint, string Title)> Sent { get; } = [];
-
-        public bool Enabled => enabled;
-
-        public Task<PushSendResult> SendAsync(
-            PushSubscriptionRow subscription, string title, string body, Guid alertId, CancellationToken ct)
-        {
-            Sent.Add((subscription.Endpoint, title));
-            return Task.FromResult(result);
-        }
-    }
-
-    private static WorkerOptions Options() => new()
-    {
-        PostgresConnectionString = "unused",
-        RedisConfiguration = "unused",
-        RabbitHost = "unused",
-        RabbitPort = 0,
-        RabbitUser = "unused",
-        RabbitPassword = "unused",
-        RabbitVhost = "unused",
-        RabbitSsl = false,
-        // NotificationWebhookUrl stays null so the webhook path is inert.
-    };
-
     private static NotificationDispatcher Dispatcher(
         CountingNotificationRepository repository,
         FakePushSubscriptions subscriptions,
-        RecordingPushSender sender) => new(
-        repository, subscriptions, sender, new HttpClient(), Options(),
+        RecordingPushSender sender,
+        HttpClient? httpClient = null,
+        WorkerOptions? options = null) => new(
+        repository, subscriptions, sender, httpClient ?? new HttpClient(),
+        options ?? TestWorkerOptions.Options(),
         NullLogger<NotificationDispatcher>.Instance);
 
     private static AlertCreatedEvent Created() => new(
@@ -83,6 +28,15 @@ public class NotificationDispatcherTests
 
     private static PushSubscriptionRow Subscription(string endpoint) =>
         new(1, endpoint, "p256dh", "auth");
+
+    private static readonly DateTimeOffset Now = new(2026, 10, 25, 12, 0, 0, TimeSpan.Zero);
+
+    private static AlertScoredEvent Scored(string category) => new(
+        Guid.NewGuid(), "HIGH", 0.9, "v1", category, 51.5074, -0.1278, Now);
+
+    private static DangerTarget Danger() => new(
+        new WatchZone(Guid.NewGuid(), "Home", null, 51.5074, -0.1278, 1000, []),
+        1800.0);
 
     [Fact]
     public async Task FreshZoneMatchPushesToEverySubscription()
@@ -140,5 +94,75 @@ public class NotificationDispatcherTests
             .DispatchZoneMatchesAsync(Created(), [Match()], CancellationToken.None);
 
         Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task DangerWarning_pushesOncePerTargetWithCopy()
+    {
+        var repository = new CountingNotificationRepository();
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+        var sender = new RecordingPushSender();
+
+        await Dispatcher(repository, subscriptions, sender).DispatchDangerWarningsAsync(
+            Scored("ASSAULT"), Now.AddMinutes(-6), [Danger()], Now, CancellationToken.None);
+
+        Assert.Equal(1, repository.Inserted);
+        var sent = Assert.Single(sender.Sent);
+        Assert.Equal("Avoid area: ongoing incident 1.8 km from 'Home'", sent.Title);
+        Assert.Equal("Assault reported 6 min ago, still in progress. Consider another route.", sent.Body);
+    }
+
+    [Fact]
+    public async Task DangerWarning_redeliveryDoesNotPushAgain()
+    {
+        var repository = new CountingNotificationRepository(insertResult: 0);
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+        var sender = new RecordingPushSender();
+
+        await Dispatcher(repository, subscriptions, sender).DispatchDangerWarningsAsync(
+            Scored("ASSAULT"), Now.AddMinutes(-6), [Danger()], Now, CancellationToken.None);
+
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
+    public async Task DangerWarning_neverPostsWebhook()
+    {
+        var handler = new CountingHandler();
+        var options = TestWorkerOptions.Options("https://hooks.example/slack");
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+
+        await Dispatcher(
+                new CountingNotificationRepository(), subscriptions, new RecordingPushSender(),
+                new HttpClient(handler), options)
+            .DispatchDangerWarningsAsync(
+                Scored("ASSAULT"), Now.AddMinutes(-6), [Danger()], Now, CancellationToken.None);
+
+        Assert.Equal(0, handler.Calls);
+    }
+
+    [Fact]
+    public async Task DangerWarning_labelsOtherAsIncident()
+    {
+        var subscriptions = new FakePushSubscriptions(Subscription("https://push/one"));
+        var sender = new RecordingPushSender();
+
+        await Dispatcher(new CountingNotificationRepository(), subscriptions, sender)
+            .DispatchDangerWarningsAsync(
+                Scored("OTHER"), Now.AddMinutes(-6), [Danger()], Now, CancellationToken.None);
+
+        Assert.StartsWith("Incident reported", Assert.Single(sender.Sent).Body);
+    }
+
+    private sealed class CountingHandler : HttpMessageHandler
+    {
+        public int Calls { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        }
     }
 }
