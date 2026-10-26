@@ -53,6 +53,9 @@ public class Alert {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
+    @Column(nullable = false)
+    private boolean ongoing;
+
     @Column(name = "confirmation_count", nullable = false)
     private int confirmationCount;
 
@@ -111,6 +114,9 @@ public class Alert {
 
     public Instant getExpiresAt() { return expiresAt; }
     public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+
+    public boolean isOngoing() { return ongoing; }
+    public void setOngoing(boolean ongoing) { this.ongoing = ongoing; }
 
     public int getConfirmationCount() { return confirmationCount; }
     public void setConfirmationCount(int confirmationCount) { this.confirmationCount = confirmationCount; }

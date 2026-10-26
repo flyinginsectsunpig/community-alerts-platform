@@ -7,6 +7,7 @@ import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
+import { canReportOngoing } from "@/lib/ongoing";
 import type { Alert, AlertCategory, LatLng, SeverityPreview } from "@/lib/types";
 import { ALERT_CATEGORIES } from "@/lib/types";
 
@@ -23,6 +24,7 @@ interface AlertFormProps {
 export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }: AlertFormProps) {
   const [category, setCategory] = useState<AlertCategory>("THEFT");
   const [description, setDescription] = useState("");
+  const [ongoing, setOngoing] = useState(false);
   const [preview, setPreview] = useState<SeverityPreview | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
         description: description.trim(),
         lat: point.lat,
         lng: point.lng,
+        // A tick left over from a category that allows it must not reach the API.
+        ongoing: canReportOngoing(category) && ongoing,
       });
       onCreated(alert);
     } catch (e) {
@@ -114,6 +118,17 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             ))}
           </select>
         </label>
+
+        {canReportOngoing(category) && (
+          <label className="category-option">
+            <input
+              type="checkbox"
+              checked={ongoing}
+              onChange={(event) => setOngoing(event.target.checked)}
+            />
+            This is happening right now
+          </label>
+        )}
 
         <label className="field">
           <span>What happened?</span>

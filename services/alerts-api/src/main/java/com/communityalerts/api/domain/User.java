@@ -31,6 +31,9 @@ public class User {
     @Column(name = "digest_frequency", nullable = false, length = 16)
     private DigestFrequency digestFrequency = DigestFrequency.OFF;
 
+    @Column(name = "danger_reach_m")
+    private Integer dangerReachM;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -55,6 +58,9 @@ public class User {
 
     public DigestFrequency getDigestFrequency() { return digestFrequency; }
     public void setDigestFrequency(DigestFrequency digestFrequency) { this.digestFrequency = digestFrequency; }
+
+    public Integer getDangerReachM() { return dangerReachM; }
+    public void setDangerReachM(Integer dangerReachM) { this.dangerReachM = dangerReachM; }
 
     public Instant getCreatedAt() { return createdAt; }
 }
