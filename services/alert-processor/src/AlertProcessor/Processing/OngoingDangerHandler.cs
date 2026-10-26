@@ -40,7 +40,7 @@ public sealed class OngoingDangerHandler(
         }
 
         var watchers = await repository.GetDangerWatchersAsync(ct);
-        var targets = OngoingDanger.SelectTargets(watchers, alert.Lat, alert.Lng);
+        var targets = OngoingDanger.SelectTargets(watchers, alert.Lat, alert.Lng, alert.Category);
         if (targets.Count == 0)
         {
             return;

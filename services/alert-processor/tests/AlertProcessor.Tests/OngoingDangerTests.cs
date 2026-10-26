@@ -27,6 +27,27 @@ public class OngoingDangerTests
         Guid.NewGuid(), "Home", null,
         AlertLat - centerDistanceM / MetersPerDegreeLat, AlertLng, radiusM, []);
 
+    // A drawn square zone due south of the alert: its north edge is northEdgeM
+    // south of the alert (negative puts the alert inside). RadiusM is the
+    // furthest-vertex distance, as the API stores it for drawn zones.
+    private static WatchZone DrawnSquareSouth(double northEdgeM, double sideM, params string[] categories)
+    {
+        var metersPerDegreeLng = MetersPerDegreeLat * Math.Cos(AlertLat * Math.PI / 180);
+        var northLat = AlertLat - northEdgeM / MetersPerDegreeLat;
+        var southLat = northLat - sideM / MetersPerDegreeLat;
+        var halfLng = sideM / 2 / metersPerDegreeLng;
+        var centerLat = (northLat + southLat) / 2;
+        return new WatchZone(
+            Guid.NewGuid(), "Suburb", null, centerLat, AlertLng,
+            (int)Math.Ceiling(sideM / Math.Sqrt(2)), categories,
+            [
+                new GeoPoint(northLat, AlertLng - halfLng),
+                new GeoPoint(northLat, AlertLng + halfLng),
+                new GeoPoint(southLat, AlertLng + halfLng),
+                new GeoPoint(southLat, AlertLng - halfLng),
+            ]);
+    }
+
     [Fact]
     public void Qualifies_baselineAlertIsTrue()
     {
@@ -103,7 +124,7 @@ public class OngoingDangerTests
         var near = ZoneAt(2_000, 500);
         var watcher = new DangerWatcher(Guid.NewGuid(), 5_000, [far, near]);
 
-        var targets = OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng);
+        var targets = OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT");
 
         var target = Assert.Single(targets);
         Assert.Equal(near.Id, target.Zone.Id);
@@ -115,7 +136,7 @@ public class OngoingDangerTests
     {
         var watcher = new DangerWatcher(Guid.NewGuid(), 5_000, [ZoneAt(6_500, 500)]);
 
-        Assert.Empty(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng));
+        Assert.Empty(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT"));
     }
 
     [Fact]
@@ -125,7 +146,7 @@ public class OngoingDangerTests
         var farButInReach = ZoneAt(4_000, 500);
         var watcher = new DangerWatcher(Guid.NewGuid(), 5_000, [escalated, farButInReach]);
 
-        Assert.Empty(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng));
+        Assert.Empty(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT"));
     }
 
     [Fact]
@@ -136,8 +157,62 @@ public class OngoingDangerTests
         var farUser = new DangerWatcher(Guid.NewGuid(), 5_000, [farZone]);
         var nearUser = new DangerWatcher(Guid.NewGuid(), 5_000, [nearZone]);
 
-        var targets = OngoingDanger.SelectTargets([farUser, nearUser], AlertLat, AlertLng);
+        var targets = OngoingDanger.SelectTargets([farUser, nearUser], AlertLat, AlertLng, "ASSAULT");
 
         Assert.Equal([nearZone.Id, farZone.Id], targets.Select(t => t.Zone.Id));
+    }
+
+    [Fact]
+    public void EdgeDistance_drawnZoneMeasuresToTheOutlineNotItsBoundingCircle()
+    {
+        // 300 m outside the square, but well inside its ~1.4 km bounding circle.
+        var zone = DrawnSquareSouth(northEdgeM: 300, sideM: 2_000);
+
+        var edge = OngoingDanger.EdgeDistanceMeters(zone, AlertLat, AlertLng);
+
+        Assert.InRange(edge, 295, 305);
+    }
+
+    [Fact]
+    public void EdgeDistance_insideDrawnZoneIsZero()
+    {
+        var zone = DrawnSquareSouth(northEdgeM: -1_000, sideM: 2_000);
+
+        Assert.Equal(0, OngoingDanger.EdgeDistanceMeters(zone, AlertLat, AlertLng));
+    }
+
+    [Fact]
+    public void SelectTargets_drawnZoneOutsideItsShapeIsNotTreatedAsEscalated()
+    {
+        // Escalation never widens drawn zones, so this user heard nothing yet.
+        var zone = DrawnSquareSouth(northEdgeM: 300, sideM: 2_000);
+        var watcher = new DangerWatcher(Guid.NewGuid(), 2_000, [zone]);
+
+        var target = Assert.Single(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT"));
+
+        Assert.Equal(zone.Id, target.Zone.Id);
+        Assert.InRange(target.EdgeDistanceMeters, 295, 305);
+    }
+
+    [Fact]
+    public void SelectTargets_skipsDrawnZoneTheEscalationReached()
+    {
+        var zone = DrawnSquareSouth(northEdgeM: -1_000, sideM: 2_000);
+        var watcher = new DangerWatcher(Guid.NewGuid(), 2_000, [zone]);
+
+        Assert.Empty(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT"));
+    }
+
+    [Fact]
+    public void SelectTargets_warnsInsideDrawnZoneWhoseCategoriesKeptTheEscalationOut()
+    {
+        // Drawn zones keep their category filter on escalation, so an ASSAULT
+        // inside a THEFT-only zone was never escalated to this user.
+        var zone = DrawnSquareSouth(northEdgeM: -1_000, sideM: 2_000, "THEFT");
+        var watcher = new DangerWatcher(Guid.NewGuid(), 2_000, [zone]);
+
+        var target = Assert.Single(OngoingDanger.SelectTargets([watcher], AlertLat, AlertLng, "ASSAULT"));
+
+        Assert.Equal(0, target.EdgeDistanceMeters);
     }
 }
