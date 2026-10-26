@@ -9,6 +9,7 @@ import {
   freehandShape,
   handles,
   insertPointAt,
+  joinPieces,
   moveHandle,
   nearestSegment,
   penDownAction,
@@ -317,6 +318,23 @@ describe("freehandShape", () => {
     expect(outline(shape)).toHaveLength(4);
   });
 
+  it("continues a later piece from the previous end, not from the press point beside it", () => {
+    // Each piece after the first begins with the press: a few metres behind the
+    // previous piece's end, along that piece's last direction.
+    const pressBehind = (piece: LatLng[], metres: number): LatLng => {
+      const end = local(piece[piece.length - 1]);
+      const before = local(piece[piece.length - 2]);
+      const length = Math.hypot(end.x - before.x, end.y - before.y);
+      return at(end.x - ((end.x - before.x) / length) * metres, end.y - ((end.y - before.y) / length) * metres);
+    };
+    const first = [at(0, 0), at(100, 30), at(200, 60)];
+    const second = [at(150, 300), at(100, 400)];
+    const third = [at(-100, 300), at(-100, 100)];
+    const pieces = [first, [pressBehind(first, 8), ...second], [pressBehind(second, 8), ...third]];
+
+    expect(validateOutline(outline(freehandShape(pieces)))).toBeNull();
+  });
+
   it("throws when fewer than 3 points are given", () => {
     expect(() => freehandShape([[at(0, 0), at(10, 10)]])).toThrow("A drawn zone needs at least 3 points");
   });
@@ -467,6 +485,14 @@ describe("resetToCircle", () => {
     expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 4960).radiusM).toBe(5000);
     expect(resetToCircle({ center: CENTER, radiusM: 800, shape }, 10_000).radiusM).toBe(10_000);
     expect(resetToCircle({ center: CENTER, radiusM: 12_345, shape }).radiusM).toBe(10_000);
+  });
+});
+
+describe("joinPieces", () => {
+  it("leaves out the press point that starts every piece after the first", () => {
+    const [a, b, c, d, e] = [at(0, 0), at(10, 0), at(11, 0), at(20, 0), at(30, 0)];
+    expect(joinPieces([[a, b], [c, d], [e]])).toEqual([a, b, d]);
+    expect(joinPieces([])).toEqual([]);
   });
 });
 

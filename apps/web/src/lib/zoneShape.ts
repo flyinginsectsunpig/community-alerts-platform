@@ -268,9 +268,18 @@ function simplify(points: Xy[], tolerance: number): number[] {
   return keep.flatMap((kept, i) => (kept ? [i] : []));
 }
 
+/**
+ * The pieces as one line. A piece after the first starts where the pen went
+ * down, within the join radius of the previous piece's end, so that end stands
+ * in for it: keeping both would double back at the join.
+ */
+export function joinPieces(pieces: LatLng[][]): LatLng[] {
+  return pieces.flatMap((piece, i) => (i === 0 ? piece : piece.slice(1)));
+}
+
 /** Joins the strokes and thins them to at most 500 points; none of them is a handle. */
 export function freehandShape(pieces: LatLng[][]): ZoneShape {
-  const all = pieces.flat();
+  const all = joinPieces(pieces);
   if (all.length < MIN_POINTS) {
     throw new Error(TOO_FEW_POINTS);
   }
