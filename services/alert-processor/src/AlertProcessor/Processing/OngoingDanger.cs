@@ -29,28 +29,38 @@ public static class OngoingDanger
             && now - state.CreatedAt <= OngoingWindow;
     }
 
+    private static readonly WatchZoneMatcher Matcher = new();
+
     /// <summary>Metres from the alert to the zone's edge; 0 when the alert is inside it.</summary>
     public static double EdgeDistanceMeters(WatchZone zone, double lat, double lng)
     {
         ArgumentNullException.ThrowIfNull(zone);
+
+        if (zone.Polygon is { } polygon)
+        {
+            return GeoMath.DistanceToOutlineMeters(polygon, lat, lng);
+        }
 
         var centerDistance = GeoMath.DistanceMeters(zone.CenterLat, zone.CenterLng, lat, lng);
         return Math.Max(0, centerDistance - zone.RadiusM);
     }
 
     public static IReadOnlyList<DangerTarget> SelectTargets(
-        IEnumerable<DangerWatcher> watchers, double lat, double lng)
+        IEnumerable<DangerWatcher> watchers, double lat, double lng, string category)
     {
         ArgumentNullException.ThrowIfNull(watchers);
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
         var targets = new List<DangerTarget>();
         foreach (var watcher in watchers)
         {
             // A qualifying alert is CRITICAL, so EscalationHandler has already
-            // notified every zone within 2x its radius; don't warn that user twice.
-            var alreadyEscalated = watcher.Zones.Any(z =>
-                GeoMath.DistanceMeters(z.CenterLat, z.CenterLng, lat, lng)
-                    <= z.RadiusM * EscalationHandler.EscalationRadiusMultiplier);
+            // notified the zones it matches (circles within 2x their radius, drawn
+            // zones only inside their shape and categories); don't warn that user twice.
+            var alreadyEscalated = Matcher.FindMatches(
+                watcher.Zones, lat, lng, category,
+                radiusMultiplier: EscalationHandler.EscalationRadiusMultiplier,
+                ignoreCategories: true).Count > 0;
             if (alreadyEscalated)
             {
                 continue;
