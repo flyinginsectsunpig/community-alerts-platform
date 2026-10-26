@@ -11,6 +11,7 @@ import {
   circleOutline,
   handles,
   insertPointAt,
+  joinPieces,
   moveHandle,
   outline,
   penDownAction,
@@ -422,7 +423,7 @@ export default function ZoneShapeEditor({
 
       {mode === "freehand" && pieces.length > 0 && (
         <Polyline
-          positions={pieces.flat().map((p) => [p.lat, p.lng] as [number, number])}
+          positions={joinPieces(pieces).map((p) => [p.lat, p.lng] as [number, number])}
           interactive={false}
           pathOptions={{ color: ZONE_COLOR, weight: 3, dashArray: DRAFT_STYLE.dashArray }}
         />
