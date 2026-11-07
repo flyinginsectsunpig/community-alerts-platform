@@ -13,12 +13,14 @@ import {
   Tooltip,
   useMap,
   useMapEvents,
+  ZoomControl,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import ZoneShapeEditor, { ZONE_COLOR } from "./ZoneShapeEditor";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
@@ -32,11 +34,21 @@ const DEFAULT_ZOOM = 13;
 // blank map.
 const BASEMAP_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY ?? "";
 const BASEMAP_QUERY = BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "";
-const BASEMAP_URL = `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
-// Dark Matter's baked-in labels are mid-grey and get lost in the road network,
-// so roads and labels are separate layers that CSS dims and brightens
-// independently (.basemap-roads, .basemap-labels).
-const LABELS_URL = `https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
+const CARTO = "https://{s}.basemaps.cartocdn.com";
+// Roads and labels are separate layers so CSS can tune each on its own
+// (.basemap-roads, .basemap-labels): Dark Matter's baked-in labels are
+// mid-grey and get lost in its road network, and Voyager's roads are dialled
+// back so they never compete with the severity colours on the pins.
+const BASEMAPS = {
+  light: {
+    roads: `${CARTO}/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+    labels: `${CARTO}/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+  },
+  dark: {
+    roads: `${CARTO}/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+    labels: `${CARTO}/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+  },
+} as const;
 
 /** A point the map should fly to, optionally at a specific zoom. */
 export type FocusTarget = LatLng & { zoom?: number };
@@ -161,21 +173,27 @@ export default function AlertMap({
   onHover,
   onCenterChange,
 }: AlertMapProps) {
+  const basemap = BASEMAPS[useColorScheme()];
+
   return (
     <MapContainer
       center={[DEFAULT_CENTER.lat, DEFAULT_CENTER.lng]}
       zoom={DEFAULT_ZOOM}
       className="alert-map"
       scrollWheelZoom
+      // The feed panel floats over the top left, so zoom moves to the
+      // bottom right, where globals.css slides it clear of the dock.
+      zoomControl={false}
     >
+      <ZoomControl position="bottomright" />
       <TileLayer
-        url={BASEMAP_URL}
+        url={basemap.roads}
         className="basemap-roads"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
       {/* Above the roads, below zones (overlay pane, 400) and markers. */}
       <Pane name="basemap-labels" style={{ zIndex: 350, pointerEvents: "none" }}>
-        <TileLayer url={LABELS_URL} className="basemap-labels" />
+        <TileLayer url={basemap.labels} className="basemap-labels" />
       </Pane>
       <MapResize />
       <ClickCapture onMapClick={onMapClick} />

@@ -18,8 +18,6 @@ interface AlertFeedProps {
   /** Id whose map pin is hovered, so the matching row can light up too. */
   linkedId: string | null;
   filter: AlertFilter;
-  searchRef?: React.Ref<HTMLInputElement>;
-  onQueryChange: (query: string) => void;
   onClearFilter: () => void;
   onSelect: (alert: Alert) => void;
   onHover: (alertId: string | null) => void;
@@ -34,8 +32,6 @@ export default function AlertFeed({
   newIds,
   linkedId,
   filter,
-  searchRef,
-  onQueryChange,
   onClearFilter,
   onSelect,
   onHover,
@@ -58,18 +54,6 @@ export default function AlertFeed({
             {connected ? " — receiving alerts" : " — not receiving alerts"}
           </span>
         </span>
-      </div>
-
-      <div className="feed__search">
-        <input
-          ref={searchRef}
-          type="search"
-          className="feed__search-input"
-          placeholder="Search alerts…"
-          aria-label="Search alerts by description or category"
-          value={filter.query}
-          onChange={(event) => onQueryChange(event.target.value)}
-        />
       </div>
 
       {/* Only shown while something is actually narrowed, so the default view

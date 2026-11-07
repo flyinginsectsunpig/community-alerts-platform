@@ -577,8 +577,53 @@ export default function Dashboard() {
 
   useKeyboardShortcuts(shortcuts);
 
+  const rightDocked =
+    detailAlert !== null ||
+    stationStats !== null ||
+    (panelMode === "report" && pendingPoint !== null) ||
+    zoneDraft !== null ||
+    showZonesPanel;
+
   return (
-    <div className={`dashboard${sidebarOpen ? "" : " dashboard--rail-closed"}`}>
+    <div
+      className={
+        "dashboard" +
+        (sidebarOpen ? "" : " dashboard--rail-closed") +
+        (rightDocked ? " dashboard--docked-right" : "")
+      }
+    >
+      {/* The map is the page. Everything else floats over it as a card. */}
+      <main className="map-wrap">
+        <AlertMap
+          alerts={visibleAlerts}
+          showStations={showStations}
+          onStationZoomGate={setStationsGated}
+          onStationsError={handleStationsError}
+          onOpenStationStats={openStationStats}
+          pendingPoint={pendingPoint}
+          focus={focus}
+          zoneDraft={zoneDraft}
+          zoneMode={zoneMode}
+          freehandPieces={freehandPieces}
+          penDown={penDown}
+          zones={showZonesPanel && !zoneDraft ? zones : null}
+          newIds={liveIds}
+          selectedId={detailAlertId}
+          linkedId={linkedId}
+          onZoneShapeChange={setZoneDraft}
+          onPiecesChange={handlePiecesChange}
+          onFinishFreehand={handleFinishFreehand}
+          onStrayStart={() => setStartedAwayFromEnd(true)}
+          onMapClick={handleMapClick}
+          onConfirm={handleConfirm}
+          onOpenDetail={openDetail}
+          onHover={setLinkedId}
+          onCenterChange={(center) => {
+            mapCenter.current = center;
+          }}
+        />
+      </main>
+
       <header className="topbar">
         <div className="topbar__brand">
           <button
@@ -595,16 +640,70 @@ export default function Dashboard() {
             </svg>
           </button>
           <span className="topbar__logo" aria-hidden>
-            ⚠
+            <svg viewBox="0 0 32 32" width="18" height="18">
+              <path
+                d="M16 7.5 L25 23.5 H7 Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinejoin="round"
+              />
+              <line
+                x1="16"
+                y1="13.5"
+                x2="16"
+                y2="18"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              />
+              <circle cx="16" cy="20.8" r="1.4" fill="currentColor" />
+            </svg>
           </span>
           <h1>Community Alerts</h1>
         </div>
+
+        {/* Search narrows the feed and the map together, so it lives in the
+            bar that sits over both rather than inside the feed. */}
+        <div className="topbar__search">
+          <svg
+            className="topbar__search-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            aria-hidden
+          >
+            <circle cx="7" cy="7" r="4.75" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <line
+              x1="10.5"
+              y1="10.5"
+              x2="14"
+              y2="14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          <input
+            ref={searchRef}
+            type="search"
+            className="topbar__search-input"
+            placeholder="Search alerts"
+            aria-label="Search alerts by description or category"
+            value={filter.query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <kbd className="topbar__search-key" aria-hidden>
+            /
+          </kbd>
+        </div>
+
         {/* Map controls and account are separate groups so that on a phone the
             account can sit beside the brand and the controls drop to their own
-            row, instead of everything wrapping into three. */}
+            row. */}
         <div className="topbar__controls">
           {/* Keeps the map's layer controls in one bordered group, so further
-              layers land beside Stations instead of loose in the topbar. */}
+              layers land beside Stations instead of loose in the bar. */}
           <div className="layer-switches">
             <label className="layer-toggle">
               <input
@@ -636,175 +735,144 @@ export default function Dashboard() {
         <div className="topbar__account">
           {session ? (
             <div className="user-chip">
+              <span className="user-chip__avatar" aria-hidden>
+                {session.displayName.trim().charAt(0).toUpperCase() || "?"}
+              </span>
               <span className="user-chip__name">{session.displayName}</span>
               <button type="button" className="link-button" onClick={handleSignOut}>
                 Sign out
               </button>
             </div>
           ) : (
-            <button type="button" className="btn btn--small" onClick={() => setShowAuthModal(true)}>
+            <button
+              type="button"
+              className="btn btn--small btn--primary"
+              onClick={() => setShowAuthModal(true)}
+            >
               Sign in
             </button>
           )}
         </div>
       </header>
 
-      <div className="dashboard__body">
-        <aside
-          id="sidebar"
-          className={`sidebar${sheet.dragging ? " sidebar--dragging" : ""}`}
-          ref={sheet.sheetRef}
-        >
-          {/* Phones only: the rail becomes a sheet the user drags between
-              peek, half and full. Hidden on desktop via CSS. */}
-          <button
-            type="button"
-            className="sheet-handle"
-            aria-label={`Alerts panel, ${sheet.snap}. Drag or press to resize.`}
-            aria-expanded={sheet.snap !== "peek"}
-            aria-controls="sidebar-inner"
-            onClick={sheet.cycle}
-            {...sheet.handlers}
+      <aside
+        id="sidebar"
+        className={`sidebar${sheet.dragging ? " sidebar--dragging" : ""}`}
+        ref={sheet.sheetRef}
+      >
+        {/* Phones only: the panel becomes a sheet the user drags between
+            peek, half and full. Hidden on desktop via CSS. */}
+        <button
+          type="button"
+          className="sheet-handle"
+          aria-label={`Alerts panel, ${sheet.snap}. Drag or press to resize.`}
+          aria-expanded={sheet.snap !== "peek"}
+          aria-controls="sidebar-inner"
+          onClick={sheet.cycle}
+          {...sheet.handlers}
+        />
+        <div className="sidebar__inner" id="sidebar-inner">
+          <StatsPanel
+            stats={stats}
+            loading={!statsLoaded}
+            filter={filter}
+            onToggleCategory={toggleCategory}
+            onToggleSeverity={toggleSeverity}
           />
-          <div className="sidebar__inner" id="sidebar-inner">
-            <StatsPanel
-              stats={stats}
-              loading={!statsLoaded}
-              filter={filter}
-              onToggleCategory={toggleCategory}
-              onToggleSeverity={toggleSeverity}
-            />
-            <AlertFeed
-              alerts={visibleAlerts}
-              totalCount={alerts.length}
-              loading={!alertsLoaded}
-              connected={connected}
-              selectedId={detailAlertId}
-              newIds={liveIds}
-              linkedId={linkedId}
-              filter={filter}
-              searchRef={searchRef}
-              onQueryChange={setQuery}
-              onClearFilter={clearFilter}
-              onSelect={openDetail}
-              onHover={setLinkedId}
-            />
-          </div>
-        </aside>
-
-        {/* A panel docked over the right of the map shifts the hints left so
-            they stay centred on what's still visible of it. */}
-        <main
-          className={`map-wrap${
-            detailAlert || stationStats ? " map-wrap--docked-right" : ""
-          }`}
-        >
-          <AlertMap
+          <AlertFeed
             alerts={visibleAlerts}
-            showStations={showStations}
-            onStationZoomGate={setStationsGated}
-            onStationsError={handleStationsError}
-            onOpenStationStats={openStationStats}
-            pendingPoint={pendingPoint}
-            focus={focus}
-            zoneDraft={zoneDraft}
-            zoneMode={zoneMode}
-            freehandPieces={freehandPieces}
-            penDown={penDown}
-            zones={showZonesPanel && !zoneDraft ? zones : null}
-            newIds={liveIds}
+            totalCount={alerts.length}
+            loading={!alertsLoaded}
+            connected={connected}
             selectedId={detailAlertId}
+            newIds={liveIds}
             linkedId={linkedId}
-            onZoneShapeChange={setZoneDraft}
-            onPiecesChange={handlePiecesChange}
-            onFinishFreehand={handleFinishFreehand}
-            onStrayStart={() => setStartedAwayFromEnd(true)}
-            onMapClick={handleMapClick}
-            onConfirm={handleConfirm}
-            onOpenDetail={openDetail}
+            filter={filter}
+            onClearFilter={clearFilter}
+            onSelect={openDetail}
             onHover={setLinkedId}
-            onCenterChange={(center) => {
-              mapCenter.current = center;
-            }}
           />
-          {/* Each panel stays mounted for the length of its exit animation,
-              so closing one is as deliberate as opening it. */}
-          {/* Docked over the map so the pin stays visible and correctable
-              while the incident is described. */}
-          <Presence when={panelMode === "report" && pendingPoint !== null}>
-            {pendingPoint && (
-              <AlertForm
-                point={pendingPoint}
-                onClose={closePanel}
-                onCreated={handleAlertCreated}
-                onSwitchToZone={handleSwitchToZone}
-              />
-            )}
-          </Presence>
-          <Presence when={zoneDraft !== null}>
-            {zoneDraft && (
-              <WatchZonePanel
-                draft={zoneDraft}
-                editing={editingZone}
-                session={session}
-                mode={zoneMode}
-                onModeChange={handleZoneModeChange}
-                penDown={penDown}
-                onPenToggle={handlePenToggle}
-                onUndoPiece={handleUndoPiece}
-                onClearPieces={handleClearPieces}
-                onFinishFreehand={handleFinishFreehand}
-                canFinish={canFinishPieces(freehandPieces)}
-                hasPieces={freehandPieces.length > 0}
-                startedAwayFromEnd={startedAwayFromEnd}
-                onRadiusChange={handleZoneRadius}
-                onResetToCircle={handleResetToCircle}
-                onClose={closeZone}
-                onCreated={handleZoneCreated}
-                onUpdated={handleZoneUpdated}
-              />
-            )}
-          </Presence>
-          <Presence when={showZonesPanel && !zoneDraft}>
-            <MyZonesPanel
-              zones={zones}
-              session={session}
-              onClose={() => setShowZonesPanel(false)}
-              onCreate={startNewZone}
-              onEdit={startEditZone}
-              onDelete={(zone) => void handleDeleteZone(zone)}
-              onFocus={focusZone}
+        </div>
+      </aside>
+
+      {/* One column on the right for every docked panel. They stack rather
+          than overlap when more than one is open (say, reading an alert while
+          reporting another), and each stays mounted for the length of its exit
+          animation, so closing one is as deliberate as opening it. */}
+      <div className="dock">
+        <Presence when={panelMode === "report" && pendingPoint !== null}>
+          {pendingPoint && (
+            <AlertForm
+              point={pendingPoint}
+              onClose={closePanel}
+              onCreated={handleAlertCreated}
+              onSwitchToZone={handleSwitchToZone}
             />
-          </Presence>
-          <div className="map-hints">
-            <Presence when={showHint}>
-              <MapHint onDismiss={dismissHint}>
-                Click anywhere on the map to report an alert.
-              </MapHint>
-            </Presence>
-            <Presence when={showStations && stationsGated}>
-              <MapHint>Zoom in to see police stations.</MapHint>
-            </Presence>
-          </div>
-          <Presence when={stationStats !== null}>
-            {stationStats && (
-              <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
-            )}
-          </Presence>
-          <Presence when={detailAlert !== null}>
-            {detailAlert && (
-              <AlertDetailPanel
-                alert={detailAlert}
-                session={session}
-                liveComment={liveComment}
-                onClose={() => setDetailAlertId(null)}
-                onConfirm={handleConfirm}
-                onResolve={(alertId) => void handleResolve(alertId)}
-                onRequestAuth={() => setShowAuthModal(true)}
-              />
-            )}
-          </Presence>
-        </main>
+          )}
+        </Presence>
+        <Presence when={zoneDraft !== null}>
+          {zoneDraft && (
+            <WatchZonePanel
+              draft={zoneDraft}
+              editing={editingZone}
+              session={session}
+              mode={zoneMode}
+              onModeChange={handleZoneModeChange}
+              penDown={penDown}
+              onPenToggle={handlePenToggle}
+              onUndoPiece={handleUndoPiece}
+              onClearPieces={handleClearPieces}
+              onFinishFreehand={handleFinishFreehand}
+              canFinish={canFinishPieces(freehandPieces)}
+              hasPieces={freehandPieces.length > 0}
+              startedAwayFromEnd={startedAwayFromEnd}
+              onRadiusChange={handleZoneRadius}
+              onResetToCircle={handleResetToCircle}
+              onClose={closeZone}
+              onCreated={handleZoneCreated}
+              onUpdated={handleZoneUpdated}
+            />
+          )}
+        </Presence>
+        <Presence when={showZonesPanel && !zoneDraft}>
+          <MyZonesPanel
+            zones={zones}
+            session={session}
+            onClose={() => setShowZonesPanel(false)}
+            onCreate={startNewZone}
+            onEdit={startEditZone}
+            onDelete={(zone) => void handleDeleteZone(zone)}
+            onFocus={focusZone}
+          />
+        </Presence>
+        <Presence when={stationStats !== null}>
+          {stationStats && (
+            <StationStatsPanel stats={stationStats} onClose={() => setStationStats(null)} />
+          )}
+        </Presence>
+        <Presence when={detailAlert !== null}>
+          {detailAlert && (
+            <AlertDetailPanel
+              alert={detailAlert}
+              session={session}
+              liveComment={liveComment}
+              onClose={() => setDetailAlertId(null)}
+              onConfirm={handleConfirm}
+              onResolve={(alertId) => void handleResolve(alertId)}
+              onRequestAuth={() => setShowAuthModal(true)}
+            />
+          )}
+        </Presence>
+      </div>
+
+      {/* Centred on whatever is still visible of the map between the panels. */}
+      <div className="map-hints">
+        <Presence when={showHint}>
+          <MapHint onDismiss={dismissHint}>Click anywhere on the map to report an alert.</MapHint>
+        </Presence>
+        <Presence when={showStations && stationsGated}>
+          <MapHint>Zoom in to see police stations.</MapHint>
+        </Presence>
       </div>
 
       <Presence when={showShortcuts}>

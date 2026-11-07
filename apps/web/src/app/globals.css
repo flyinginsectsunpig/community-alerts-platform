@@ -241,28 +241,59 @@ input[type="range"] {
   }
 }
 
-/* ---------- Layout ---------- */
+/* ---------- Layout ----------
+
+   The map fills the window and every piece of chrome floats over it: the bar
+   along the top, the feed on the left, and a dock of panels on the right.
+   --dock-left / --dock-right say how much of the map each side currently
+   covers, so the hints and Leaflet's own controls can stay centred on (or
+   tucked beside) whatever is still visible of the city. */
 
 .dashboard {
-  display: flex;
-  flex-direction: column;
+  --dock-left: calc(var(--rail-open) + var(--gap));
+  --dock-right: 0px;
+  position: relative;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  background: var(--page);
+}
+
+.dashboard--rail-closed {
+  --dock-left: 0px;
+}
+
+.dashboard--docked-right {
+  --dock-right: calc(var(--dock-width) + var(--gap));
+}
+
+.map-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+/* Shared look for every card that floats over the map. */
+.topbar,
+.sidebar {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-3), var(--lip);
 }
 
 .topbar {
+  position: absolute;
+  top: var(--gap);
+  left: var(--gap);
+  right: var(--gap);
+  z-index: calc(var(--z-docked) + 1);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--s4);
-  padding: 10px var(--s4);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-1);
-  flex-shrink: 0;
-  position: relative;
-  z-index: var(--z-docked);
+  gap: var(--s3);
+  height: var(--bar-h);
+  padding: 0 var(--s2) 0 var(--s2);
+  border-radius: var(--r-lg);
 }
 
 .topbar__brand {
@@ -270,26 +301,28 @@ input[type="range"] {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .topbar__brand h1 {
   font-size: var(--t-lead);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
-/* The mark carries a slow ambient pulse — the one piece of chrome allowed to
-   breathe, because it stands for "this feed is live". */
+/* The same red tile as the app icon, so the tab, the home screen and the page
+   all carry one mark. It carries a slow ambient pulse — the one piece of
+   chrome allowed to breathe, because it stands for "this feed is live". */
 .topbar__logo {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--r-md);
-  background: var(--surface-3);
-  box-shadow: var(--lip);
-  color: var(--sev-high);
-  font-size: var(--t-lead);
+  background: var(--sev-critical);
+  color: oklch(1 0 0);
   flex-shrink: 0;
 }
 
@@ -298,7 +331,7 @@ input[type="range"] {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid var(--sev-high);
+  border: 1px solid var(--sev-critical);
   opacity: 0;
   animation: mark-breathe 4s var(--ease-out) infinite;
 }
@@ -316,10 +349,76 @@ input[type="range"] {
   }
 }
 
+.topbar__search {
+  position: relative;
+  flex: 1 1 auto;
+  max-width: 440px;
+  min-width: 0;
+  margin-left: var(--s3);
+}
+
+.topbar__search-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.topbar__search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 38px 0 36px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--t-body);
+  transition:
+    border-color var(--speed-fast) ease,
+    background var(--speed-fast) ease,
+    box-shadow var(--speed-fast) ease;
+}
+
+.topbar__search-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+@media (hover: hover) {
+  .topbar__search-input:hover:not(:focus) {
+    border-color: var(--border-strong);
+  }
+}
+
+.topbar__search-input:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* Says where "/" goes, and gets out of the way once you are typing. */
+.topbar__search-key {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  transition: opacity var(--speed-fast) ease;
+}
+
+.topbar__search-input:focus ~ .topbar__search-key,
+.topbar__search-input:not(:placeholder-shown) ~ .topbar__search-key {
+  opacity: 0;
+}
+
 .topbar__controls {
   display: flex;
   align-items: center;
-  gap: var(--s3);
+  gap: var(--s2);
   margin-left: auto;
 }
 
@@ -327,17 +426,18 @@ input[type="range"] {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  padding-left: var(--s2);
+  border-left: 1px solid var(--border);
 }
 
-/* Layer toggles read as one segmented cluster rather than two loose labels. */
+/* Layer toggles read as one segmented cluster rather than loose labels. */
 .layer-switches {
   display: flex;
   align-items: center;
   gap: var(--s1);
   padding: 3px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--r-pill);
 }
 
 .layer-toggle {
@@ -345,11 +445,11 @@ input[type="range"] {
   display: flex;
   align-items: center;
   gap: var(--s2);
-  padding: 5px var(--s2);
-  border-radius: var(--r-sm);
+  padding: 5px 12px 5px 8px;
+  border-radius: var(--r-pill);
   color: var(--ink-2);
   font-size: var(--t-small);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -373,11 +473,11 @@ input[type="range"] {
 
 .switch {
   position: relative;
-  width: 32px;
+  width: 30px;
   height: 18px;
   border-radius: var(--r-pill);
-  background: var(--grid);
-  border: 1px solid var(--border);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
   flex-shrink: 0;
   transition: background var(--speed) var(--ease-out), border-color var(--speed) var(--ease-out);
 }
@@ -390,18 +490,18 @@ input[type="range"] {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--ink-2);
+  background: var(--muted);
   transition: transform var(--speed) var(--ease-out), background var(--speed) var(--ease-out);
 }
 
 .switch__input:checked + .switch {
-  background: var(--accent-quiet);
+  background: var(--accent);
   border-color: var(--accent);
 }
 
 .switch__input:checked + .switch::after {
-  transform: translateX(14px);
-  background: var(--ink);
+  transform: translateX(12px);
+  background: var(--surface);
 }
 
 .switch__input:focus-visible + .switch {
@@ -409,41 +509,40 @@ input[type="range"] {
   outline-offset: 2px;
 }
 
-/* Body is a grid so the rail can collapse without the panel contents
-   reflowing mid-transition (the inner keeps a fixed width and is clipped). */
-.dashboard__body {
-  display: grid;
-  grid-template-columns: var(--rail) 1fr;
-  flex: 1;
-  min-height: 0;
-  transition: grid-template-columns var(--speed-slow) var(--ease-out-expo);
-}
-
-.dashboard--rail-closed {
-  --rail: 0px;
-}
-
+/* The feed floats down the left. Collapsing slides it off the edge, and it
+   goes invisible once it has left so it also leaves the tab order. */
 .sidebar {
+  position: absolute;
+  top: var(--chrome-top);
+  left: var(--gap);
+  bottom: var(--gap);
+  width: var(--rail-open);
+  z-index: var(--z-docked);
+  border-radius: var(--r-lg);
   overflow: hidden;
-  background: var(--page);
-  border-right: 1px solid var(--border);
-  min-width: 0;
+  transition:
+    transform var(--speed-slow) var(--ease-out-expo),
+    opacity var(--speed-slow) var(--ease-out-expo),
+    visibility 0s;
 }
 
 .dashboard--rail-closed .sidebar {
-  border-right-color: transparent;
+  transform: translateX(calc(-100% - var(--gap) - 8px));
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform var(--speed-slow) var(--ease-out-expo),
+    opacity var(--speed-slow) var(--ease-out-expo),
+    visibility 0s linear var(--speed-slow);
 }
 
 .sidebar__inner {
-  width: var(--rail-open);
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--s3);
-  padding: var(--s3);
   overflow-y: auto;
   /* Reserves the scrollbar gutter, so the vertical bar can never push content
-     sideways and produce a horizontal scrollbar in the rail. */
+     sideways and produce a horizontal scrollbar in the panel. */
   scrollbar-gutter: stable;
 }
 
@@ -457,9 +556,24 @@ input[type="range"] {
   place-items: center;
 }
 
-.map-wrap {
-  position: relative;
-  min-width: 0;
+/* Every panel docked over the right of the map lives in this one column, so
+   two open at once stack instead of landing on top of one another. The column
+   itself lets clicks through to the map; only its panels catch them. */
+.dock {
+  position: absolute;
+  top: var(--chrome-top);
+  right: var(--gap);
+  bottom: var(--gap);
+  width: min(var(--dock-width), calc(100% - 2 * var(--gap)));
+  z-index: var(--z-docked);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
 }
 
 .alert-map,
@@ -472,39 +586,26 @@ input[type="range"] {
   display: grid;
   place-items: center;
   color: var(--muted);
+  background: var(--page);
 }
 
 /* Both hints can be on screen at once — the teaching hint and the station
-   zoom gate — and each used to be positioned at the same spot, so they landed
-   on top of one another. The container owns the position and stacks them. */
+   zoom gate — so the container owns the position and stacks them. It sits
+   centred on whatever is still visible of the map between the side panels;
+   the shift rides on the transform so it animates without touching layout. */
 .map-hints {
   position: absolute;
-  top: var(--s3);
+  top: var(--chrome-top);
   left: 50%;
   z-index: var(--z-docked);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s2);
-  max-width: calc(100% - var(--s5) - var(--dock-right, 0px));
-  /* Centred on the visible map, not on the container: --dock-right is set
-     while a panel is docked over the right of it. Carried in the transform so
-     the shift animates without touching layout. */
-  transform: translateX(calc(-50% - var(--dock-right, 0px) / 2));
-  /* Transform only — max-width is left to apply instantly rather than
-     animating a layout property for the sake of it. */
+  max-width: calc(100% - var(--dock-left) - var(--dock-right) - 2 * var(--gap));
+  transform: translateX(calc(-50% + (var(--dock-left) - var(--dock-right)) / 2));
   transition: transform var(--speed-slow) var(--ease-out-expo);
   pointer-events: none; /* the map stays draggable either side of a hint */
-}
-
-/* The alert-detail and station-stats panels dock over the right of the map on
-   desktop, and the hint used to run 16px underneath them — burying its own
-   dismiss button. Below 860px they become bottom sheets instead, so there is
-   nothing to dodge. */
-@media (min-width: 861px) {
-  .map-wrap--docked-right {
-    --dock-right: 396px; /* .detail-panel is 384px wide, plus its 12px gutter */
-  }
 }
 
 .map-hint {
@@ -513,14 +614,27 @@ input[type="range"] {
   gap: var(--s1);
   max-width: 100%;
   padding: 5px 6px 5px var(--s4);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--ink);
   border-radius: var(--r-pill);
-  box-shadow: var(--shadow-2), var(--lip);
-  color: var(--ink-2);
+  box-shadow: var(--shadow-2);
+  color: var(--on-ink);
   font-size: 13px;
+  font-weight: 500;
   pointer-events: auto;
   animation: hint-in var(--speed-slow) var(--ease-out-expo);
+}
+
+.map-hint .btn-icon {
+  color: inherit;
+  opacity: 0.7;
+}
+
+@media (hover: hover) {
+  .map-hint .btn-icon:hover {
+    opacity: 1;
+    background: color-mix(in oklab, var(--on-ink) 16%, transparent);
+    color: inherit;
+  }
 }
 
 @keyframes hint-in {
@@ -1569,13 +1683,30 @@ kbd {
 
 .user-chip {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--s2);
+}
+
+.user-chip__avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .user-chip__name {
   font-weight: 600;
   font-size: 13px;
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .auth-tabs {
@@ -1614,22 +1745,33 @@ kbd {
 
 /* ---------- Docked map panels ---------- */
 
-.detail-panel {
-  position: absolute;
-  top: var(--s3);
-  right: var(--s3);
-  bottom: var(--s3);
-  width: min(384px, calc(100% - var(--s5)));
-  z-index: var(--z-docked);
+.detail-panel,
+.zone-panel {
+  position: relative;
+  min-height: 0;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-3), var(--lip);
   padding: var(--s4);
+  animation: dock-in-right var(--speed-slow) var(--ease-out-expo);
+}
+
+/* Reading panels take whatever height the column has left. */
+.detail-panel {
+  flex: 1 1 auto;
+  min-height: 240px;
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-  animation: dock-in-right var(--speed-slow) var(--ease-out-expo);
+}
+
+/* Task panels (report, zone editor, my zones) size to their content and
+   scroll once the column runs out. */
+.zone-panel {
+  flex: 0 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes dock-in-right {
@@ -1651,51 +1793,15 @@ kbd {
   }
 }
 
-.zone-panel {
-  position: absolute;
-  top: 84px; /* clears Leaflet's top-left zoom control */
-  left: var(--s3);
-  z-index: var(--z-docked);
-  width: min(320px, calc(100% - var(--s5)));
-  max-height: calc(100% - 96px);
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-3), var(--lip);
-  padding: var(--s4);
-  animation: dock-in-left var(--speed-slow) var(--ease-out-expo);
-}
-
-@keyframes dock-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-}
-
 .zone-panel--exiting {
   pointer-events: none;
-  animation: dock-out-left var(--speed) ease-in forwards;
-}
-
-@keyframes dock-out-left {
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
+  animation: dock-out-right var(--speed) ease-in forwards;
 }
 
 .zone-panel__form {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-}
-
-/* The report form shares the zone editor's dock, but carries a select, a
-   textarea and the severity preview, so it needs a little more room. */
-.report-panel {
-  width: min(352px, calc(100% - var(--s5)));
 }
 
 .zone-handle {
@@ -1873,15 +1979,39 @@ kbd {
   font-family: var(--font);
 }
 
-/* Dark Matter draws every street in the same light grey, which turns the map
-   into a dense web; dim it so alerts, zones and labels read over it. */
-.basemap-roads {
-  filter: brightness(0.55);
+/* Zoom and attribution sit bottom right, and slide left to stay clear of the
+   dock while a panel is open over that side. */
+.leaflet-bottom.leaflet-right {
+  transform: translateX(calc(-1 * var(--dock-right)));
+  transition: transform var(--speed-slow) var(--ease-out-expo);
 }
 
-/* Its labels are mid-grey; lift them clear of the dimmed roads. */
-.basemap-labels {
-  filter: brightness(1.3);
+.leaflet-bottom.leaflet-right .leaflet-control-zoom {
+  margin: 0 var(--gap) var(--s2) 0;
+}
+
+.leaflet-control-attribution {
+  border-top-left-radius: var(--r-sm);
+}
+
+/* Voyager colours its main roads orange and yellow — the same hues as the
+   medium and high severity pins. Pull most of the colour out so the only
+   saturated marks on the map are the ones that mean something. */
+.basemap-roads {
+  filter: saturate(0.35) brightness(1.03);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Dark Matter draws every street in the same light grey, which turns the
+     map into a dense web; dim it so alerts, zones and labels read over it. */
+  .basemap-roads {
+    filter: brightness(0.55);
+  }
+
+  /* Its labels are mid-grey; lift them clear of the dimmed roads. */
+  .basemap-labels {
+    filter: brightness(1.3);
+  }
 }
 
 .leaflet-popup-content-wrapper,
@@ -2510,45 +2640,50 @@ kbd {
 
 /* ---------- Small screens ----------
 
-   Below 860px the rail stops being a rail and becomes a draggable sheet over
-   the map, with three snap points. The old fixed-height panel gave the live
-   feed about 40px once the stats card was in — the whole point of the app was
-   the least visible thing on a phone. */
+   Below 860px the feed panel stops floating beside the map and becomes a
+   draggable sheet over it, with three snap points, and the docked panels
+   become bottom sheets of their own. Nothing covers the sides of the map any
+   more, so the hints centre on the whole width. */
 
 @media (max-width: 860px) {
-  .dashboard__body {
-    display: block;
-    position: relative;
+  .dashboard,
+  .dashboard--rail-closed,
+  .dashboard--docked-right {
+    --dock-left: 0px;
+    --dock-right: 0px;
   }
 
-  .map-wrap {
-    position: absolute;
-    inset: 0;
-  }
-
-  .sidebar {
-    position: absolute;
+  .sidebar,
+  .dashboard--rail-closed .sidebar {
+    top: auto;
     left: 0;
     right: 0;
     bottom: 0;
+    width: auto;
     height: 88dvh;
     z-index: var(--z-sheet);
     background: var(--surface);
-    border: 1px solid var(--border-strong);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     border-bottom: none;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
-    box-shadow: var(--shadow-3), var(--lip);
     overflow: visible;
+    opacity: 1;
+    visibility: visible;
     /* --sheet-y is written by useBottomSheet; the fallback keeps the sheet at
        its peek height before hydration so it never covers the map. Keep the
-       224px in step with PEEK_PX in that hook. */
-    transform: translateY(var(--sheet-y, calc(88dvh - 224px)));
+       px value in step with PEEK_PX in that hook. */
+    transform: translateY(var(--sheet-y, calc(88dvh - 196px)));
   }
 
   /* Only animate when the user isn't dragging — during a drag the transform
      must track the finger exactly. */
   .sidebar:not(.sidebar--dragging) {
     transition: transform var(--speed-slow) var(--ease-out-expo);
+  }
+
+  .sidebar--dragging {
+    transition: none;
   }
 
   .sheet-handle {
@@ -2585,48 +2720,44 @@ kbd {
   }
 
   .sidebar__inner {
-    width: 100%;
     height: calc(100% - 26px);
-    padding: 0 var(--s3) calc(var(--s3) + env(safe-area-inset-bottom));
-    gap: var(--s3);
+    padding-bottom: env(safe-area-inset-bottom);
     scrollbar-gutter: auto;
-    /* Feed first on a phone: at the peek height you get the live feed and its
-       latest alert, which is what the sheet is for. The 7-day summary is
-       context and sits below it. On desktop the rail keeps the original
-       order, where both are visible at once anyway. */
-    display: flex;
-    flex-direction: column;
   }
 
+  /* Feed first on a phone: at the peek height you get the live feed and its
+     latest alert, which is what the sheet is for. The 7-day summary is
+     context and sits below it. */
   .sidebar__inner > .feed {
     order: -1;
-    /* Inside a sheet the feed sizes to the sheet, not to a shared column. */
     flex: 1 1 auto;
   }
 
   .sidebar__inner > .stats {
     order: 0;
+    border-bottom: none;
+    border-top: 1px solid var(--border);
   }
 
-  /* The rail collapse is a desktop affordance; the sheet handle replaces it. */
+  /* The panel collapse is a desktop affordance; the sheet handle replaces it. */
   .panel-toggle {
     display: none;
   }
 
-  /* The rail toggle is a desktop affordance; on mobile the handle is the
-     control, so the collapsed state must not also hide the sheet. */
-  .dashboard--rail-closed .sidebar {
-    border-right-color: var(--border-strong);
+  /* The dock stops being a column: each panel is its own bottom sheet,
+     anchored to the viewport and stacked above the feed sheet. Static, so it
+     creates no stacking context that would hold them under it. */
+  .dock {
+    position: static;
   }
 
-  /* Docked map panels become bottom sheets too, and anchor to the viewport
-     rather than .map-wrap. */
   .zone-panel,
   .detail-panel {
     position: fixed;
     inset: auto 0 0 0;
     width: auto;
     max-width: none;
+    min-height: 0;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
     border-bottom: none;
     padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom));
@@ -2636,7 +2767,7 @@ kbd {
     animation: sheet-in var(--speed-slow) var(--ease-out-expo);
   }
 
-  /* As sheets these arrived from the bottom, so they leave that way rather
+  /* As sheets these arrive from the bottom, so they leave that way rather
      than sliding off the side they dock to on desktop. */
   .zone-panel--exiting,
   .detail-panel--exiting {
@@ -2644,7 +2775,6 @@ kbd {
   }
 
   .detail-panel {
-    top: auto;
     max-height: 76dvh;
   }
 
@@ -2658,13 +2788,30 @@ kbd {
     max-height: 62dvh;
   }
 
+  /* Pinch zooms on a phone, and the sheet would cover the buttons anyway. */
+  .leaflet-control-zoom {
+    display: none;
+  }
+
   .toast {
     bottom: calc(var(--s5) + env(safe-area-inset-bottom));
   }
 
   .topbar {
-    padding-left: calc(var(--s4) + env(safe-area-inset-left));
-    padding-right: calc(var(--s4) + env(safe-area-inset-right));
+    left: calc(var(--gap) + env(safe-area-inset-left));
+    right: calc(var(--gap) + env(safe-area-inset-right));
+  }
+
+  .topbar__brand h1 {
+    font-size: var(--t-body);
+  }
+
+  .topbar__search {
+    margin-left: 0;
+  }
+
+  .topbar__search-key {
+    display: none;
   }
 }
 
@@ -2683,33 +2830,54 @@ kbd {
 }
 
 @media (max-width: 620px) {
-  /* Two rows, not three: the account sits beside the brand and the map
-     controls take the row underneath. Left to wrap on its own the bar ate
-     ~130px of an 844px screen. */
+  /* Two rows: the mark, search and account on top, the map controls
+     underneath. The name goes to screen readers only — the red mark carries
+     it visually and the search field needs the width. */
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto 1fr auto;
     grid-template-areas:
-      "brand account"
-      "controls controls";
-    padding: 10px var(--s3);
-    gap: var(--s2) 10px;
+      "brand search account"
+      "controls controls controls";
+    height: auto;
+    padding: var(--s2);
+    gap: var(--s2);
   }
 
   .topbar__brand {
     grid-area: brand;
   }
 
+  .topbar__brand h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .topbar__search {
+    grid-area: search;
+    max-width: none;
+  }
+
   .topbar__account {
     grid-area: account;
     justify-self: end;
+    padding-left: 0;
+    border-left: none;
+  }
+
+  /* On a phone the chip is just the avatar and the sign-out link. */
+  .user-chip__name {
+    display: none;
   }
 
   .topbar__controls {
     grid-area: controls;
     margin-left: 0;
-    justify-content: space-between;
-    gap: var(--s2);
+    justify-content: flex-start;
   }
 
   .stats__category {
@@ -2723,10 +2891,10 @@ kbd {
 }
 
 /* Installed to the home screen the iOS status bar is translucent and the
-   layout runs underneath it, so the topbar reserves that space. */
+   layout runs underneath it, so the bar drops below it. */
 @media (display-mode: standalone) {
   .topbar {
-    padding-top: calc(10px + env(safe-area-inset-top));
+    top: calc(var(--gap) + env(safe-area-inset-top));
   }
 }
 
