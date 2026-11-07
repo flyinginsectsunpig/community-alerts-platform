@@ -58,6 +58,8 @@
   --shadow-2: 0 4px 14px -2px oklch(0.3 0.02 260 / 0.14), 0 1px 3px oklch(0.3 0.02 260 / 0.08);
   --shadow-3: 0 18px 44px -12px oklch(0.3 0.02 260 / 0.28), 0 2px 6px oklch(0.3 0.02 260 / 0.08);
   --pin-shadow: 0 2px 6px oklch(0.3 0.02 260 / 0.35);
+  /* The glyph knocked out of a severity-filled pin. */
+  --on-sev: oklch(1 0 0);
   --lip: inset 0 1px 0 oklch(1 0 0 / 0.7);
   --scrim: oklch(0.24 0.02 260 / 0.38);
 
@@ -145,7 +147,8 @@
     --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
     --shadow-2: 0 4px 16px -2px oklch(0 0 0 / 0.5);
     --shadow-3: 0 18px 44px -12px oklch(0 0 0 / 0.7), 0 2px 8px oklch(0 0 0 / 0.4);
-    --pin-shadow: var(--pin-shadow);
+    --pin-shadow: 0 2px 10px oklch(0 0 0 / 0.6);
+    --on-sev: oklch(0.145 0.008 265);
     --lip: inset 0 1px 0 oklch(1 0 0 / 0.06);
     --scrim: oklch(0.145 0.008 265 / 0.72);
   }
@@ -1807,7 +1810,7 @@ kbd {
 .zone-handle {
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--surface);
   box-shadow: var(--shadow-2);
   cursor: grab;
   transition: transform var(--speed-fast) var(--ease-out);
@@ -2098,8 +2101,10 @@ kbd {
   border: none;
 }
 
-/* The pin carries severity in its ring and recency in its opacity, so the map
-   answers "how bad, how recent" before anything is clicked. */
+/* The pin is a solid disc in its severity colour with the category glyph
+   knocked out of it, and recency is carried by its opacity, so the map
+   answers "how bad, what, how recent" before anything is clicked. The rim
+   lifts it off both basemaps. */
 .category-pin {
   position: relative;
   display: flex;
@@ -2108,8 +2113,8 @@ kbd {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--surface-2);
-  border: 2px solid var(--sev, var(--sev-unscored));
+  background: var(--sev, var(--sev-unscored));
+  border: 2px solid var(--surface);
   box-shadow: var(--pin-shadow);
   opacity: var(--pin-fade, 1);
   transition:
@@ -2122,7 +2127,7 @@ kbd {
   width: 14px;
   height: 14px;
   display: block;
-  color: var(--sev, var(--ink));
+  color: var(--on-sev);
 }
 
 /* Hovered from either the map or its row in the feed. */
@@ -2137,10 +2142,9 @@ kbd {
 
 .category-pin--selected {
   opacity: 1;
-  border-color: var(--accent);
   box-shadow:
     var(--pin-shadow),
-    0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
+    0 0 0 3px var(--accent);
 }
 
 /* An alert that just landed: a ring pushes out from the pin three times.
@@ -2177,8 +2181,12 @@ kbd {
   pointer-events: none;
 }
 
-/* The spot picked for a report, while the form is open. */
+/* The spot picked for a report, while the form is open. Leaflet writes its
+   colours as SVG attributes, which cannot follow the theme; CSS outranks
+   them, so the ink colour is set here. */
 .pending-pin {
+  stroke: var(--ink);
+  fill: var(--ink);
   animation: pending-crawl 1.4s linear infinite;
 }
 
