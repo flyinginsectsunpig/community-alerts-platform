@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Public_Sans } from "next/font/google";
 
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
+// Designed for US government services: plain, highly legible at small sizes,
+// and it reads as civic rather than as a startup.
+const publicSans = Public_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
@@ -24,8 +26,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Matches --page in globals.css: oklch(0.145 0.008 265).
-  themeColor: "#090a0e",
+  // Matches --page in globals.css for each scheme.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f4f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#090a0e" },
+  ],
   // Lets the layout reach the display edges so the safe-area insets in
   // globals.css resolve to real values around the notch and home indicator.
   viewportFit: "cover",
@@ -33,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={plexSans.variable}>
+    <html lang="en" className={publicSans.variable}>
       <body>{children}</body>
     </html>
   );

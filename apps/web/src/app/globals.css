@@ -1,56 +1,65 @@
-/* Community Alerts — night-watch theme.
+/* Community Alerts — civic daylight theme.
 
-   Colour strategy is deliberately Restrained: the chrome is a near-monochrome
-   cool ink so that the ONLY saturated colour on screen is information —
-   severity, station crime density, and your own watch zones. The primary action is a
-   white fill rather than a brand hue, which keeps the entire hue circle free
-   for data and stops "primary blue" competing with "low severity blue".
+   Light by default, dark when the device asks for it. In both, the chrome is
+   a near-neutral so the ONLY saturated colour on screen is information —
+   severity, station crime density, and your own watch zones. The primary
+   action is an ink fill rather than a brand hue, which keeps the hue circle
+   free for data and stops "primary blue" competing with "low severity blue".
 
-   Every foreground/background pair below was verified against WCAG AA
-   (4.5:1 body, 3:1 large/graphical) before being committed. */
+   The map is the page: every piece of chrome floats over it as a card, so the
+   city stays visible edge to edge.
+
+   Every foreground/background pair below was checked against WCAG AA
+   (4.5:1 body, 3:1 large/graphical) in both schemes before being committed. */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ---- Surfaces: a cool ink ramp tuned to sit with the CARTO dark tiles,
-         so panels read as glass over the city rather than pasted on top. ---- */
-  --page: oklch(0.145 0.008 265);
-  --surface: oklch(0.19 0.01 265);
-  --surface-2: oklch(0.235 0.011 265);
-  --surface-3: oklch(0.285 0.012 265);
+  /* ---- Surfaces: warm paper, with white cards floating over the map. ---- */
+  --page: oklch(0.968 0.006 85);
+  --surface: oklch(0.995 0.003 85);
+  --surface-2: oklch(0.962 0.006 85);
+  --surface-3: oklch(0.928 0.008 85);
+  /* Floating cards are slightly translucent so the map reads through. */
+  --glass: oklch(0.995 0.003 85 / 0.9);
 
   /* ---- Text ---- */
-  --ink: oklch(0.975 0.002 265); /* 17.2:1 on --surface */
-  --ink-2: oklch(0.815 0.008 265); /* 9.4:1 on --surface-2 */
-  --muted: oklch(0.66 0.012 265); /* 4.6:1 on --surface-3, the worst case */
+  --ink: oklch(0.24 0.02 260); /* 16.2:1 on --surface */
+  --ink-2: oklch(0.42 0.018 260); /* 7.6:1 on --surface-2 */
+  --muted: oklch(0.5 0.016 260); /* 4.9:1 on --surface-3, the worst case */
+  /* Text on an --ink fill (the primary button). */
+  --on-ink: oklch(0.995 0.003 85);
+  --ink-hover: oklch(0.32 0.02 260);
 
   /* ---- Lines ---- */
-  --border: oklch(1 0 0 / 0.09);
-  --border-strong: oklch(1 0 0 / 0.16);
-  --grid: oklch(0.3 0.012 265);
+  --border: oklch(0.24 0.02 260 / 0.1);
+  --border-strong: oklch(0.24 0.02 260 / 0.18);
+  --grid: oklch(0.88 0.01 85);
 
   /* ---- Accent: selection, focus, and your zones. Never a severity. ---- */
-  --accent: oklch(0.7 0.14 235);
-  --accent-quiet: oklch(0.52 0.11 235);
+  --accent: oklch(0.5 0.16 255); /* 6.0:1 on --surface */
+  --accent-quiet: oklch(0.72 0.09 255);
 
-  /* ---- Severity heat ramp. Keep in sync with SEVERITY_COLORS in
-         src/lib/format.ts, which is the source of truth for JS/Leaflet. ---- */
-  --sev-unscored: oklch(0.68 0.02 265);
-  --sev-low: oklch(0.75 0.085 200);
-  --sev-medium: oklch(0.8 0.15 85);
-  --sev-high: oklch(0.73 0.17 50);
-  --sev-critical: oklch(0.66 0.21 25);
+  /* ---- Severity heat ramp. SEVERITY_COLORS in src/lib/format.ts points at
+         these, so the map pins and the chrome always agree. Each is at least
+         3:1 against --surface. ---- */
+  --sev-unscored: oklch(0.58 0.02 265);
+  --sev-low: oklch(0.6 0.09 210);
+  --sev-medium: oklch(0.65 0.15 72);
+  --sev-high: oklch(0.6 0.17 45);
+  --sev-critical: oklch(0.55 0.2 25);
 
   /* ---- Other data hues ---- */
-  --good: oklch(0.72 0.15 150);
-  --station: oklch(0.72 0.04 245);
+  --good: oklch(0.52 0.13 150);
+  --station: oklch(0.45 0.06 250);
 
-  /* ---- Elevation. Panels that float over the map get a hairline top
-         highlight so they catch "light" from above and read as physical. ---- */
-  --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
-  --shadow-2: 0 4px 16px -2px oklch(0 0 0 / 0.5);
-  --shadow-3: 0 12px 40px -8px oklch(0 0 0 / 0.65), 0 2px 8px oklch(0 0 0 / 0.4);
-  --lip: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  /* ---- Elevation: soft, wide shadows, as cards lifted off a paper map. ---- */
+  --shadow-1: 0 1px 2px oklch(0.3 0.02 260 / 0.08);
+  --shadow-2: 0 4px 14px -2px oklch(0.3 0.02 260 / 0.14), 0 1px 3px oklch(0.3 0.02 260 / 0.08);
+  --shadow-3: 0 18px 44px -12px oklch(0.3 0.02 260 / 0.28), 0 2px 6px oklch(0.3 0.02 260 / 0.08);
+  --pin-shadow: 0 2px 6px oklch(0.3 0.02 260 / 0.35);
+  --lip: inset 0 1px 0 oklch(1 0 0 / 0.7);
+  --scrim: oklch(0.24 0.02 260 / 0.38);
 
   /* ---- Space: 4px base ---- */
   --s1: 4px;
@@ -61,18 +70,18 @@
   --s6: 32px;
 
   /* ---- Radii ---- */
-  --r-sm: 6px;
-  --r-md: 9px;
-  --r-lg: 14px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 18px;
   --r-pill: 999px;
 
-  /* ---- Type: fixed rem scale, ~1.15 ratio (product UI, not fluid) ---- */
+  /* ---- Type: fixed scale, ~1.15 ratio (product UI, not fluid) ---- */
   --t-micro: 11px;
   --t-small: 12px;
   --t-body: 14px;
   --t-lead: 16px;
-  --t-title: 19px;
-  --t-hero: 40px;
+  --t-title: 20px;
+  --t-hero: 44px;
 
   /* ---- Motion ---- */
   --speed-fast: 120ms;
@@ -89,11 +98,57 @@
   --z-modal: 1101;
   --z-toast: 1200;
 
-  /* ---- Layout ---- */
-  --rail-open: 366px;
-  --rail: var(--rail-open);
+  /* ---- Layout: everything floats a --gap in from the edges, and the panels
+         start below the bar. ---- */
+  --gap: 12px;
+  --bar-h: 56px;
+  --chrome-top: calc(var(--gap) + var(--bar-h) + var(--gap));
+  --rail-open: 360px;
+  --dock-width: 384px;
 
   --font: var(--font-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    /* A cool ink ramp tuned to sit with the CARTO dark tiles. */
+    --page: oklch(0.145 0.008 265);
+    --surface: oklch(0.19 0.01 265);
+    --surface-2: oklch(0.235 0.011 265);
+    --surface-3: oklch(0.285 0.012 265);
+    --glass: oklch(0.19 0.01 265 / 0.9);
+
+    --ink: oklch(0.975 0.002 265); /* 17.2:1 on --surface */
+    --ink-2: oklch(0.815 0.008 265); /* 9.4:1 on --surface-2 */
+    --muted: oklch(0.66 0.012 265); /* 4.6:1 on --surface-3 */
+    --on-ink: oklch(0.145 0.008 265);
+    --ink-hover: oklch(1 0 0);
+
+    --border: oklch(1 0 0 / 0.09);
+    --border-strong: oklch(1 0 0 / 0.16);
+    --grid: oklch(0.3 0.012 265);
+
+    --accent: oklch(0.7 0.14 235);
+    --accent-quiet: oklch(0.52 0.11 235);
+
+    --sev-unscored: oklch(0.68 0.02 265);
+    --sev-low: oklch(0.75 0.085 200);
+    --sev-medium: oklch(0.8 0.15 85);
+    --sev-high: oklch(0.73 0.17 50);
+    --sev-critical: oklch(0.66 0.21 25);
+
+    --good: oklch(0.72 0.15 150);
+    --station: oklch(0.72 0.04 245);
+
+    --shadow-1: 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-2: 0 4px 16px -2px oklch(0 0 0 / 0.5);
+    --shadow-3: 0 18px 44px -12px oklch(0 0 0 / 0.7), 0 2px 8px oklch(0 0 0 / 0.4);
+    --pin-shadow: var(--pin-shadow);
+    --lip: inset 0 1px 0 oklch(1 0 0 / 0.06);
+    --scrim: oklch(0.145 0.008 265 / 0.72);
+  }
 }
 
 * {
@@ -797,11 +852,11 @@ input[type="range"] {
 
 @keyframes halo {
   0% {
-    box-shadow: 0 0 0 0 oklch(0.66 0.21 25 / 0.55);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--sev-critical) 55%, transparent);
   }
   70%,
   100% {
-    box-shadow: 0 0 0 7px oklch(0.66 0.21 25 / 0);
+    box-shadow: 0 0 0 7px color-mix(in oklab, var(--sev-critical) 0%, transparent);
   }
 }
 
@@ -1111,17 +1166,17 @@ input[type="range"] {
   cursor: not-allowed;
 }
 
-/* Primary is a white fill: maximum contrast, and it spends no hue. */
+/* Primary is an ink fill: maximum contrast, and it spends no hue. */
 .btn--primary {
   background: var(--ink);
   border-color: var(--ink);
-  color: var(--page);
+  color: var(--on-ink);
 }
 
 @media (hover: hover) {
   .btn--primary:hover:not(:disabled) {
-    background: #fff;
-    border-color: #fff;
+    background: var(--ink-hover);
+    border-color: var(--ink-hover);
   }
 }
 
@@ -1178,7 +1233,7 @@ input[type="range"] {
 .panel-overlay {
   position: fixed;
   inset: 0;
-  background: oklch(0.145 0.008 265 / 0.72);
+  background: var(--scrim);
   backdrop-filter: blur(3px);
   display: grid;
   place-items: center;
@@ -1925,7 +1980,7 @@ kbd {
   border-radius: 50%;
   background: var(--surface-2);
   border: 2px solid var(--sev, var(--sev-unscored));
-  box-shadow: 0 2px 10px oklch(0 0 0 / 0.6);
+  box-shadow: var(--pin-shadow);
   opacity: var(--pin-fade, 1);
   transition:
     transform var(--speed) var(--ease-out),
@@ -1946,7 +2001,7 @@ kbd {
   opacity: 1;
   z-index: 1;
   box-shadow:
-    0 2px 10px oklch(0 0 0 / 0.6),
+    var(--pin-shadow),
     0 0 0 4px color-mix(in oklab, var(--sev, var(--accent)) 30%, transparent);
 }
 
@@ -1954,7 +2009,7 @@ kbd {
   opacity: 1;
   border-color: var(--accent);
   box-shadow:
-    0 2px 10px oklch(0 0 0 / 0.6),
+    var(--pin-shadow),
     0 0 0 3px color-mix(in oklab, var(--accent) 45%, transparent);
 }
 
@@ -1987,7 +2042,7 @@ kbd {
   position: absolute;
   inset: -2px;
   border-radius: 50%;
-  box-shadow: 0 0 0 0 oklch(0.66 0.21 25 / 0.5);
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--sev-critical) 50%, transparent);
   animation: halo 2.8s var(--ease-out) infinite;
   pointer-events: none;
 }
@@ -2005,7 +2060,7 @@ kbd {
 
 .station-marker {
   color: var(--station);
-  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.6));
+  filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.35));
   transition: transform var(--speed-fast) var(--ease-out);
 }
 
