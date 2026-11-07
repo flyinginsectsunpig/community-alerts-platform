@@ -661,12 +661,11 @@ input[type="range"] {
 
 /* ---------- Stats panel ---------- */
 
+/* Stats and feed are sections of the one floating panel, divided by a rule,
+   rather than cards stacked inside a card. */
 .stats {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1), var(--lip);
-  padding: var(--s4);
+  padding: var(--s4) var(--s4) var(--s5);
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: var(--s4);
@@ -680,8 +679,13 @@ input[type="range"] {
   gap: var(--s2);
 }
 
-.stats__header h2 {
-  font-size: var(--t-body);
+.stats__header h2,
+.feed__header h2 {
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .stats__source {
@@ -697,9 +701,9 @@ input[type="range"] {
 
 .stats__hero-number {
   font-size: var(--t-hero);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -933,17 +937,20 @@ input[type="range"] {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--sev, var(--sev-unscored)) 14%, transparent);
   font-size: var(--t-micro);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--ink-2);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .severity-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
   background: var(--sev, var(--sev-unscored));
@@ -980,11 +987,7 @@ input[type="range"] {
 /* ---------- Live feed ---------- */
 
 .feed {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1), var(--lip);
-  padding: var(--s4);
+  padding: var(--s4) var(--s2) var(--s2) var(--s4);
   display: flex;
   flex-direction: column;
   gap: var(--s3);
@@ -1000,16 +1003,16 @@ input[type="range"] {
   flex-shrink: 0;
 }
 
-.feed__header h2 {
-  font-size: var(--t-body);
-}
-
 .live-indicator {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin-right: var(--s2);
+  padding: 3px 9px 3px 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
   font-size: var(--t-micro);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--muted);
   text-transform: uppercase;
@@ -1025,6 +1028,7 @@ input[type="range"] {
 
 .live-indicator--on {
   color: var(--good);
+  background: color-mix(in oklab, var(--good) 12%, transparent);
 }
 
 .live-indicator--on .live-indicator__dot {
@@ -1058,39 +1062,6 @@ input[type="range"] {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
-.feed__search {
-  flex-shrink: 0;
-}
-
-.feed__search-input {
-  width: 100%;
-  background: var(--surface-2);
-  border: 1px solid var(--grid);
-  border-radius: var(--r-md);
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  padding: 7px 10px;
-  transition: border-color var(--speed-fast) ease, background var(--speed-fast) ease;
-}
-
-.feed__search-input::placeholder {
-  color: var(--muted);
-  opacity: 1;
-}
-
-@media (hover: hover) {
-  .feed__search-input:hover:not(:focus) {
-    border-color: var(--border-strong);
-  }
-}
-
-.feed__search-input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  background: var(--surface-3);
-}
-
 /* Only present while a filter is on, so the default feed carries no chrome. */
 .feed__filter-bar {
   display: flex;
@@ -1098,8 +1069,12 @@ input[type="range"] {
   justify-content: space-between;
   gap: var(--s2);
   flex-shrink: 0;
+  margin-right: var(--s2);
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
   font-size: var(--t-small);
-  color: var(--muted);
+  color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1127,20 +1102,23 @@ input[type="range"] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--s2);
+  gap: 2px;
   overflow-y: auto;
   scrollbar-gutter: stable;
   min-height: 0;
 }
 
+/* Rows sit open on the panel rather than as boxes, each with a stripe in its
+   severity colour down the left edge: scanning the stripes reads the feed's
+   urgency before any text. */
 .feed-item {
   position: relative;
   width: 100%;
   text-align: left;
-  background: var(--surface-2);
+  background: transparent;
   border: 1px solid transparent;
   border-radius: var(--r-md);
-  padding: 10px var(--s3);
+  padding: 10px var(--s3) 10px 20px;
   color: var(--ink);
   font: inherit;
   cursor: pointer;
@@ -1154,10 +1132,20 @@ input[type="range"] {
     transform var(--speed-fast) var(--ease-out);
 }
 
+.feed-item::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--sev, var(--sev-unscored));
+}
+
 @media (hover: hover) {
   .feed-item:hover {
-    border-color: var(--border-strong);
-    background: var(--surface-3);
+    background: var(--surface-2);
   }
 }
 
@@ -1168,14 +1156,13 @@ input[type="range"] {
 /* Linked = the matching map pin is hovered. Same treatment in both
    directions, so the connection is legible from either end. */
 .feed-item--linked {
-  border-color: var(--border-strong);
-  background: var(--surface-3);
+  background: var(--surface-2);
 }
 
 .feed-item--active,
 .feed-item--active:hover {
-  border-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 12%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
 }
 
 .feed-item__top {
@@ -1221,11 +1208,11 @@ input[type="range"] {
 
 @keyframes feed-item-wash {
   0% {
-    background-color: color-mix(in oklab, var(--sev, var(--accent)) 34%, var(--surface-2));
+    background-color: color-mix(in oklab, var(--sev, var(--accent)) 24%, var(--surface));
     border-color: var(--sev, var(--accent));
   }
   100% {
-    background-color: var(--surface-2);
+    background-color: transparent;
     border-color: transparent;
   }
 }
@@ -1419,6 +1406,8 @@ input[type="range"] {
 
 .panel__header h2 {
   font-size: var(--t-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .panel__hint {
@@ -1753,7 +1742,7 @@ kbd {
   position: relative;
   min-height: 0;
   background: var(--surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-3), var(--lip);
   padding: var(--s4);
