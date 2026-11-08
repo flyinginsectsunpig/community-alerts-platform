@@ -20,8 +20,6 @@
   --surface: oklch(0.995 0.003 85);
   --surface-2: oklch(0.962 0.006 85);
   --surface-3: oklch(0.928 0.008 85);
-  /* Floating cards are slightly translucent so the map reads through. */
-  --glass: oklch(0.995 0.003 85 / 0.9);
 
   /* ---- Text ---- */
   --ink: oklch(0.24 0.02 260); /* 16.2:1 on --surface */
@@ -120,7 +118,6 @@
     --surface: oklch(0.19 0.01 265);
     --surface-2: oklch(0.235 0.011 265);
     --surface-3: oklch(0.285 0.012 265);
-    --glass: oklch(0.19 0.01 265 / 0.9);
 
     --ink: oklch(0.975 0.002 265); /* 17.2:1 on --surface */
     --ink-2: oklch(0.815 0.008 265); /* 9.4:1 on --surface-2 */
@@ -178,6 +175,14 @@ h3 {
   font-weight: 600;
   letter-spacing: -0.011em;
   text-wrap: balance;
+}
+::selection {
+  background: color-mix(in oklab, var(--accent) 28%, transparent);
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
 }
 
 :focus-visible {
@@ -278,9 +283,7 @@ input[type="range"] {
 /* Shared look for every card that floats over the map. */
 .topbar,
 .sidebar {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
-  backdrop-filter: blur(16px) saturate(1.3);
+  background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-3), var(--lip);
 }
@@ -2756,9 +2759,6 @@ kbd {
     width: auto;
     height: 88dvh;
     z-index: var(--z-sheet);
-    background: var(--surface);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
     border-bottom: none;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
     overflow: visible;
@@ -2887,8 +2887,11 @@ kbd {
     display: none;
   }
 
+  /* The sheet owns the bottom of the screen, and a toast there covered the
+     newest alert. Below the bar it clears the sheet, and the hint too. */
   .toast {
-    bottom: calc(var(--s5) + env(safe-area-inset-bottom));
+    top: calc(var(--chrome-top) + 52px);
+    bottom: auto;
   }
 
   .topbar {
