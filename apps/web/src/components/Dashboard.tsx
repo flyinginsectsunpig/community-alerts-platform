@@ -906,6 +906,8 @@ export default function Dashboard() {
               onClose={closePanel}
               onCreated={handleAlertCreated}
               onSwitchToZone={handleSwitchToZone}
+              onUseMyLocation={pinAtMyLocation}
+              locating={locating}
             />
           )}
         </Presence>

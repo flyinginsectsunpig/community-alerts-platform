@@ -1752,6 +1752,71 @@ button.status-banner {
   }
 }
 
+/* Incident types you can see and tap, each wearing the mark it gets on the map. */
+.category-picker {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s1);
+}
+
+.category-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2) 2px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--ink-2);
+  font-family: var(--font-signal);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.05;
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--speed-fast) ease, border-color var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .category-choice:hover {
+    background: var(--surface-2);
+  }
+}
+
+.category-choice .category-mark {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.category-choice:has(input:checked) {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.category-choice:has(input:checked) .category-mark {
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.category-choice:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.report-panel__locate {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 5px;
+}
+
+.report-panel__submit {
+  flex: 1;
+  min-height: 48px;
+  font-size: var(--t-lead);
+}
+
 .ai-preview {
   display: flex;
   align-items: center;
@@ -2116,6 +2181,30 @@ kbd {
   gap: 10px;
 }
 
+/* A serious alert opens under its own colour, like the plate on the feed. */
+.detail-panel--serious .detail-panel__header {
+  margin: calc(-1 * var(--s4)) calc(-1 * var(--s4)) 0;
+  padding: var(--s4);
+  background: var(--sev);
+  border-radius: calc(var(--r-lg) - 1px) calc(var(--r-lg) - 1px) 0 0;
+  color: var(--on-sev);
+}
+
+.detail-panel--serious .detail-panel__header .btn-icon,
+.detail-panel--serious .detail-panel__header .verified-chip {
+  color: inherit;
+}
+
+.detail-panel--serious .detail-panel__header .category-mark {
+  background: var(--on-sev);
+  color: var(--sev);
+}
+
+.detail-panel--serious .detail-panel__header .severity-badge {
+  background: var(--on-sev);
+  color: var(--sev);
+}
+
 .detail-panel__identity {
   display: flex;
   align-items: center;
@@ -2134,6 +2223,11 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s2);
+}
+
+.detail-panel__actions .btn {
+  flex: 1 1 auto;
+  min-height: 44px;
 }
 
 .detail-panel__badges {
@@ -3198,6 +3292,20 @@ kbd {
 
   .zone-panel {
     max-height: 48dvh;
+  }
+
+  /* One swipeable row, so the form stays short enough to leave the pin in view. */
+  .category-picker {
+    display: flex;
+    gap: var(--s1);
+    margin-inline: calc(-1 * var(--s4));
+    padding-inline: var(--s4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .category-choice {
+    flex: 0 0 76px;
   }
 
   /* Taller than the zone editor because of the textarea, but still short

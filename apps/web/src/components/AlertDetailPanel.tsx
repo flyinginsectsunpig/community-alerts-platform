@@ -9,7 +9,8 @@ import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
+import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { isSerious } from "@/lib/status";
 import type { Alert, AlertComment } from "@/lib/types";
 
 interface AlertDetailPanelProps {
@@ -112,7 +113,12 @@ export default function AlertDetailPanel({
   return (
     <aside
       ref={panelRef}
-      className={`detail-panel${exiting ? " detail-panel--exiting" : ""}`}
+      className={
+        "detail-panel" +
+        (isSerious(alert.severity) ? " detail-panel--serious" : "") +
+        (exiting ? " detail-panel--exiting" : "")
+      }
+      style={{ "--sev": SEVERITY_COLORS[alert.severity] } as React.CSSProperties}
       aria-label="Alert details and discussion"
       // Focus lands here rather than on the close button, so the panel's label
       // and contents are read from the top. Not a modal, so Tab still leaves.
@@ -150,7 +156,11 @@ export default function AlertDetailPanel({
       </div>
 
       <div className="detail-panel__actions">
-        <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
+        <button
+          type="button"
+          className="btn btn--primary btn--small"
+          onClick={() => onConfirm(alert.id)}
+        >
           I saw this too
         </button>
         {session && session.userId === alert.reportedByUserId && (
