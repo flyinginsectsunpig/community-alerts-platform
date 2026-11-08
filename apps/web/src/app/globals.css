@@ -494,6 +494,11 @@ input[type="range"] {
   display: none;
 }
 
+/* The severity filters over the map exist on phones and tablets only. */
+.filter-rail {
+  display: none;
+}
+
 /* Only exists on phones and tablets, where it replaces the bar's controls. */
 .tabbar {
   display: none;
@@ -809,6 +814,15 @@ button.status-banner {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+}
+
+.status-banner--loading {
+  min-height: 65px;
+}
+
+.status-banner__skeleton {
+  width: 70%;
+  height: 24px;
 }
 
 .status-banner__headline {
@@ -1727,10 +1741,39 @@ button.status-banner {
   background: var(--surface-3);
 }
 
+/* Tappable pills rather than a column of checkboxes. */
 .category-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s1);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-grid .category-option {
+  position: relative;
+  min-height: 36px;
+  padding: 0 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+}
+
+.category-grid .category-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.category-grid .category-option:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
+.category-grid .category-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .category-option {
@@ -3113,6 +3156,48 @@ kbd {
 
   /* The bar comes down to one row: search, and the map layer switch. Everything
      else moved to the tab bar. */
+  .filter-rail {
+    position: absolute;
+    top: calc(var(--safe-top) + var(--gap) + var(--bar-h) + var(--s2));
+    left: 0;
+    right: 0;
+    z-index: var(--z-docked);
+    padding-inline: var(--gap);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filter-rail .stats__severities {
+    flex-wrap: nowrap;
+    width: max-content;
+    gap: 6px;
+  }
+
+  .filter-rail .severity-chip {
+    min-height: 38px;
+    padding-inline: 12px;
+    background: var(--surface);
+    border-color: transparent;
+    box-shadow: var(--shadow-2);
+    color: var(--ink);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .filter-rail .severity-chip--on {
+    background: color-mix(in oklab, var(--sev) 24%, var(--surface));
+    border-color: var(--sev);
+  }
+
+  /* Hints and toasts start below the bar and its filters. */
+  .dashboard {
+    --chrome-top: calc(var(--safe-top) + var(--gap) + var(--bar-h) + 54px);
+  }
+
+  .stats .stats__severities {
+    display: none;
+  }
+
   .topbar__controls > :not(.layer-switches),
   .topbar__account {
     display: none;
@@ -3405,6 +3490,20 @@ kbd {
 }
 
 @media (max-width: 620px) {
+  /* Dialogs rise from the bottom, like every other sheet in the app. */
+  .panel-overlay {
+    place-items: end stretch;
+    padding: 0;
+  }
+
+  .panel-overlay .panel {
+    width: 100%;
+    max-height: 88dvh;
+    border-bottom: none;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    padding-bottom: calc(var(--s5) + env(safe-area-inset-bottom, 0px));
+  }
+
   .stats__category {
     grid-template-columns: 92px 1fr 26px;
   }

@@ -135,6 +135,9 @@ export default function WatchZonePanel({
       ref={panelRef}
       className={`zone-panel${exiting ? " zone-panel--exiting" : ""}`}
       aria-label={editing ? "Edit watch zone" : "Create a watch zone"}
+      // On the panel, not the name field: on a phone the keyboard would cover
+      // the map the zone is being drawn on.
+      data-autofocus
       tabIndex={-1}
     >
       <form onSubmit={handleSubmit} className="zone-panel__form">
@@ -206,9 +209,6 @@ export default function WatchZonePanel({
             onChange={(event) => setName(event.target.value)}
             placeholder="e.g. Home, School run"
             maxLength={120}
-            // useFocusCapture owns initial focus here now; React's autoFocus
-            // fires during commit and raced it.
-            data-autofocus
             required
           />
         </label>

@@ -14,6 +14,7 @@ import MyZonesPanel from "./MyZonesPanel";
 import NearbyStatusBanner from "./NearbyStatus";
 import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
+import SeverityChips from "./SeverityChips";
 import ShortcutsSheet from "./ShortcutsSheet";
 import StatsPanel from "./StatsPanel";
 import Toast, { type ToastMessage } from "./Toast";
@@ -861,6 +862,17 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Phones: filters float over the map, in reach without opening the sheet. */}
+      {stats && (
+        <div className="filter-rail">
+          <SeverityChips
+            bySeverity={stats.stats.bySeverity}
+            filter={filter}
+            onToggle={toggleSeverity}
+          />
+        </div>
+      )}
+
       <aside
         id="sidebar"
         className={`sidebar${sheet.dragging ? " sidebar--dragging" : ""}`}
@@ -881,6 +893,11 @@ export default function Dashboard() {
           {/* Only once it can be trusted: a failed load has no status to give. */}
           {alertsLoaded && !alertsFailed && (
             <NearbyStatusBanner alerts={alerts} onOpen={openDetail} />
+          )}
+          {!alertsLoaded && (
+            <div className="status-banner status-banner--loading" aria-hidden>
+              <div className="skeleton status-banner__skeleton" />
+            </div>
           )}
           <StatsPanel
             stats={stats}

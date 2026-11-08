@@ -3,14 +3,9 @@
 import { useEffect, useState } from "react";
 
 import { ChevronDownIcon } from "./icons";
+import SeverityChips from "./SeverityChips";
 import { useCountUp } from "@/hooks/useCountUp";
-import {
-  CATEGORY_LABELS,
-  dayLetter,
-  fillWeek,
-  SEVERITY_COLORS,
-  SEVERITY_LABELS,
-} from "@/lib/format";
+import { CATEGORY_LABELS, dayLetter, fillWeek } from "@/lib/format";
 import type { AlertFilter } from "@/lib/filter";
 import type { AlertCategory, Severity, StatsResponse } from "@/lib/types";
 
@@ -82,10 +77,6 @@ export default function StatsPanel({
     .slice(0, MAX_CATEGORY_ROWS);
   const maxCategoryCount = Math.max(1, ...categoryRows.map(([, count]) => count));
 
-  const severityEntries = (Object.keys(SEVERITY_LABELS) as Severity[])
-    .filter((severity) => (bySeverity[severity] ?? 0) > 0)
-    .map((severity) => [severity, bySeverity[severity]] as const);
-
   return (
     <section className="stats fade-in" aria-label="7-day statistics">
       <h2 className="stats__heading">
@@ -109,29 +100,7 @@ export default function StatsPanel({
         </button>
       </h2>
 
-      {severityEntries.length > 0 && (
-        <div className="stats__severities">
-          {severityEntries.map(([severity, count]) => {
-            const on = filter.severities.has(severity);
-            return (
-              <button
-                key={severity}
-                type="button"
-                className={`severity-chip severity-chip--button${on ? " severity-chip--on" : ""}`}
-                aria-pressed={on}
-                title={`${count} in the last 7 days — click to ${on ? "stop filtering" : "filter"}`}
-                // On the chip rather than the dot, so the pressed background
-                // can tint toward this severity too.
-                style={{ "--sev": SEVERITY_COLORS[severity] } as React.CSSProperties}
-                onClick={() => onToggleSeverity(severity)}
-              >
-                <span className="severity-dot" aria-hidden />
-                {SEVERITY_LABELS[severity]} {count}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <SeverityChips bySeverity={bySeverity} filter={filter} onToggle={onToggleSeverity} />
 
       <div id="stats-breakdown" className="stats__breakdown" hidden={!open}>
         <div className="stats__days" role="img" aria-label={weekSummary(week)}>
