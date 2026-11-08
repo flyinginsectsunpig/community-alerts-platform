@@ -3022,7 +3022,7 @@ kbd {
     --dock-right: 0px;
     --tabbar-total: calc(68px + env(safe-area-inset-bottom, 0px));
     /* Keep in step with PEEK_PX in useBottomSheet. */
-    --peek: 198px;
+    --peek: 260px;
   }
 
   .tabbar {
@@ -3236,8 +3236,50 @@ kbd {
   /* Feed first on a phone: at the peek height you get the live feed and its
      latest alert, which is what the sheet is for. The 7-day summary is
      context and sits below it. */
+  /* Tightened so the collapsed sheet has room for the newest alert too. */
   .sidebar__inner > .status-banner {
     order: -2;
+    padding-block: 10px;
+  }
+
+  .status-banner__headline {
+    font-size: 23px;
+  }
+
+  .feed {
+    position: relative;
+    padding-top: var(--s2);
+    gap: var(--s1);
+  }
+
+  /* The sheet's purpose is obvious, so its title goes to screen readers and
+     the live indicator shares the first group heading's row. */
+  .feed__header {
+    position: absolute;
+    top: var(--s2);
+    right: 0;
+    z-index: 2;
+  }
+
+  .feed__header h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .feed__filter-bar,
+  .feed__stale,
+  .feed__empty-state,
+  .feed-skeleton {
+    margin-top: 34px;
+  }
+
+  .feed__filter-bar + .feed__list .feed__group-title,
+  .feed__stale + .feed__list .feed__group-title {
+    padding-top: var(--s1);
   }
 
   .sidebar__inner > .feed {
