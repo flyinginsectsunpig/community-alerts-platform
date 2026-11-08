@@ -31,6 +31,7 @@ import {
 import WatchZonePanel from "./WatchZonePanel";
 import { useBackToClose } from "@/hooks/useBackToClose";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
 import { api, ApiError } from "@/lib/api";
@@ -119,6 +120,7 @@ export default function Dashboard() {
 
   const sheet = useBottomSheet();
   const { isSheet } = sheet;
+  useKeyboardInset();
   const searchRef = useRef<HTMLInputElement>(null);
 
   // The feed and the map must always agree about what is on screen, so both
@@ -536,7 +538,7 @@ export default function Dashboard() {
       lng: alert.lng,
       // On a phone the alert's sheet covers the middle of the map, so the pin
       // is lifted into the part that stays visible above it.
-      offsetY: isSheet ? window.innerHeight * 0.28 : 0,
+      offsetY: isSheet ? window.innerHeight * 0.23 : 0,
     });
   }, [isSheet]);
 
@@ -664,7 +666,11 @@ export default function Dashboard() {
     showZonesPanel;
 
   // On a phone, these are the layers the back button should peel off.
-  useBackToClose(sheet.isSheet && (rightDocked || sheet.snap !== "peek"), () => {
+  const dialogOpen = showAuthModal || showAccount || showShortcuts;
+  useBackToClose(sheet.isSheet && (rightDocked || dialogOpen || sheet.snap !== "peek"), () => {
+    setShowAuthModal(false);
+    setShowAccount(false);
+    setShowShortcuts(false);
     closePanel();
     closeZone();
     setShowZonesPanel(false);

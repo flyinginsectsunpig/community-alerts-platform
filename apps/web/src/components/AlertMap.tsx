@@ -251,37 +251,37 @@ export default function AlertMap({
             </Tooltip>
           )}
           {!compactPins && (
-          <Popup>
-            <div className="map-popup">
-              <div className="map-popup__header">
-                <strong>{CATEGORY_LABELS[alert.category]}</strong>
-                <SeverityBadge severity={alert.severity} />
+            <Popup>
+              <div className="map-popup">
+                <div className="map-popup__header">
+                  <strong>{CATEGORY_LABELS[alert.category]}</strong>
+                  <SeverityBadge severity={alert.severity} />
+                </div>
+                <p className="map-popup__description">{alert.description}</p>
+                <div className="map-popup__meta">
+                  {alert.status === "VERIFIED" && <span className="verified-chip">
+                      <CheckIcon size={12} /> Verified
+                    </span>}
+                  <span>{timeAgo(alert.createdAt)}</span>
+                  {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
+                  <span>
+                    {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="map-popup__actions">
+                  <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
+                    I saw this too
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    onClick={() => onOpenDetail(alert)}
+                  >
+                    Updates ({alert.commentCount})
+                  </button>
+                </div>
               </div>
-              <p className="map-popup__description">{alert.description}</p>
-              <div className="map-popup__meta">
-                {alert.status === "VERIFIED" && <span className="verified-chip">
-                    <CheckIcon size={12} /> Verified
-                  </span>}
-                <span>{timeAgo(alert.createdAt)}</span>
-                {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
-                <span>
-                  {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="map-popup__actions">
-                <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
-                  I saw this too
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => onOpenDetail(alert)}
-                >
-                  Updates ({alert.commentCount})
-                </button>
-              </div>
-            </div>
-          </Popup>
+            </Popup>
           )}
         </Marker>
       ))}
