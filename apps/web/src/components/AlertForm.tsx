@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CloseIcon } from "./icons";
 import { OPEN_MODAL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
@@ -94,7 +95,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
         <div className="panel__header">
           <h2>Report an alert</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
 

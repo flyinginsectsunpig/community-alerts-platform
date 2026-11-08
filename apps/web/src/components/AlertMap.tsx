@@ -17,6 +17,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
+import { CheckIcon } from "./icons";
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import ZoneShapeEditor, { ZONE_COLOR } from "./ZoneShapeEditor";
@@ -238,7 +239,9 @@ export default function AlertMap({
               </div>
               <p className="map-popup__description">{alert.description}</p>
               <div className="map-popup__meta">
-                {alert.status === "VERIFIED" && <span className="verified-chip">✓ Verified</span>}
+                {alert.status === "VERIFIED" && <span className="verified-chip">
+                    <CheckIcon size={12} /> Verified
+                  </span>}
                 <span>{timeAgo(alert.createdAt)}</span>
                 {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
                 <span>

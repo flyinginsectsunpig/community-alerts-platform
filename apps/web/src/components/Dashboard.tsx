@@ -16,7 +16,7 @@ import StationStatsPanel from "./StationStatsPanel";
 import ShortcutsSheet from "./ShortcutsSheet";
 import StatsPanel from "./StatsPanel";
 import Toast, { type ToastMessage } from "./Toast";
-import { PlusIcon } from "./icons";
+import { CloseIcon, PlusIcon } from "./icons";
 import WatchZonePanel from "./WatchZonePanel";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
@@ -932,7 +932,7 @@ export default function Dashboard() {
                   onClick={() => setClaimOffer(null)}
                   aria-label="Close"
                 >
-                  ×
+                  <CloseIcon />
                 </button>
               </div>
               <p className="panel__hint">

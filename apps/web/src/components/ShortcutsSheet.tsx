@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseIcon } from "./icons";
 import ModalOverlay from "./ModalOverlay";
 
 const GROUPS: { title: string; items: [string, string][] }[] = [
@@ -30,7 +31,7 @@ export default function ShortcutsSheet({ onClose }: { onClose: () => void }) {
         <div className="panel__header">
           <h2>Keyboard shortcuts</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
 

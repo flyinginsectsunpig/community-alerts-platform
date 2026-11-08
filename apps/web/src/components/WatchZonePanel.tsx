@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { CloseIcon } from "./icons";
 import { OPEN_MODAL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
@@ -140,7 +141,7 @@ export default function WatchZonePanel({
         <div className="panel__header">
           <h2>{editing ? `Edit “${editing.name}”` : "Create a watch zone"}</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
 

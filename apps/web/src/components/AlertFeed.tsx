@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "./icons";
 import CategoryMark from "./CategoryMark";
 import SeverityBadge from "./SeverityBadge";
 import { activityLabels, CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
@@ -155,7 +156,9 @@ export default function AlertFeed({
                   <p className="feed-item__description">{alert.description}</p>
                   <div className="feed-item__meta">
                     {alert.status === "VERIFIED" && (
-                      <span className="verified-chip">✓ Verified</span>
+                      <span className="verified-chip">
+                        <CheckIcon size={12} /> Verified
+                      </span>
                     )}
                     <span>{timeAgo(alert.createdAt)}</span>
                     {activityLabels(alert.confirmationCount, alert.commentCount).map((label) => (

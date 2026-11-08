@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import CategoryMark from "./CategoryMark";
+import { CheckIcon, CloseIcon } from "./icons";
 import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
@@ -118,15 +120,22 @@ export default function AlertDetailPanel({
       tabIndex={-1}
     >
       <div className="detail-panel__header">
-        <div>
-          <strong>{CATEGORY_LABELS[alert.category]}</strong>
-          <div className="detail-panel__badges">
-            <SeverityBadge severity={alert.severity} />
-            {alert.status === "VERIFIED" && <span className="verified-chip">✓ Verified</span>}
+        <div className="detail-panel__identity">
+          <CategoryMark category={alert.category} severity={alert.severity} />
+          <div>
+            <h2 className="detail-panel__title">{CATEGORY_LABELS[alert.category]}</h2>
+            <div className="detail-panel__badges">
+              <SeverityBadge severity={alert.severity} />
+              {alert.status === "VERIFIED" && (
+                <span className="verified-chip">
+                  <CheckIcon size={12} /> Verified
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Close details">
-          ×
+          <CloseIcon />
         </button>
       </div>
 
@@ -138,6 +147,9 @@ export default function AlertDetailPanel({
         <span>
           {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
         </span>
+      </div>
+
+      <div className="detail-panel__actions">
         <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
           I saw this too
         </button>
