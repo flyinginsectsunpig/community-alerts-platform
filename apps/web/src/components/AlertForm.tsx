@@ -102,7 +102,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             metre precision written in a form nobody can check; the pin itself
             is now visible, so the useful thing to say is how to move it. */}
         <p className="panel__hint">
-          Your pin is on the map. Click anywhere to move it.
+          Your pin is on the map. Click or tap where it happened to move it.
         </p>
 
         <label className="field">

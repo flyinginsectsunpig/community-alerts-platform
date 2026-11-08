@@ -119,7 +119,7 @@ export default function AlertFeed({
               Nothing reported around here yet — which is good news.
             </p>
             <p className="panel__hint">
-              Click anywhere on the map to report something you have seen. Reports show up here
+              Click or tap the map to report something you have seen. Reports show up here
               instantly for everyone nearby.
             </p>
           </div>

@@ -425,6 +425,19 @@ input[type="range"] {
   margin-left: auto;
 }
 
+/* Every control in the bar is one height, so the row reads as a single line. */
+.topbar .btn--small,
+.topbar .layer-switches {
+  min-height: 34px;
+}
+
+.topbar__report {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 12px 14px;
+}
+
 .topbar__account {
   display: flex;
   align-items: center;
@@ -2901,6 +2914,11 @@ kbd {
     grid-area: controls;
     margin-left: 0;
     justify-content: flex-start;
+  }
+
+  /* Pushed to the end of the row, where a right thumb reaches it. */
+  .topbar__report {
+    margin-left: auto;
   }
 
   .stats__category {

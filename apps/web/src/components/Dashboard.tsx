@@ -16,6 +16,7 @@ import StationStatsPanel from "./StationStatsPanel";
 import ShortcutsSheet from "./ShortcutsSheet";
 import StatsPanel from "./StatsPanel";
 import Toast, { type ToastMessage } from "./Toast";
+import { PlusIcon } from "./icons";
 import WatchZonePanel from "./WatchZonePanel";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
@@ -740,6 +741,19 @@ export default function Dashboard() {
           >
             ?
           </button>
+          {/* The app's main job, so it can't depend on people finding the map
+              hint. Same path as the n shortcut: it drops the pin at the map's
+              centre, and a click on the map then moves it. */}
+          <button
+            type="button"
+            className="btn btn--small btn--primary topbar__report"
+            onClick={() => handleMapClick(mapCenter.current)}
+            disabled={zoneActive}
+            title="Report an alert (n)"
+          >
+            <PlusIcon size={14} />
+            Report
+          </button>
         </div>
 
         <div className="topbar__account">
@@ -756,7 +770,7 @@ export default function Dashboard() {
           ) : (
             <button
               type="button"
-              className="btn btn--small btn--primary"
+              className="btn btn--small"
               onClick={() => setShowAuthModal(true)}
             >
               Sign in
@@ -880,7 +894,7 @@ export default function Dashboard() {
       {/* Centred on whatever is still visible of the map between the panels. */}
       <div className="map-hints">
         <Presence when={showHint}>
-          <MapHint onDismiss={dismissHint}>Click anywhere on the map to report an alert.</MapHint>
+          <MapHint onDismiss={dismissHint}>Click or tap the map to report an alert.</MapHint>
         </Presence>
         <Presence when={showStations && stationsGated}>
           <MapHint>Zoom in to see police stations.</MapHint>
