@@ -52,7 +52,11 @@ const BASEMAPS = {
 } as const;
 
 /** A point the map should fly to, optionally at a specific zoom. */
-export type FocusTarget = LatLng & { zoom?: number };
+export type FocusTarget = LatLng & {
+  zoom?: number;
+  /** Shifts the point up the screen by this many pixels, clear of a bottom sheet. */
+  offsetY?: number;
+};
 
 interface AlertMapProps {
   alerts: Alert[];
@@ -61,6 +65,10 @@ interface AlertMapProps {
   onStationsError: () => void;
   onOpenStationStats: (stats: StationStats) => void;
   pendingPoint: LatLng | null;
+  /** Where the user is, once they have shared it. */
+  myLocation: LatLng | null;
+  /** Phones: a tap opens the alert's sheet instead of a cramped map popup. */
+  compactPins: boolean;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
   /** How the draft is being reshaped; the map starts acting on it with the pull and freehand tools. */
@@ -141,7 +149,11 @@ function FlyTo({ focus }: { focus: FocusTarget | null }) {
       console.warn("FlyTo ignoring non-finite focus", focus);
       return;
     }
-    map.flyTo([focus.lat, focus.lng], focus.zoom ?? Math.max(map.getZoom(), 15), {
+    const zoom = focus.zoom ?? Math.max(map.getZoom(), 15);
+    const target = focus.offsetY
+      ? map.unproject(map.project([focus.lat, focus.lng], zoom).add([0, focus.offsetY]), zoom)
+      : ([focus.lat, focus.lng] as [number, number]);
+    map.flyTo(target, zoom, {
       duration: 0.8,
     });
   }, [focus, map]);
@@ -151,6 +163,8 @@ function FlyTo({ focus }: { focus: FocusTarget | null }) {
 export default function AlertMap({
   alerts,
   showStations,
+  myLocation,
+  compactPins,
   onStationZoomGate,
   onStationsError,
   onOpenStationStats,
@@ -226,11 +240,17 @@ export default function AlertMap({
           eventHandlers={{
             mouseover: () => onHover(alert.id),
             mouseout: () => onHover(null),
+            click: () => {
+              if (compactPins) onOpenDetail(alert);
+            },
           }}
         >
-          <Tooltip>
-            {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
-          </Tooltip>
+          {!compactPins && (
+            <Tooltip>
+              {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
+            </Tooltip>
+          )}
+          {!compactPins && (
           <Popup>
             <div className="map-popup">
               <div className="map-popup__header">
@@ -262,8 +282,19 @@ export default function AlertMap({
               </div>
             </div>
           </Popup>
+          )}
         </Marker>
       ))}
+
+      {myLocation && (
+        <CircleMarker
+          center={[myLocation.lat, myLocation.lng]}
+          radius={8}
+          interactive={false}
+          className="my-location"
+          pathOptions={{ color: "#ffffff", weight: 3, fillColor: ZONE_COLOR, fillOpacity: 1 }}
+        />
+      )}
 
       {pendingPoint && (
         <CircleMarker

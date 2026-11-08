@@ -4,9 +4,10 @@ import { CheckIcon } from "./icons";
 import CategoryMark from "./CategoryMark";
 import SeverityBadge from "./SeverityBadge";
 import { activityLabels, CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { distanceLabel, distanceMetres } from "@/lib/distance";
 import { isFiltered, type AlertFilter } from "@/lib/filter";
 import { groupByRecency } from "@/lib/status";
-import type { Alert } from "@/lib/types";
+import type { Alert, LatLng } from "@/lib/types";
 
 interface AlertFeedProps {
   /** Already filtered — what the user should actually see. */
@@ -19,6 +20,8 @@ interface AlertFeedProps {
   onRetry: () => void;
   connected: boolean;
   selectedId: string | null;
+  /** The user's position, when known, so each row can say how far away it is. */
+  origin: LatLng | null;
   /** Ids that just arrived over the live stream — get the "new" animation. */
   newIds: ReadonlySet<string>;
   /** Id whose map pin is hovered, so the matching row can light up too. */
@@ -37,6 +40,7 @@ export default function AlertFeed({
   onRetry,
   connected,
   selectedId,
+  origin,
   newIds,
   linkedId,
   filter,
@@ -79,6 +83,7 @@ export default function AlertFeed({
               </span>
             )}
             <span>{timeAgo(alert.createdAt)}</span>
+            {origin && <span>{distanceLabel(distanceMetres(origin, alert))}</span>}
             {activityLabels(alert.confirmationCount, alert.commentCount).map((label) => (
               <span key={label}>{label}</span>
             ))}

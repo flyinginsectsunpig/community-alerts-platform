@@ -93,6 +93,7 @@ export default function Dashboard() {
   const [claimOffer, setClaimOffer] = useState<WatchZone[] | null>(null);
   const [focus, setFocus] = useState<FocusTarget | null>(null);
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
+  const [myLocation, setMyLocation] = useState<LatLng | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -116,6 +117,7 @@ export default function Dashboard() {
   detailAlertIdRef.current = detailAlertId;
 
   const sheet = useBottomSheet();
+  const { isSheet } = sheet;
   const searchRef = useRef<HTMLInputElement>(null);
 
   // The feed and the map must always agree about what is on screen, so both
@@ -200,6 +202,7 @@ export default function Dashboard() {
       (position) => {
         const located = { lat: position.coords.latitude, lng: position.coords.longitude };
         setCenter(located);
+        setMyLocation(located);
         setFocus({ ...located, zoom: 16 });
       },
       () => showToast("info", "Showing central London — location unavailable"),
@@ -527,8 +530,14 @@ export default function Dashboard() {
   const openDetail = useCallback((alert: Alert) => {
     setStationStats(null);
     setDetailAlertId(alert.id);
-    setFocus({ lat: alert.lat, lng: alert.lng });
-  }, []);
+    setFocus({
+      lat: alert.lat,
+      lng: alert.lng,
+      // On a phone the alert's sheet covers the middle of the map, so the pin
+      // is lifted into the part that stays visible above it.
+      offsetY: isSheet ? window.innerHeight * 0.28 : 0,
+    });
+  }, [isSheet]);
 
   const handleStationsError = useCallback(
     () => showToast("error", "Could not load police stations"),
@@ -612,7 +621,9 @@ export default function Dashboard() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLocating(false);
-        onFound({ lat: position.coords.latitude, lng: position.coords.longitude });
+        const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setMyLocation(point);
+        onFound(point);
       },
       () => {
         setLocating(false);
@@ -678,6 +689,8 @@ export default function Dashboard() {
           onStationsError={handleStationsError}
           onOpenStationStats={openStationStats}
           pendingPoint={pendingPoint}
+          myLocation={myLocation}
+          compactPins={isSheet}
           focus={focus}
           zoneDraft={zoneDraft}
           zoneMode={zoneMode}
@@ -884,6 +897,7 @@ export default function Dashboard() {
             onRetry={retryLoad}
             connected={connected}
             selectedId={detailAlertId}
+            origin={myLocation}
             newIds={liveIds}
             linkedId={linkedId}
             filter={filter}
@@ -956,6 +970,7 @@ export default function Dashboard() {
             <AlertDetailPanel
               alert={detailAlert}
               session={session}
+              origin={myLocation}
               liveComment={liveComment}
               onClose={() => setDetailAlertId(null)}
               onConfirm={handleConfirm}

@@ -9,13 +9,16 @@ import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
+import { distanceLabel, distanceMetres } from "@/lib/distance";
 import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
 import { isSerious } from "@/lib/status";
-import type { Alert, AlertComment } from "@/lib/types";
+import type { Alert, AlertComment, LatLng } from "@/lib/types";
 
 interface AlertDetailPanelProps {
   alert: Alert;
   session: AuthSession | null;
+  /** The user's position, when known, to say how far away this is. */
+  origin: LatLng | null;
   /** Latest live comment event, forwarded from the SSE stream. */
   liveComment: AlertComment | null;
   onClose: () => void;
@@ -27,6 +30,7 @@ interface AlertDetailPanelProps {
 export default function AlertDetailPanel({
   alert,
   session,
+  origin,
   liveComment,
   onClose,
   onConfirm,
@@ -149,6 +153,7 @@ export default function AlertDetailPanel({
 
       <div className="detail-panel__meta">
         <span>{timeAgo(alert.createdAt)}</span>
+        {origin && <span>{distanceLabel(distanceMetres(origin, alert))}</span>}
         {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
         <span>
           {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
