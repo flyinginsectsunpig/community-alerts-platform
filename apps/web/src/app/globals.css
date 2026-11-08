@@ -102,7 +102,10 @@
          start below the bar. ---- */
   --gap: 12px;
   --bar-h: 56px;
-  --chrome-top: calc(var(--gap) + var(--bar-h) + var(--gap));
+  /* The status bar's height where the page runs under it: an installed web
+     app, or the Android app. Zero in a normal browser tab. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --chrome-top: calc(var(--safe-top) + var(--gap) + var(--bar-h) + var(--gap));
   --rail-open: 360px;
   --dock-width: 384px;
 
@@ -291,7 +294,7 @@ input[type="range"] {
 
 .topbar {
   position: absolute;
-  top: var(--gap);
+  top: calc(var(--safe-top) + var(--gap));
   left: var(--gap);
   right: var(--gap);
   z-index: calc(var(--z-docked) + 1);
@@ -2930,7 +2933,7 @@ kbd {
 @media (max-width: 620px) {
   /* The bar runs to two rows here, so the hints drop to clear it. */
   .dashboard {
-    --chrome-top: calc(var(--gap) + 120px + var(--gap)); /* measured with 44px touch targets */
+    --chrome-top: calc(var(--safe-top) + var(--gap) + 120px + var(--gap)); /* measured with 44px touch targets */
   }
 
   /* Two rows: the mark, search and account on top, the map controls
@@ -2995,14 +2998,6 @@ kbd {
   /* No keyboard to accelerate on a phone. */
   .shortcuts-hint {
     display: none;
-  }
-}
-
-/* Installed to the home screen the iOS status bar is translucent and the
-   layout runs underneath it, so the bar drops below it. */
-@media (display-mode: standalone) {
-  .topbar {
-    top: calc(var(--gap) + env(safe-area-inset-top));
   }
 }
 
