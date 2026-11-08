@@ -176,6 +176,7 @@ h3 {
   letter-spacing: -0.011em;
   text-wrap: balance;
 }
+
 ::selection {
   background: color-mix(in oklab, var(--accent) 28%, transparent);
 }
