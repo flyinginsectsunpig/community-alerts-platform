@@ -1,14 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Public_Sans } from "next/font/google";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 
 import "./globals.css";
 
-// Designed for US government services: plain, highly legible at small sizes,
-// and it reads as civic rather than as a startup.
-const publicSans = Public_Sans({
+// Drawn from the plates and highway signs of California: type made to be read
+// quickly, outdoors, by someone with other things on their mind.
+const barlow = Barlow({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-condensed",
 });
 
 export const metadata: Metadata = {
@@ -38,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={publicSans.variable}>
+    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
       <body>{children}</body>
     </html>
   );

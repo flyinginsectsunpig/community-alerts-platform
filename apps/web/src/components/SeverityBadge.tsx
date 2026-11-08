@@ -9,7 +9,8 @@ import type { Severity } from "@/lib/types";
 export default function SeverityBadge({ severity }: { severity: Severity }) {
   const modifier =
     severity === "UNSCORED" ? " severity-badge--pending"
-    : severity === "CRITICAL" ? " severity-badge--critical"
+    : severity === "CRITICAL" ? " severity-badge--critical severity-badge--solid"
+    : severity === "HIGH" ? " severity-badge--solid"
     : "";
 
   return (

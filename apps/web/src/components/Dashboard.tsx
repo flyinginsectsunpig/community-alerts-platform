@@ -11,6 +11,7 @@ import LiveAnnouncer, { announcementFor } from "./LiveAnnouncer";
 import MapHint from "./MapHint";
 import ModalOverlay from "./ModalOverlay";
 import MyZonesPanel from "./MyZonesPanel";
+import NearbyStatusBanner from "./NearbyStatus";
 import Presence from "./Presence";
 import StationStatsPanel from "./StationStatsPanel";
 import ShortcutsSheet from "./ShortcutsSheet";
@@ -746,7 +747,7 @@ export default function Dashboard() {
               centre, and a click on the map then moves it. */}
           <button
             type="button"
-            className="btn btn--small btn--primary topbar__report"
+            className="btn btn--small btn--report topbar__report"
             onClick={() => handleMapClick(mapCenter.current)}
             disabled={zoneActive}
             title="Report an alert (n)"
@@ -796,6 +797,10 @@ export default function Dashboard() {
           {...sheet.handlers}
         />
         <div className="sidebar__inner" id="sidebar-inner">
+          {/* Only once it can be trusted: a failed load has no status to give. */}
+          {alertsLoaded && !alertsFailed && (
+            <NearbyStatusBanner alerts={alerts} onOpen={openDetail} />
+          )}
           <StatsPanel
             stats={stats}
             loading={!statsLoaded}

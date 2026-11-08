@@ -1,10 +1,10 @@
-/* Community Alerts — civic daylight theme.
+/* Community Alerts — street signal theme.
 
    Light by default, dark when the device asks for it. In both, the chrome is
-   a near-neutral so the ONLY saturated colour on screen is information —
-   severity, station crime density, and your own watch zones. The primary
-   action is an ink fill rather than a brand hue, which keeps the hue circle
-   free for data and stops "primary blue" competing with "low severity blue".
+   a near-neutral so saturated colour means something: severity, station
+   crime density, your own watch zones, and the one red Report action.
+   Serious alerts are solid plates of colour, like road signs; everything
+   lesser stays quiet, so the eye goes to what matters first.
 
    The map is the page: every piece of chrome floats over it as a card, so the
    city stays visible edge to edge.
@@ -44,7 +44,7 @@
   --sev-unscored: oklch(0.58 0.02 265);
   --sev-low: oklch(0.6 0.09 210);
   --sev-medium: oklch(0.65 0.15 72);
-  --sev-high: oklch(0.6 0.17 45);
+  --sev-high: oklch(0.57 0.17 45);
   --sev-critical: oklch(0.55 0.2 25);
 
   /* ---- Other data hues ---- */
@@ -76,11 +76,11 @@
   --r-pill: 999px;
 
   /* ---- Type: fixed scale, ~1.15 ratio (product UI, not fluid) ---- */
-  --t-micro: 11px;
-  --t-small: 12px;
-  --t-body: 14px;
-  --t-lead: 16px;
-  --t-title: 20px;
+  --t-micro: 12px;
+  --t-small: 13px;
+  --t-body: 15px;
+  --t-lead: 17px;
+  --t-title: 24px;
   --t-hero: 44px;
 
   /* ---- Motion ---- */
@@ -109,7 +109,13 @@
   --rail-open: 360px;
   --dock-width: 384px;
 
+  /* The report action and the app's mark, in both themes. */
+  --brand: oklch(0.55 0.2 25);
+  --on-brand: oklch(1 0 0);
+
   --font: var(--font-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Headings, alert names and severity plates: signage, read at a glance. */
+  --font-signal: var(--font-condensed, var(--font-sans)), "Arial Narrow", system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -284,6 +290,24 @@ input[type="range"] {
   inset: 0;
 }
 
+/* The control surfaces are dark in both themes, so they read as hardware
+   around the map. Redefining the tokens here restyles everything inside. */
+.topbar {
+  --surface: oklch(0.225 0.02 262);
+  --surface-2: oklch(0.3 0.02 262);
+  --surface-3: oklch(0.36 0.02 262);
+  --ink: oklch(0.985 0.002 262);
+  --ink-2: oklch(0.87 0.008 262);
+  --muted: oklch(0.76 0.012 262);
+  --on-ink: oklch(0.225 0.02 262);
+  --ink-hover: oklch(1 0 0);
+  --border: oklch(1 0 0 / 0.14);
+  --border-strong: oklch(1 0 0 / 0.26);
+  --accent: oklch(0.74 0.13 235);
+  --lip: inset 0 1px 0 oklch(1 0 0 / 0.08);
+  color: var(--ink);
+}
+
 /* Shared look for every card that floats over the map. */
 .topbar,
 .sidebar {
@@ -315,9 +339,10 @@ input[type="range"] {
 }
 
 .topbar__brand h1 {
-  font-size: var(--t-lead);
+  font-family: var(--font-signal);
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -331,8 +356,8 @@ input[type="range"] {
   width: 32px;
   height: 32px;
   border-radius: var(--r-md);
-  background: var(--sev-critical);
-  color: oklch(1 0 0);
+  background: var(--brand);
+  color: var(--on-brand);
   flex-shrink: 0;
 }
 
@@ -341,7 +366,7 @@ input[type="range"] {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid var(--sev-critical);
+  border: 1px solid var(--brand);
   opacity: 0;
   animation: mark-breathe 4s var(--ease-out) infinite;
 }
@@ -700,8 +725,80 @@ input[type="range"] {
 }
 
 .feed__header h2 {
-  font-size: var(--t-body);
+  font-family: var(--font-signal);
+  font-size: 22px;
   font-weight: 700;
+  line-height: 1.1;
+}
+
+/* What is going on around here, before anything else is read. */
+.status-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  width: 100%;
+  flex-shrink: 0;
+  padding: 14px var(--s4);
+  background: var(--surface-2);
+  border: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+button.status-banner {
+  cursor: pointer;
+}
+
+.status-banner .icon {
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.status-banner--serious {
+  background: var(--sev);
+  color: var(--on-sev);
+}
+
+.status-banner__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.status-banner__headline {
+  font-family: var(--font-signal);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.status-banner__detail {
+  font-size: var(--t-small);
+  font-weight: 500;
+}
+
+.feed__group-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: var(--s2) 10px var(--s1);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+
+.feed__group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .stats__toggle {
@@ -743,7 +840,8 @@ input[type="range"] {
 
 .stats__total {
   color: var(--ink);
-  font-size: var(--t-lead);
+  font-family: var(--font-signal);
+  font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -982,15 +1080,27 @@ input[type="range"] {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px 2px 6px;
-  border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--sev, var(--sev-unscored)) 14%, transparent);
-  font-size: var(--t-micro);
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--sev, var(--sev-unscored)) 16%, transparent);
+  font-family: var(--font-signal);
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.3;
   letter-spacing: 0.04em;
   color: var(--ink);
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+/* Critical and high are the road signs of the feed: a solid plate. */
+.severity-badge--solid {
+  background: var(--sev);
+  color: var(--on-sev);
+}
+
+.severity-badge--solid .severity-dot {
+  display: none;
 }
 
 .severity-dot {
@@ -1236,6 +1346,13 @@ input[type="range"] {
   background: color-mix(in oklab, var(--accent) 9%, var(--surface));
 }
 
+.feed-item__top strong {
+  font-family: var(--font-signal);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 .feed-item__top {
   display: flex;
   align-items: center;
@@ -1355,6 +1472,19 @@ input[type="range"] {
   .btn--primary:hover:not(:disabled) {
     background: var(--ink-hover);
     border-color: var(--ink-hover);
+  }
+}
+
+.btn--report {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+@media (hover: hover) {
+  .btn--report:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--brand) 86%, white);
+    border-color: color-mix(in oklab, var(--brand) 86%, white);
   }
 }
 
@@ -1483,9 +1613,10 @@ input[type="range"] {
 }
 
 .panel__header h2 {
+  font-family: var(--font-signal);
   font-size: var(--t-title);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .panel__hint {
@@ -1950,10 +2081,10 @@ kbd {
 }
 
 .detail-panel__title {
-  font-size: var(--t-title);
+  font-family: var(--font-signal);
+  font-size: 30px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.05;
 }
 
 .detail-panel__actions {

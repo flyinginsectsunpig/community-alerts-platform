@@ -5,6 +5,7 @@ import CategoryMark from "./CategoryMark";
 import SeverityBadge from "./SeverityBadge";
 import { activityLabels, CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
 import { isFiltered, type AlertFilter } from "@/lib/filter";
+import { groupByRecency } from "@/lib/status";
 import type { Alert } from "@/lib/types";
 
 interface AlertFeedProps {
@@ -44,6 +45,48 @@ export default function AlertFeed({
   onHover,
 }: AlertFeedProps) {
   const filtered = isFiltered(filter);
+
+  const renderRow = (alert: Alert) => (
+    <li key={alert.id}>
+      <button
+        type="button"
+        className={
+          "feed-item" +
+          (alert.id === selectedId ? " feed-item--active" : "") +
+          (alert.id === linkedId ? " feed-item--linked" : "") +
+          (newIds.has(alert.id) ? " feed-item--new" : "")
+        }
+        // The arrival wash tints itself from the row's own severity.
+        style={{ "--sev": SEVERITY_COLORS[alert.severity] } as React.CSSProperties}
+        aria-current={alert.id === selectedId || undefined}
+        onClick={() => onSelect(alert)}
+        onMouseEnter={() => onHover(alert.id)}
+        onMouseLeave={() => onHover(null)}
+        onFocus={() => onHover(alert.id)}
+        onBlur={() => onHover(null)}
+      >
+        <CategoryMark category={alert.category} severity={alert.severity} />
+        <div className="feed-item__body">
+          <div className="feed-item__top">
+            <strong>{CATEGORY_LABELS[alert.category]}</strong>
+            <SeverityBadge severity={alert.severity} />
+          </div>
+          <p className="feed-item__description">{alert.description}</p>
+          <div className="feed-item__meta">
+            {alert.status === "VERIFIED" && (
+              <span className="verified-chip">
+                <CheckIcon size={12} /> Verified
+              </span>
+            )}
+            <span>{timeAgo(alert.createdAt)}</span>
+            {activityLabels(alert.confirmationCount, alert.commentCount).map((label) => (
+              <span key={label}>{label}</span>
+            ))}
+          </div>
+        </div>
+      </button>
+    </li>
+  );
 
   return (
     <section className="feed" aria-label="Live alert feed">
@@ -118,7 +161,7 @@ export default function AlertFeed({
         ) : (
           <div className="feed__empty-state">
             <p className="feed__empty">
-              Nothing reported around here yet — which is good news.
+              Nothing reported around here yet.
             </p>
             <p className="panel__hint">
               Click or tap the map to report something you have seen. Reports show up here
@@ -128,45 +171,10 @@ export default function AlertFeed({
         )
       ) : (
         <ul className="feed__list fade-in">
-          {alerts.map((alert) => (
-            <li key={alert.id}>
-              <button
-                type="button"
-                className={
-                  "feed-item" +
-                  (alert.id === selectedId ? " feed-item--active" : "") +
-                  (alert.id === linkedId ? " feed-item--linked" : "") +
-                  (newIds.has(alert.id) ? " feed-item--new" : "")
-                }
-                // The arrival wash tints itself from the row's own severity.
-                style={{ "--sev": SEVERITY_COLORS[alert.severity] } as React.CSSProperties}
-                aria-current={alert.id === selectedId || undefined}
-                onClick={() => onSelect(alert)}
-                onMouseEnter={() => onHover(alert.id)}
-                onMouseLeave={() => onHover(null)}
-                onFocus={() => onHover(alert.id)}
-                onBlur={() => onHover(null)}
-              >
-                <CategoryMark category={alert.category} severity={alert.severity} />
-                <div className="feed-item__body">
-                  <div className="feed-item__top">
-                    <strong>{CATEGORY_LABELS[alert.category]}</strong>
-                    <SeverityBadge severity={alert.severity} />
-                  </div>
-                  <p className="feed-item__description">{alert.description}</p>
-                  <div className="feed-item__meta">
-                    {alert.status === "VERIFIED" && (
-                      <span className="verified-chip">
-                        <CheckIcon size={12} /> Verified
-                      </span>
-                    )}
-                    <span>{timeAgo(alert.createdAt)}</span>
-                    {activityLabels(alert.confirmationCount, alert.commentCount).map((label) => (
-                      <span key={label}>{label}</span>
-                    ))}
-                  </div>
-                </div>
-              </button>
+          {groupByRecency(alerts).map((group) => (
+            <li key={group.label} className="feed__group">
+              <h3 className="feed__group-title">{group.label}</h3>
+              <ul className="feed__group-list">{group.alerts.map(renderRow)}</ul>
             </li>
           ))}
         </ul>
