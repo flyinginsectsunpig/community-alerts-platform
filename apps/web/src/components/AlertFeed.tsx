@@ -1,7 +1,8 @@
 "use client";
 
+import CategoryMark from "./CategoryMark";
 import SeverityBadge from "./SeverityBadge";
-import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { activityLabels, CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
 import { isFiltered, type AlertFilter } from "@/lib/filter";
 import type { Alert } from "@/lib/types";
 
@@ -145,20 +146,22 @@ export default function AlertFeed({
                 onFocus={() => onHover(alert.id)}
                 onBlur={() => onHover(null)}
               >
-                <div className="feed-item__top">
-                  <strong>{CATEGORY_LABELS[alert.category]}</strong>
-                  <SeverityBadge severity={alert.severity} />
-                </div>
-                <p className="feed-item__description">{alert.description}</p>
-                <div className="feed-item__meta">
-                  {alert.status === "VERIFIED" && <span className="verified-chip">✓ Verified</span>}
-                  <span>{timeAgo(alert.createdAt)}</span>
-                  <span>
-                    {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
-                  </span>
-                  <span>
-                    {alert.commentCount} update{alert.commentCount === 1 ? "" : "s"}
-                  </span>
+                <CategoryMark category={alert.category} severity={alert.severity} />
+                <div className="feed-item__body">
+                  <div className="feed-item__top">
+                    <strong>{CATEGORY_LABELS[alert.category]}</strong>
+                    <SeverityBadge severity={alert.severity} />
+                  </div>
+                  <p className="feed-item__description">{alert.description}</p>
+                  <div className="feed-item__meta">
+                    {alert.status === "VERIFIED" && (
+                      <span className="verified-chip">✓ Verified</span>
+                    )}
+                    <span>{timeAgo(alert.createdAt)}</span>
+                    {activityLabels(alert.confirmationCount, alert.commentCount).map((label) => (
+                      <span key={label}>{label}</span>
+                    ))}
+                  </div>
                 </div>
               </button>
             </li>

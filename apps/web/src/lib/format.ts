@@ -125,3 +125,15 @@ export function fillWeek(
 export function formatZoneArea(km2: number): string {
   return km2 < 0.1 ? `${(km2 * 100).toFixed(1)} ha` : `${km2.toFixed(1)} km²`;
 }
+
+/** Confirmations and updates worth mentioning; a row of zeros tells nobody anything. */
+export function activityLabels(confirmations: number, updates: number): string[] {
+  const labels: string[] = [];
+  if (confirmations > 0) {
+    labels.push(`${confirmations} confirmation${confirmations === 1 ? "" : "s"}`);
+  }
+  if (updates > 0) {
+    labels.push(`${updates} update${updates === 1 ? "" : "s"}`);
+  }
+  return labels;
+}

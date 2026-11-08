@@ -1160,9 +1160,8 @@ input[type="range"] {
   min-height: 0;
 }
 
-/* Rows sit open on the panel rather than as boxes, each with a stripe in its
-   severity colour down the left edge: scanning the stripes reads the feed's
-   urgency before any text. */
+/* Rows sit open on the panel rather than as boxes, each led by the same mark
+   as its pin on the map, so the list and the map read as one set of things. */
 .feed-item {
   position: relative;
   width: 100%;
@@ -1170,13 +1169,13 @@ input[type="range"] {
   background: transparent;
   border: 1px solid transparent;
   border-radius: var(--r-md);
-  padding: 10px var(--s3) 10px 20px;
+  padding: 10px;
   color: var(--ink);
   font: inherit;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
   overflow: hidden;
   transition:
     background var(--speed-fast) ease,
@@ -1184,15 +1183,28 @@ input[type="range"] {
     transform var(--speed-fast) var(--ease-out);
 }
 
-.feed-item::before {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  border-radius: var(--r-pill);
+.feed-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.category-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   background: var(--sev, var(--sev-unscored));
+  color: var(--on-sev);
+  flex-shrink: 0;
+}
+
+.category-mark svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 @media (hover: hover) {
