@@ -1080,6 +1080,20 @@ input[type="range"] {
   font-variant-numeric: tabular-nums;
 }
 
+.feed__stale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  flex-shrink: 0;
+  margin-right: var(--s2);
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--sev-medium) 16%, transparent);
+  color: var(--ink);
+  font-size: var(--t-small);
+}
+
 .feed__empty {
   color: var(--muted);
   margin: 0;

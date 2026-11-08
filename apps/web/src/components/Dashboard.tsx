@@ -59,6 +59,10 @@ type PanelMode = "report" | null;
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
+  // Kept apart from "no alerts": in a safety app, a failed load must never
+  // read as an all-clear.
+  const [alertsFailed, setAlertsFailed] = useState(false);
+  const [reloadCount, setReloadCount] = useState(0);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [showStations, setShowStations] = useState(false);
@@ -245,6 +249,7 @@ export default function Dashboard() {
       if (nearby.status === "fulfilled") {
         setAlerts(nearby.value);
       }
+      setAlertsFailed(nearby.status === "rejected");
       setAlertsLoaded(true);
       if (summary.status === "fulfilled") {
         setStats(summary.value);
@@ -263,7 +268,12 @@ export default function Dashboard() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [center, showToast]);
+  }, [center, showToast, reloadCount]);
+
+  const retryLoad = useCallback(() => {
+    setAlertsLoaded(false);
+    setReloadCount((count) => count + 1);
+  }, []);
 
   const zoneActive = zoneDraft !== null;
 
@@ -783,6 +793,8 @@ export default function Dashboard() {
             alerts={visibleAlerts}
             totalCount={alerts.length}
             loading={!alertsLoaded}
+            loadFailed={alertsFailed}
+            onRetry={retryLoad}
             connected={connected}
             selectedId={detailAlertId}
             newIds={liveIds}

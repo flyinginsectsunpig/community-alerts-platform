@@ -11,6 +11,9 @@ interface AlertFeedProps {
   /** How many there are before filtering, for the "3 of 10" summary. */
   totalCount: number;
   loading: boolean;
+  /** The last fetch failed, so what is on screen (or isn't) can't be trusted. */
+  loadFailed: boolean;
+  onRetry: () => void;
   connected: boolean;
   selectedId: string | null;
   /** Ids that just arrived over the live stream — get the "new" animation. */
@@ -27,6 +30,8 @@ export default function AlertFeed({
   alerts,
   totalCount,
   loading,
+  loadFailed,
+  onRetry,
   connected,
   selectedId,
   newIds,
@@ -69,11 +74,32 @@ export default function AlertFeed({
         </div>
       )}
 
+      {/* Older alerts are still worth showing when a refresh fails, as long
+          as nobody takes them for the current picture. */}
+      {loadFailed && !loading && totalCount > 0 && (
+        <div className="feed__stale" role="status">
+          <span>Couldn&rsquo;t refresh. These may be out of date.</span>
+          <button type="button" className="link-button" onClick={onRetry}>
+            Try again
+          </button>
+        </div>
+      )}
+
       {loading && alerts.length === 0 ? (
         <div className="feed-skeleton" aria-hidden>
           {[0, 1, 2].map((i) => (
             <div key={i} className="skeleton feed-skeleton__item" />
           ))}
+        </div>
+      ) : loadFailed && totalCount === 0 ? (
+        <div className="feed__empty-state" role="alert">
+          <p className="feed__empty">Alerts couldn&rsquo;t be loaded.</p>
+          <p className="panel__hint">
+            This doesn&rsquo;t mean your area is clear. Check your connection and try again.
+          </p>
+          <button type="button" className="btn btn--small" onClick={onRetry}>
+            Try again
+          </button>
         </div>
       ) : alerts.length === 0 ? (
         filtered ? (
