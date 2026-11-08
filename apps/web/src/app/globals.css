@@ -3283,9 +3283,15 @@ kbd {
     padding-top: var(--s1);
   }
 
+  /* One continuous list on a phone: the whole sheet scrolls, not a box in it. */
   .sidebar__inner > .feed {
     order: -1;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
+  }
+
+  .feed__list {
+    overflow-y: visible;
+    scrollbar-gutter: auto;
   }
 
   .sidebar__inner > .stats {

@@ -979,7 +979,8 @@ export default function Dashboard() {
 
       {/* Centred on whatever is still visible of the map between the panels. */}
       <div className="map-hints">
-        <Presence when={showHint}>
+        {/* Not while the sheet is pulled up over the place it points at. */}
+        <Presence when={showHint && (!sheet.isSheet || sheet.snap === "peek")}>
           <MapHint onDismiss={dismissHint}>Click or tap the map to report an alert.</MapHint>
         </Presence>
         <Presence when={showStations && stationsGated}>
