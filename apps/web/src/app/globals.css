@@ -292,7 +292,8 @@ input[type="range"] {
 
 /* The control surfaces are dark in both themes, so they read as hardware
    around the map. Redefining the tokens here restyles everything inside. */
-.topbar {
+.topbar,
+.tabbar {
   --surface: oklch(0.225 0.02 262);
   --surface-2: oklch(0.3 0.02 262);
   --surface-3: oklch(0.36 0.02 262);
@@ -486,6 +487,48 @@ input[type="range"] {
   padding: 3px;
   background: var(--surface-2);
   border-radius: var(--r-pill);
+}
+
+/* The compact, icon-only form is for the phone bar. */
+.layer-toggle__icon {
+  display: none;
+}
+
+/* Only exists on phones and tablets, where it replaces the bar's controls. */
+.tabbar {
+  display: none;
+}
+
+.locate-button {
+  position: absolute;
+  right: var(--gap);
+  bottom: 92px;
+  z-index: var(--z-docked);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  box-shadow: var(--shadow-2);
+  color: var(--ink);
+  cursor: pointer;
+  transform: translateX(calc(-1 * var(--dock-right)));
+  transition:
+    transform var(--speed-slow) var(--ease-out-expo),
+    background var(--speed-fast) ease;
+}
+
+@media (hover: hover) {
+  .locate-button:hover {
+    background: var(--surface-2);
+  }
+}
+
+.locate-button:disabled {
+  color: var(--muted);
+  cursor: progress;
 }
 
 .layer-toggle {
@@ -2883,6 +2926,149 @@ kbd {
   .dashboard--docked-right {
     --dock-left: 0px;
     --dock-right: 0px;
+    --tabbar-total: calc(68px + env(safe-area-inset-bottom, 0px));
+    /* Keep in step with PEEK_PX in useBottomSheet. */
+    --peek: 198px;
+  }
+
+  .tabbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: calc(var(--z-sheet) + 1);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: var(--tabbar-total);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .tabbar__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: var(--t-micro);
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tabbar__item .icon {
+    box-sizing: content-box;
+    padding: 3px 14px;
+    border-radius: var(--r-pill);
+    transition: background var(--speed) var(--ease-out);
+  }
+
+  .tabbar__item[aria-current="page"] {
+    color: var(--ink);
+  }
+
+  .tabbar__item[aria-current="page"] .icon {
+    background: var(--surface-3);
+  }
+
+  .tabbar__item--report {
+    color: var(--ink);
+  }
+
+  .tabbar__item--report:disabled {
+    opacity: 0.5;
+  }
+
+  .tabbar__item--report .icon {
+    padding: 0;
+  }
+
+  /* Rises out of the bar: the one action that has to be findable in a hurry. */
+  .tabbar__report-disc {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    margin-top: -28px;
+    background: var(--brand);
+    border: 4px solid var(--surface);
+    border-radius: 50%;
+    color: var(--on-brand);
+    transition: transform var(--speed-fast) var(--ease-out);
+  }
+
+  .tabbar__item--report:active .tabbar__report-disc {
+    transform: scale(0.94);
+  }
+
+  .locate-button {
+    bottom: calc(var(--tabbar-total) + var(--peek) + var(--gap));
+    transform: none;
+  }
+
+  .leaflet-bottom.leaflet-right {
+    bottom: calc(var(--tabbar-total) + var(--peek));
+  }
+
+  /* The bar comes down to one row: search, and the map layer switch. Everything
+     else moved to the tab bar. */
+  .topbar__controls > :not(.layer-switches),
+  .topbar__account {
+    display: none;
+  }
+
+  .topbar__controls {
+    margin-left: 0;
+  }
+
+  .topbar__brand h1,
+  .layer-toggle__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .switch {
+    display: none;
+  }
+
+  .layer-switches {
+    padding: 0;
+  }
+
+  .layer-switches:has(.switch__input:checked) {
+    background: var(--accent);
+  }
+
+  .layer-toggle {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .switch__input:checked ~ .layer-toggle__icon {
+    color: var(--on-ink);
+  }
+
+  .switch__input:focus-visible ~ .layer-toggle__icon {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+
+  .layer-toggle__icon {
+    display: grid;
+    place-items: center;
   }
 
   .sidebar,
@@ -2890,9 +3076,9 @@ kbd {
     top: auto;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: var(--tabbar-total);
     width: auto;
-    height: 88dvh;
+    height: calc(88dvh - var(--tabbar-total));
     z-index: var(--z-sheet);
     border-bottom: none;
     border-radius: var(--r-lg) var(--r-lg) 0 0;
@@ -2902,7 +3088,7 @@ kbd {
     /* --sheet-y is written by useBottomSheet; the fallback keeps the sheet at
        its peek height before hydration so it never covers the map. Keep the
        px value in step with PEEK_PX in that hook. */
-    transform: translateY(var(--sheet-y, calc(88dvh - 198px)));
+    transform: translateY(var(--sheet-y, calc(88dvh - var(--tabbar-total) - var(--peek))));
   }
 
   /* Only animate when the user isn't dragging — during a drag the transform
@@ -2950,13 +3136,16 @@ kbd {
 
   .sidebar__inner {
     height: calc(100% - 26px);
-    padding-bottom: env(safe-area-inset-bottom);
     scrollbar-gutter: auto;
   }
 
   /* Feed first on a phone: at the peek height you get the live feed and its
      latest alert, which is what the sheet is for. The 7-day summary is
      context and sits below it. */
+  .sidebar__inner > .status-banner {
+    order: -2;
+  }
+
   .sidebar__inner > .feed {
     order: -1;
     flex: 1 1 auto;
@@ -3034,12 +3223,9 @@ kbd {
     right: calc(var(--gap) + env(safe-area-inset-right));
   }
 
-  .topbar__brand h1 {
-    font-size: var(--t-body);
-  }
-
   .topbar__search {
     margin-left: 0;
+    max-width: none;
   }
 
   .topbar__search-key {
@@ -3062,73 +3248,8 @@ kbd {
 }
 
 @media (max-width: 620px) {
-  /* The bar runs to two rows here, so the hints drop to clear it. */
-  .dashboard {
-    --chrome-top: calc(var(--safe-top) + var(--gap) + 120px + var(--gap)); /* measured with 44px touch targets */
-  }
-
-  /* Two rows: the mark, search and account on top, the map controls
-     underneath. The name goes to screen readers only — the red mark carries
-     it visually and the search field needs the width. */
-  .topbar {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas:
-      "brand search account"
-      "controls controls controls";
-    height: auto;
-    padding: var(--s2);
-    gap: var(--s2);
-  }
-
-  .topbar__brand {
-    grid-area: brand;
-  }
-
-  .topbar__brand h1 {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .topbar__search {
-    grid-area: search;
-    max-width: none;
-  }
-
-  .topbar__account {
-    grid-area: account;
-    justify-self: end;
-    padding-left: 0;
-    border-left: none;
-  }
-
-  /* On a phone the chip is just the avatar and the sign-out link. */
-  .user-chip__name {
-    display: none;
-  }
-
-  .topbar__controls {
-    grid-area: controls;
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-
-  /* Pushed to the end of the row, where a right thumb reaches it. */
-  .topbar__report {
-    margin-left: auto;
-  }
-
   .stats__category {
     grid-template-columns: 92px 1fr 26px;
-  }
-
-  /* No keyboard to accelerate on a phone. */
-  .shortcuts-hint {
-    display: none;
   }
 }
 

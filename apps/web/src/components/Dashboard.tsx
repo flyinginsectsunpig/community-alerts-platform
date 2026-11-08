@@ -17,8 +17,18 @@ import StationStatsPanel from "./StationStatsPanel";
 import ShortcutsSheet from "./ShortcutsSheet";
 import StatsPanel from "./StatsPanel";
 import Toast, { type ToastMessage } from "./Toast";
-import { CloseIcon, PlusIcon } from "./icons";
+import {
+  BellIcon,
+  CloseIcon,
+  LocateIcon,
+  MapIcon,
+  PlusIcon,
+  ShieldIcon,
+  TargetIcon,
+  UserIcon,
+} from "./icons";
 import WatchZonePanel from "./WatchZonePanel";
+import { useBackToClose } from "@/hooks/useBackToClose";
 import { useBottomSheet } from "@/hooks/useBottomSheet";
 import { useKeyboardShortcuts, type ShortcutMap } from "@/hooks/useKeyboardShortcuts";
 import { useLiveAlerts } from "@/hooks/useLiveAlerts";
@@ -127,6 +137,8 @@ export default function Dashboard() {
   const clearFilter = useCallback(() => setFilter(EMPTY_FILTER), []);
 
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [locating, setLocating] = useState(false);
   // Where the map is currently looking, for the "report here" shortcut.
   const mapCenter = useRef<LatLng>(DEFAULT_CENTER);
 
@@ -508,6 +520,7 @@ export default function Dashboard() {
   function handleSignOut() {
     clearSession();
     setSession(null);
+    setShowAccount(false);
     showToast("info", "Signed out");
   }
 
@@ -589,12 +602,64 @@ export default function Dashboard() {
 
   useKeyboardShortcuts(shortcuts);
 
+  /** One location request at a time, with the failure said out loud. */
+  function locate(onFound: (point: LatLng) => void) {
+    if (!("geolocation" in navigator)) {
+      showToast("error", "Location isn't available on this device");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        onFound({ lat: position.coords.latitude, lng: position.coords.longitude });
+      },
+      () => {
+        setLocating(false);
+        showToast("error", "Couldn't get your location. Check that location is allowed.");
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  }
+
+  function goToMyLocation() {
+    locate((point) => {
+      setCenter(point);
+      setFocus({ ...point, zoom: 16 });
+    });
+  }
+
+  function pinAtMyLocation() {
+    locate((point) => {
+      setPendingPoint(point);
+      setFocus({ ...point, zoom: 17 });
+    });
+  }
+
+  function showMapTab() {
+    setShowZonesPanel(false);
+    sheet.setSnap("peek");
+  }
+
+  const activeTab = showZonesPanel ? "zones" : sheet.snap === "peek" ? "map" : "alerts";
+  const tabCurrent = (tab: string) => (activeTab === tab ? ("page" as const) : undefined);
+
   const rightDocked =
     detailAlert !== null ||
     stationStats !== null ||
     (panelMode === "report" && pendingPoint !== null) ||
     zoneDraft !== null ||
     showZonesPanel;
+
+  // On a phone, these are the layers the back button should peel off.
+  useBackToClose(sheet.isSheet && (rightDocked || sheet.snap !== "peek"), () => {
+    closePanel();
+    closeZone();
+    setShowZonesPanel(false);
+    setStationStats(null);
+    setDetailAlertId(null);
+    sheet.setSnap("peek");
+  });
 
   return (
     <div
@@ -725,7 +790,10 @@ export default function Dashboard() {
                 onChange={(event) => setShowStations(event.target.checked)}
               />
               <span className="switch" aria-hidden />
-              Stations
+              <span className="layer-toggle__icon" aria-hidden>
+                <ShieldIcon size={20} />
+              </span>
+              <span className="layer-toggle__label">Stations</span>
             </label>
           </div>
           <button type="button" className="btn btn--small" onClick={openZonesPanel}>
@@ -896,6 +964,17 @@ export default function Dashboard() {
         </Presence>
       </div>
 
+      <button
+        type="button"
+        className="locate-button"
+        onClick={goToMyLocation}
+        disabled={locating}
+        aria-label="Go to my location"
+        title="Go to my location"
+      >
+        <LocateIcon size={22} />
+      </button>
+
       {/* Centred on whatever is still visible of the map between the panels. */}
       <div className="map-hints">
         <Presence when={showHint}>
@@ -905,6 +984,86 @@ export default function Dashboard() {
           <MapHint>Zoom in to see police stations.</MapHint>
         </Presence>
       </div>
+
+      {/* Phones and tablets only. The five things this app is for, under the
+          thumb, with Report raised because it is the one that can't wait. */}
+      <nav className="tabbar" aria-label="Main">
+        <button
+          type="button"
+          className="tabbar__item"
+          aria-current={tabCurrent("map")}
+          onClick={showMapTab}
+        >
+          <MapIcon size={22} />
+          Map
+        </button>
+        <button
+          type="button"
+          className="tabbar__item"
+          aria-current={tabCurrent("alerts")}
+          onClick={() => {
+            setShowZonesPanel(false);
+            sheet.setSnap("full");
+          }}
+        >
+          <BellIcon size={22} />
+          Alerts
+        </button>
+        <button
+          type="button"
+          className="tabbar__item tabbar__item--report"
+          onClick={() => handleMapClick(mapCenter.current)}
+          disabled={zoneActive}
+        >
+          <span className="tabbar__report-disc" aria-hidden>
+            <PlusIcon size={28} />
+          </span>
+          Report
+        </button>
+        <button
+          type="button"
+          className="tabbar__item"
+          aria-current={tabCurrent("zones")}
+          onClick={openZonesPanel}
+        >
+          <TargetIcon size={22} />
+          Zones
+        </button>
+        <button
+          type="button"
+          className="tabbar__item"
+          onClick={() => (session ? setShowAccount(true) : setShowAuthModal(true))}
+        >
+          <UserIcon size={22} />
+          {session ? "Account" : "Sign in"}
+        </button>
+      </nav>
+
+      <Presence when={showAccount && session !== null}>
+        {session && (
+          <ModalOverlay label="Your account" onClose={() => setShowAccount(false)}>
+            <div className="panel">
+              <div className="panel__header">
+                <h2>{session.displayName}</h2>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  onClick={() => setShowAccount(false)}
+                  aria-label="Close"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+              <p className="panel__hint">{session.email}</p>
+              <div className="panel__actions">
+                <button type="button" className="btn" onClick={handleSignOut}>
+                  Sign out
+                </button>
+              </div>
+            </div>
+          </ModalOverlay>
+        )}
+      </Presence>
 
       <Presence when={showShortcuts}>
         <ShortcutsSheet onClose={() => setShowShortcuts(false)} />
