@@ -444,7 +444,7 @@ export function nearestSegment(points: Xy[], p: Xy): { index: number; distance: 
   return best;
 }
 
-function haversineM(a: LatLng, b: LatLng): number {
+export function haversineM(a: LatLng, b: LatLng): number {
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
   const h =

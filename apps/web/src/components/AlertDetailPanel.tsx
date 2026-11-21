@@ -2,17 +2,23 @@
 
 import { useEffect, useState } from "react";
 
+import CategoryMark from "./CategoryMark";
+import { CheckIcon, CloseIcon } from "./icons";
 import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
 import type { AuthSession } from "@/lib/auth";
-import { CATEGORY_LABELS, timeAgo } from "@/lib/format";
-import type { Alert, AlertComment } from "@/lib/types";
+import { distanceLabel, distanceMetres } from "@/lib/distance";
+import { CATEGORY_LABELS, SEVERITY_COLORS, timeAgo } from "@/lib/format";
+import { isSerious } from "@/lib/status";
+import type { Alert, AlertComment, LatLng } from "@/lib/types";
 
 interface AlertDetailPanelProps {
   alert: Alert;
   session: AuthSession | null;
+  /** The user's position, when known, to say how far away this is. */
+  origin: LatLng | null;
   /** Latest live comment event, forwarded from the SSE stream. */
   liveComment: AlertComment | null;
   onClose: () => void;
@@ -24,6 +30,7 @@ interface AlertDetailPanelProps {
 export default function AlertDetailPanel({
   alert,
   session,
+  origin,
   liveComment,
   onClose,
   onConfirm,
@@ -110,7 +117,12 @@ export default function AlertDetailPanel({
   return (
     <aside
       ref={panelRef}
-      className={`detail-panel${exiting ? " detail-panel--exiting" : ""}`}
+      className={
+        "detail-panel" +
+        (isSerious(alert.severity) ? " detail-panel--serious" : "") +
+        (exiting ? " detail-panel--exiting" : "")
+      }
+      style={{ "--sev": SEVERITY_COLORS[alert.severity] } as React.CSSProperties}
       aria-label="Alert details and discussion"
       // Focus lands here rather than on the close button, so the panel's label
       // and contents are read from the top. Not a modal, so Tab still leaves.
@@ -118,15 +130,22 @@ export default function AlertDetailPanel({
       tabIndex={-1}
     >
       <div className="detail-panel__header">
-        <div>
-          <strong>{CATEGORY_LABELS[alert.category]}</strong>
-          <div className="detail-panel__badges">
-            <SeverityBadge severity={alert.severity} />
-            {alert.status === "VERIFIED" && <span className="verified-chip">✓ Verified</span>}
+        <div className="detail-panel__identity">
+          <CategoryMark category={alert.category} severity={alert.severity} />
+          <div>
+            <h2 className="detail-panel__title">{CATEGORY_LABELS[alert.category]}</h2>
+            <div className="detail-panel__badges">
+              <SeverityBadge severity={alert.severity} />
+              {alert.status === "VERIFIED" && (
+                <span className="verified-chip">
+                  <CheckIcon size={12} /> Verified
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Close details">
-          ×
+          <CloseIcon />
         </button>
       </div>
 
@@ -134,11 +153,19 @@ export default function AlertDetailPanel({
 
       <div className="detail-panel__meta">
         <span>{timeAgo(alert.createdAt)}</span>
+        {origin && <span>{distanceLabel(distanceMetres(origin, alert))}</span>}
         {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
         <span>
           {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
         </span>
-        <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
+      </div>
+
+      <div className="detail-panel__actions">
+        <button
+          type="button"
+          className="btn btn--primary btn--small"
+          onClick={() => onConfirm(alert.id)}
+        >
           I saw this too
         </button>
         {session && session.userId === alert.reportedByUserId && (

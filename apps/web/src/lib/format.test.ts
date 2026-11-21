@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ageFraction, dayLetter, fillWeek, formatZoneArea } from "./format";
+import { activityLabels, ageFraction, dayLetter, fillWeek, formatZoneArea } from "./format";
 
 /** 00:30 in Johannesburg on 30 July — 22:30 UTC on the 29th. */
 const LATE_NIGHT_SAST = new Date("2026-07-30T00:30:00+02:00");
@@ -99,5 +99,20 @@ describe("formatZoneArea", () => {
     // a 400 m x 20 m street
     expect(formatZoneArea(0.008)).toBe("0.8 ha");
     expect(formatZoneArea(0.0999)).toBe("10.0 ha");
+  });
+});
+
+describe("activityLabels", () => {
+  it("says nothing about activity that has not happened", () => {
+    expect(activityLabels(0, 0)).toEqual([]);
+  });
+
+  it("only lists the counts that are non-zero", () => {
+    expect(activityLabels(2, 0)).toEqual(["2 confirmations"]);
+    expect(activityLabels(0, 3)).toEqual(["3 updates"]);
+  });
+
+  it("uses the singular for one", () => {
+    expect(activityLabels(1, 1)).toEqual(["1 confirmation", "1 update"]);
   });
 });

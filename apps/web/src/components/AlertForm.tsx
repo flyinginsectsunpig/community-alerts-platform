@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import CategoryMark from "./CategoryMark";
+import { CloseIcon, LocateIcon } from "./icons";
 import { OPEN_MODAL, useExiting } from "./Presence";
 import SeverityBadge from "./SeverityBadge";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
@@ -19,9 +21,18 @@ interface AlertFormProps {
   onClose: () => void;
   onCreated: (alert: Alert) => void;
   onSwitchToZone: () => void;
+  onUseMyLocation: () => void;
+  locating: boolean;
 }
 
-export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }: AlertFormProps) {
+export default function AlertForm({
+  point,
+  onClose,
+  onCreated,
+  onSwitchToZone,
+  onUseMyLocation,
+  locating,
+}: AlertFormProps) {
   const [category, setCategory] = useState<AlertCategory>("THEFT");
   const [description, setDescription] = useState("");
   const [ongoing, setOngoing] = useState(false);
@@ -88,13 +99,16 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
       ref={panelRef}
       className={`zone-panel report-panel${exiting ? " zone-panel--exiting" : ""}`}
       aria-label="Report an alert"
+      // Focus lands on the panel, not the text box: opening the keyboard
+      // straight away would hide the map and the incident types on a phone.
+      data-autofocus
       tabIndex={-1}
     >
       <form className="zone-panel__form" onSubmit={handleSubmit}>
         <div className="panel__header">
           <h2>Report an alert</h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
 
@@ -102,22 +116,36 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             metre precision written in a form nobody can check; the pin itself
             is now visible, so the useful thing to say is how to move it. */}
         <p className="panel__hint">
-          Your pin is on the map. Click anywhere to move it.
+          Your pin is on the map. Click or tap where it happened to move it.
         </p>
+        <button
+          type="button"
+          className="btn btn--small report-panel__locate"
+          onClick={onUseMyLocation}
+          disabled={locating}
+        >
+          <LocateIcon size={14} />
+          {locating ? "Finding you…" : "Use my location"}
+        </button>
 
-        <label className="field">
-          <span>Category</span>
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value as AlertCategory)}
-          >
+        <fieldset className="field">
+          <legend>Type of incident</legend>
+          <div className="category-picker">
             {ALERT_CATEGORIES.map((value) => (
-              <option key={value} value={value}>
+              <label key={value} className="category-choice">
+                <input
+                  type="radio"
+                  name="alert-category"
+                  className="sr-only"
+                  checked={category === value}
+                  onChange={() => setCategory(value)}
+                />
+                <CategoryMark category={value} severity="UNSCORED" />
                 {CATEGORY_LABELS[value]}
-              </option>
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
 
         {canReportOngoing(category) && (
           <label className="category-option">
@@ -136,9 +164,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Describe what you saw (at least 10 characters)…"
-            // See AuthModal: useFocusCapture owns initial focus in dialogs.
-            data-autofocus
-            rows={4}
+            rows={3}
             minLength={MIN_DESCRIPTION_LENGTH}
             maxLength={2000}
             required
@@ -170,7 +196,7 @@ export default function AlertForm({ point, onClose, onCreated, onSwitchToZone }:
         <div className="panel__actions">
           <button
             type="submit"
-            className="btn btn--primary"
+            className="btn btn--report report-panel__submit"
             disabled={submitting || description.trim().length < MIN_DESCRIPTION_LENGTH}
           >
             {submitting ? "Submitting…" : "Submit report"}

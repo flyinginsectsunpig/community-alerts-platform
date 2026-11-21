@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { CloseIcon } from "./icons";
 import ModalOverlay from "./ModalOverlay";
 import { api, ApiError } from "@/lib/api";
 import { storeSession, type AuthSession } from "@/lib/auth";
@@ -75,7 +76,7 @@ export default function AuthModal({ onClose, onAuthed }: AuthModalProps) {
                 : "Reset your password"}
           </h2>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-            ×
+            <CloseIcon />
           </button>
         </div>
 

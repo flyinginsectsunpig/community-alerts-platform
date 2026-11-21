@@ -4,14 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Matches the `max-width: 860px` sheet breakpoint in globals.css. */
 const SHEET_QUERY = "(max-width: 860px)";
-/** Matches `.sidebar { height: 88dvh }` in the same block. */
-const SHEET_HEIGHT = 0.88;
-/** Handle + feed header + search field + one complete alert row, so the latest
-    alert is always readable without opening the sheet. Measured, not guessed:
-    the first row's bottom sits 212px below the sheet's top edge, and the extra
+/** Handle + status banner + one complete alert row, so the latest alert is
+    always readable without opening the sheet. Measured, not guessed: the
+    first row's bottom sits 248px below the sheet's top edge, and the extra
     12px keeps the feed's own padding in view. Mirrored by the pre-hydration
     fallback in the `.sidebar` transform in globals.css. */
-const PEEK_PX = 224;
+const PEEK_PX = 260;
 const HALF = 0.52;
 /** px/ms past which a release counts as a flick rather than a drop. */
 const FLICK_VELOCITY = 0.45;
@@ -45,7 +43,8 @@ export function useBottomSheet(enabled = true) {
   }, []);
 
   const offsetFor = useCallback((point: Snap) => {
-    const height = window.innerHeight * SHEET_HEIGHT;
+    // Measured rather than assumed: the tab bar takes its share of the screen.
+    const height = sheetRef.current?.offsetHeight ?? window.innerHeight;
     if (point === "full") return 0;
     if (point === "half") return Math.max(0, height - window.innerHeight * HALF);
     return Math.max(0, height - PEEK_PX);

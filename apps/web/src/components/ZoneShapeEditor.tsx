@@ -23,7 +23,10 @@ import {
 } from "@/lib/zoneShape";
 
 // Zone drafts wear the accent: an action of yours in progress, not data.
-export const ZONE_COLOR = "#24abe8";
+// Leaflet sets this as an SVG attribute, which cannot read the theme's
+// --accent, so it is one blue that holds 3:1 against both the light
+// (Voyager) and dark (Dark Matter) basemaps.
+export const ZONE_COLOR = "#1f7dcf";
 
 // Styled via .zone-handle in globals.css; a DivIcon avoids Leaflet's default
 // marker sprite (whose assets don't survive bundling).

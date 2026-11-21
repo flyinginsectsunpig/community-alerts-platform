@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseIcon } from "./icons";
 import { useExiting } from "./Presence";
 
 interface MapHintProps {
@@ -16,7 +17,7 @@ export default function MapHint({ children, onDismiss }: MapHintProps) {
       {children}
       {onDismiss && (
         <button type="button" className="btn-icon" onClick={onDismiss} aria-label="Dismiss hint">
-          ×
+          <CloseIcon />
         </button>
       )}
     </div>

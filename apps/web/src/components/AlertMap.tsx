@@ -13,12 +13,15 @@ import {
   Tooltip,
   useMap,
   useMapEvents,
+  ZoomControl,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
+import { CheckIcon } from "./icons";
 import SeverityBadge from "./SeverityBadge";
 import StationLayer from "./StationLayer";
 import ZoneShapeEditor, { ZONE_COLOR } from "./ZoneShapeEditor";
+import { useColorScheme } from "@/hooks/useColorScheme";
 import { categoryDivIcon } from "@/lib/categoryIcons";
 import { ageFraction, CATEGORY_LABELS, timeAgo } from "@/lib/format";
 import type { Alert, LatLng, StationStats, WatchZone, ZoneDraft, ZoneMode } from "@/lib/types";
@@ -32,14 +35,28 @@ const DEFAULT_ZOOM = 13;
 // blank map.
 const BASEMAP_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY ?? "";
 const BASEMAP_QUERY = BASEMAP_KEY ? `?key=${encodeURIComponent(BASEMAP_KEY)}` : "";
-const BASEMAP_URL = `https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
-// Dark Matter's baked-in labels are mid-grey and get lost in the road network,
-// so roads and labels are separate layers that CSS dims and brightens
-// independently (.basemap-roads, .basemap-labels).
-const LABELS_URL = `https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`;
+const CARTO = "https://{s}.basemaps.cartocdn.com";
+// Roads and labels are separate layers so CSS can tune each on its own
+// (.basemap-roads, .basemap-labels): Dark Matter's baked-in labels are
+// mid-grey and get lost in its road network, and Voyager's roads are dialled
+// back so they never compete with the severity colours on the pins.
+const BASEMAPS = {
+  light: {
+    roads: `${CARTO}/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+    labels: `${CARTO}/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+  },
+  dark: {
+    roads: `${CARTO}/dark_nolabels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+    labels: `${CARTO}/dark_only_labels/{z}/{x}/{y}{r}.png${BASEMAP_QUERY}`,
+  },
+} as const;
 
 /** A point the map should fly to, optionally at a specific zoom. */
-export type FocusTarget = LatLng & { zoom?: number };
+export type FocusTarget = LatLng & {
+  zoom?: number;
+  /** Shifts the point up the screen by this many pixels, clear of a bottom sheet. */
+  offsetY?: number;
+};
 
 interface AlertMapProps {
   alerts: Alert[];
@@ -48,6 +65,10 @@ interface AlertMapProps {
   onStationsError: () => void;
   onOpenStationStats: (stats: StationStats) => void;
   pendingPoint: LatLng | null;
+  /** Where the user is, once they have shared it. */
+  myLocation: LatLng | null;
+  /** Phones: a tap opens the alert's sheet instead of a cramped map popup. */
+  compactPins: boolean;
   focus: FocusTarget | null;
   zoneDraft: ZoneDraft | null;
   /** How the draft is being reshaped; the map starts acting on it with the pull and freehand tools. */
@@ -128,7 +149,11 @@ function FlyTo({ focus }: { focus: FocusTarget | null }) {
       console.warn("FlyTo ignoring non-finite focus", focus);
       return;
     }
-    map.flyTo([focus.lat, focus.lng], focus.zoom ?? Math.max(map.getZoom(), 15), {
+    const zoom = focus.zoom ?? Math.max(map.getZoom(), 15);
+    const target = focus.offsetY
+      ? map.unproject(map.project([focus.lat, focus.lng], zoom).add([0, focus.offsetY]), zoom)
+      : ([focus.lat, focus.lng] as [number, number]);
+    map.flyTo(target, zoom, {
       duration: 0.8,
     });
   }, [focus, map]);
@@ -138,6 +163,8 @@ function FlyTo({ focus }: { focus: FocusTarget | null }) {
 export default function AlertMap({
   alerts,
   showStations,
+  myLocation,
+  compactPins,
   onStationZoomGate,
   onStationsError,
   onOpenStationStats,
@@ -161,21 +188,27 @@ export default function AlertMap({
   onHover,
   onCenterChange,
 }: AlertMapProps) {
+  const basemap = BASEMAPS[useColorScheme()];
+
   return (
     <MapContainer
       center={[DEFAULT_CENTER.lat, DEFAULT_CENTER.lng]}
       zoom={DEFAULT_ZOOM}
       className="alert-map"
       scrollWheelZoom
+      // The feed panel floats over the top left, so zoom moves to the
+      // bottom right, where globals.css slides it clear of the dock.
+      zoomControl={false}
     >
+      <ZoomControl position="bottomright" />
       <TileLayer
-        url={BASEMAP_URL}
+        url={basemap.roads}
         className="basemap-roads"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       />
       {/* Above the roads, below zones (overlay pane, 400) and markers. */}
       <Pane name="basemap-labels" style={{ zIndex: 350, pointerEvents: "none" }}>
-        <TileLayer url={LABELS_URL} className="basemap-labels" />
+        <TileLayer url={basemap.labels} className="basemap-labels" />
       </Pane>
       <MapResize />
       <ClickCapture onMapClick={onMapClick} />
@@ -207,42 +240,61 @@ export default function AlertMap({
           eventHandlers={{
             mouseover: () => onHover(alert.id),
             mouseout: () => onHover(null),
+            click: () => {
+              if (compactPins) onOpenDetail(alert);
+            },
           }}
         >
-          <Tooltip>
-            {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
-          </Tooltip>
-          <Popup>
-            <div className="map-popup">
-              <div className="map-popup__header">
-                <strong>{CATEGORY_LABELS[alert.category]}</strong>
-                <SeverityBadge severity={alert.severity} />
+          {!compactPins && (
+            <Tooltip>
+              {CATEGORY_LABELS[alert.category]} · {timeAgo(alert.createdAt)}
+            </Tooltip>
+          )}
+          {!compactPins && (
+            <Popup>
+              <div className="map-popup">
+                <div className="map-popup__header">
+                  <strong>{CATEGORY_LABELS[alert.category]}</strong>
+                  <SeverityBadge severity={alert.severity} />
+                </div>
+                <p className="map-popup__description">{alert.description}</p>
+                <div className="map-popup__meta">
+                  {alert.status === "VERIFIED" && <span className="verified-chip">
+                      <CheckIcon size={12} /> Verified
+                    </span>}
+                  <span>{timeAgo(alert.createdAt)}</span>
+                  {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
+                  <span>
+                    {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="map-popup__actions">
+                  <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
+                    I saw this too
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    onClick={() => onOpenDetail(alert)}
+                  >
+                    Updates ({alert.commentCount})
+                  </button>
+                </div>
               </div>
-              <p className="map-popup__description">{alert.description}</p>
-              <div className="map-popup__meta">
-                {alert.status === "VERIFIED" && <span className="verified-chip">✓ Verified</span>}
-                <span>{timeAgo(alert.createdAt)}</span>
-                {alert.riskScore !== null && <span>risk {(alert.riskScore * 100).toFixed(0)}%</span>}
-                <span>
-                  {alert.confirmationCount} confirmation{alert.confirmationCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="map-popup__actions">
-                <button type="button" className="btn btn--small" onClick={() => onConfirm(alert.id)}>
-                  I saw this too
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={() => onOpenDetail(alert)}
-                >
-                  Updates ({alert.commentCount})
-                </button>
-              </div>
-            </div>
-          </Popup>
+            </Popup>
+          )}
         </Marker>
       ))}
+
+      {myLocation && (
+        <CircleMarker
+          center={[myLocation.lat, myLocation.lng]}
+          radius={8}
+          interactive={false}
+          className="my-location"
+          pathOptions={{ color: "#ffffff", weight: 3, fillColor: ZONE_COLOR, fillOpacity: 1 }}
+        />
+      )}
 
       {pendingPoint && (
         <CircleMarker

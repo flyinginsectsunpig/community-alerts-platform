@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CloseIcon } from "./icons";
 import { OPEN_MODAL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import { api, ApiError } from "@/lib/api";
@@ -199,7 +200,7 @@ export default function MyZonesPanel({
       <div className="panel__header">
         <h2>My watch zones</h2>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Close">
-          ×
+          <CloseIcon />
         </button>
       </div>
 

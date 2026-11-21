@@ -7,17 +7,19 @@ import type { AlertCategory, Severity } from "./types";
  *
  * Deliberately contains no green: green belongs to "verified" (--good), and a
  * green LOW badge next to a green verified chip was unreadable as two
- * different things. Every value clears 4.5:1 on --surface and --surface-2.
+ * different things. Every value clears 3:1 against --surface in both themes.
  *
- * Source of truth for JS and Leaflet. The --sev-* custom properties in
- * globals.css mirror these and must be kept in sync.
+ * These point at the --sev-* custom properties in globals.css, which hold the
+ * light and dark ramps, so a pin, a badge and a chart bar always switch theme
+ * together. They are only ever used as CSS values (inline `--sev`), never
+ * handed to Leaflet as SVG attributes, which cannot resolve var().
  */
 export const SEVERITY_COLORS: Record<Severity, string> = {
-  UNSCORED: "#9298a5", // oklch(0.68 0.02 265)
-  LOW: "#66bec3", // oklch(0.75 0.085 200)
-  MEDIUM: "#eab532", // oklch(0.80 0.15 85)
-  HIGH: "#fa8233", // oklch(0.73 0.17 50)
-  CRITICAL: "#f84b4b", // oklch(0.66 0.21 25)
+  UNSCORED: "var(--sev-unscored)",
+  LOW: "var(--sev-low)",
+  MEDIUM: "var(--sev-medium)",
+  HIGH: "var(--sev-high)",
+  CRITICAL: "var(--sev-critical)",
 };
 
 export const SEVERITY_LABELS: Record<Severity, string> = {
@@ -122,4 +124,16 @@ export function fillWeek(
 /** A drawn zone's area: km² from 0.1 up, hectares below it (a street is 0.8 ha, not 0.0 km²). */
 export function formatZoneArea(km2: number): string {
   return km2 < 0.1 ? `${(km2 * 100).toFixed(1)} ha` : `${km2.toFixed(1)} km²`;
+}
+
+/** Confirmations and updates worth mentioning; a row of zeros tells nobody anything. */
+export function activityLabels(confirmations: number, updates: number): string[] {
+  const labels: string[] = [];
+  if (confirmations > 0) {
+    labels.push(`${confirmations} confirmation${confirmations === 1 ? "" : "s"}`);
+  }
+  if (updates > 0) {
+    labels.push(`${updates} update${updates === 1 ? "" : "s"}`);
+  }
+  return labels;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
+import { CloseIcon } from "./icons";
 import { OPEN_MODAL, OPEN_ZONE_PANEL, useExiting } from "./Presence";
 import { useFocusCapture } from "@/hooks/useFocusCapture";
 import type { StationStats } from "@/lib/types";
@@ -73,7 +74,7 @@ export default function StationStatsPanel({ stats, onClose }: StationStatsPanelP
           </div>
         </div>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Close station stats">
-          ×
+          <CloseIcon />
         </button>
       </div>
 
